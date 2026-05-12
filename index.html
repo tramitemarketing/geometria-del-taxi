@@ -244,6 +244,141 @@
   color: rgba(255,255,255,0.35);
   line-height: 1.6;
 }
+
+/* ─── MAIN ENGINE ─── */
+#esplora {
+  background: #050505;
+  padding: 5rem 2rem;
+  color: white;
+}
+.engine-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.engine-header { margin-bottom: 2rem; }
+.engine-title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: clamp(2rem, 4vw, 3rem);
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+.engine-subtitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+}
+.engine-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+#main-canvas-wrap {
+  flex: 1;
+  min-width: 0;
+}
+#main-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 600px;
+  background: #0a0a0a;
+  border: 1px solid #1a1a1a;
+  border-radius: 6px;
+  cursor: crosshair;
+}
+.engine-controls {
+  width: 260px;
+  flex-shrink: 0;
+}
+.conic-panel {
+  border: 1px solid #1e1e1e;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.conic-panel.active { border-color: var(--panel-color, #444); }
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: #0f0f0f;
+  user-select: none;
+  transition: background 0.15s;
+}
+.panel-header:hover { background: #161616; }
+.panel-toggle {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--panel-color, #444);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.conic-panel.active .panel-toggle { background: var(--panel-color, #444); }
+.panel-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  flex: 1;
+  letter-spacing: 0.05em;
+}
+.conic-panel.active .panel-name { color: rgba(255,255,255,0.9); }
+.panel-chevron {
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  transition: transform 0.2s;
+}
+.panel-body {
+  padding: 12px 14px;
+  display: none;
+  background: #080808;
+}
+.conic-panel.open .panel-body { display: block; }
+.conic-panel.open .panel-chevron { transform: rotate(180deg); }
+.engine-ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.engine-ctrl-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+  width: 40px;
+  flex-shrink: 0;
+}
+.engine-ctrl-row input[type=range] {
+  flex: 1;
+  height: 3px;
+}
+.engine-ctrl-value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
+  width: 36px;
+  text-align: right;
+}
+.panel-output {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  margin-top: 8px;
+  line-height: 1.7;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 8px;
+}
+@media (max-width: 768px) {
+  .engine-layout { flex-direction: column; }
+  .engine-controls { width: 100%; }
+  #main-canvas { max-width: 100%; }
+}
   </style>
 </head>
 <body>
@@ -597,9 +732,149 @@ dove p = y_F − k</div>
   </div>
 </section>
 
-  <section id="esplora" style="background:#050505;min-height:60vh;padding:4rem 2rem;">
-    <p style="color:white;font-family:sans-serif">ENGINE placeholder</p>
-  </section>
+  <section id="esplora">
+  <div class="engine-inner">
+    <div class="engine-header">
+      <div class="engine-title">Esplora</div>
+      <div class="engine-subtitle">Attiva le coniche e modifica i parametri</div>
+    </div>
+
+    <div class="engine-layout">
+      <div id="main-canvas-wrap">
+        <canvas id="main-canvas"></canvas>
+      </div>
+
+      <div class="engine-controls">
+
+        <!-- Circonferenza panel -->
+        <div class="conic-panel active open" id="panel-circle" style="--panel-color:#e63946">
+          <div class="panel-header" onclick="MainEngine.togglePanel('circle')">
+            <div class="panel-toggle"></div>
+            <span class="panel-name">Circonferenza</span>
+            <span class="panel-chevron">▼</span>
+          </div>
+          <div class="panel-body">
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">x꜀</span>
+              <input type="range" min="-4" max="4" step="0.5" value="0"
+                oninput="MainEngine.setParam('circle','xc',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#e63946">
+              <span class="engine-ctrl-value">0</span>
+            </div>
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">y꜀</span>
+              <input type="range" min="-4" max="4" step="0.5" value="0"
+                oninput="MainEngine.setParam('circle','yc',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#e63946">
+              <span class="engine-ctrl-value">0</span>
+            </div>
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">R</span>
+              <input type="range" min="0.5" max="5" step="0.5" value="3"
+                oninput="MainEngine.setParam('circle','R',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#e63946">
+              <span class="engine-ctrl-value">3</span>
+            </div>
+            <div class="panel-output" id="out-circle">Perimetro = — | Area = — | π₁ = 4</div>
+          </div>
+        </div>
+
+        <!-- Ellisse panel -->
+        <div class="conic-panel" id="panel-ellipse" style="--panel-color:#3b82f6">
+          <div class="panel-header" onclick="MainEngine.togglePanel('ellipse')">
+            <div class="panel-toggle"></div>
+            <span class="panel-name">Ellisse</span>
+            <span class="panel-chevron">▼</span>
+          </div>
+          <div class="panel-body">
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">x₁</span>
+              <input type="range" min="-4" max="0" step="0.5" value="-2"
+                oninput="MainEngine.setParam('ellipse','x1',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#3b82f6">
+              <span class="engine-ctrl-value">-2</span>
+            </div>
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">x₂</span>
+              <input type="range" min="0" max="4" step="0.5" value="2"
+                oninput="MainEngine.setParam('ellipse','x2',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#3b82f6">
+              <span class="engine-ctrl-value">2</span>
+            </div>
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">2a</span>
+              <input type="range" min="2" max="14" step="0.5" value="8"
+                oninput="MainEngine.setParam('ellipse','twoA',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#3b82f6">
+              <span class="engine-ctrl-value">8</span>
+            </div>
+            <div class="panel-output" id="out-ellipse">d₀ = — | k = —</div>
+          </div>
+        </div>
+
+        <!-- Iperbole panel -->
+        <div class="conic-panel" id="panel-hyperbola" style="--panel-color:#f59e0b">
+          <div class="panel-header" onclick="MainEngine.togglePanel('hyperbola')">
+            <div class="panel-toggle"></div>
+            <span class="panel-name">Iperbole</span>
+            <span class="panel-chevron">▼</span>
+          </div>
+          <div class="panel-body">
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">x₁</span>
+              <input type="range" min="-5" max="0" step="0.5" value="-3"
+                oninput="MainEngine.setParam('hyperbola','x1',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#f59e0b">
+              <span class="engine-ctrl-value">-3</span>
+            </div>
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">x₂</span>
+              <input type="range" min="0" max="5" step="0.5" value="3"
+                oninput="MainEngine.setParam('hyperbola','x2',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#f59e0b">
+              <span class="engine-ctrl-value">3</span>
+            </div>
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">2a</span>
+              <input type="range" min="0.5" max="5" step="0.5" value="2"
+                oninput="MainEngine.setParam('hyperbola','twoA',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#f59e0b">
+              <span class="engine-ctrl-value">2</span>
+            </div>
+            <div class="panel-output" id="out-hyperbola">d₀ = — | 2a = —</div>
+          </div>
+        </div>
+
+        <!-- Parabola panel -->
+        <div class="conic-panel" id="panel-parabola" style="--panel-color:#22c55e">
+          <div class="panel-header" onclick="MainEngine.togglePanel('parabola')">
+            <div class="panel-toggle"></div>
+            <span class="panel-name">Parabola</span>
+            <span class="panel-chevron">▼</span>
+          </div>
+          <div class="panel-body">
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">x<sub>F</sub></span>
+              <input type="range" min="-4" max="4" step="0.5" value="0"
+                oninput="MainEngine.setParam('parabola','xF',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#22c55e">
+              <span class="engine-ctrl-value">0</span>
+            </div>
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">p</span>
+              <input type="range" min="0.5" max="4" step="0.5" value="2"
+                oninput="MainEngine.setParam('parabola','yF',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#22c55e">
+              <span class="engine-ctrl-value">2</span>
+            </div>
+            <div class="panel-output" id="out-parabola">p = — | F(—, —) | y = 0</div>
+          </div>
+        </div>
+
+      </div><!-- /.engine-controls -->
+    </div><!-- /.engine-layout -->
+  </div>
+</section>
 
   <script>
     const ConicMath = (() => {
@@ -1027,6 +1302,194 @@ const MiniEngine = (() => {
   return { create, drawGrid, drawPoint, drawPolyline, drawSegment, makeTransform };
 })();
 
+const MainEngine = (() => {
+  const canvas = document.getElementById('main-canvas');
+  const ctx = canvas.getContext('2d');
+  const DPR = window.devicePixelRatio || 1;
+
+  const COLORS = {
+    circle:    '#e63946',
+    ellipse:   '#3b82f6',
+    hyperbola: '#f59e0b',
+    parabola:  '#22c55e'
+  };
+
+  // State
+  const state = {
+    active: { circle: true, ellipse: false, hyperbola: false, parabola: false },
+    open:   { circle: true, ellipse: false, hyperbola: false, parabola: false },
+    params: {
+      circle:    { xc:0, yc:0, R:3 },
+      ellipse:   { x1:-2, y1:0, x2:2, y2:0, twoA:8 },
+      hyperbola: { x1:-3, y1:0, x2:3, y2:0, twoA:2 },
+      parabola:  { xF:0, yF:2, k:0 }
+    },
+    pan:   { x:0, y:0 },
+    scale: 50,
+    dragging: false,
+    dragStart: null
+  };
+
+  function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const size = Math.min(rect.width, 600);
+    canvas.width  = size * DPR;
+    canvas.height = size * DPR;
+    canvas.style.width  = size + 'px';
+    canvas.style.height = size + 'px';
+    ctx.scale(DPR, DPR);
+    draw();
+  }
+
+  function getTransform() {
+    const w = canvas.width/DPR, h = canvas.height/DPR;
+    return MiniEngine.makeTransform(
+      { width: w, height: h },
+      state.scale,
+      state.pan.x,
+      state.pan.y
+    );
+  }
+
+  function draw() {
+    const w = canvas.width/DPR, h = canvas.height/DPR;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, w, h);
+    const t = getTransform();
+    MiniEngine.drawGrid(ctx, t);
+
+    if (state.active.circle) drawCircle(t);
+    if (state.active.ellipse) drawEllipse(t);
+    if (state.active.hyperbola) drawHyperbola(t);
+    if (state.active.parabola) drawParabola(t);
+  }
+
+  function drawCircle(t) {
+    const { xc=0, yc=0, R=3 } = state.params.circle;
+    const v = ConicMath.circleVertices(xc, yc, R);
+    const color = COLORS.circle;
+    MiniEngine.drawSegment(ctx,t,{x:xc,y:-20},{x:xc,y:20},'rgba(230,57,70,0.25)',0.8,[4,4]);
+    MiniEngine.drawSegment(ctx,t,{x:-20,y:yc},{x:20,y:yc},'rgba(230,57,70,0.25)',0.8,[4,4]);
+    MiniEngine.drawPolyline(ctx, t, [v.VN,v.VE,v.VS,v.VW], color, 2.5, true);
+    MiniEngine.drawPoint(ctx, t, xc, yc, 'rgb(255,255,255)', 4);
+    const out = document.getElementById('out-circle');
+    if (out) out.textContent = `Perimetro = ${(4*R*Math.SQRT2).toFixed(2)} | Area = ${(2*R*R).toFixed(2)} | π₁ = 4`;
+  }
+
+  function drawEllipse(t) {
+    const { x1=-2, y1=0, x2=2, y2=0, twoA=8 } = state.params.ellipse;
+    const color = COLORS.ellipse;
+    const sx1=Math.min(x1,x2), sy1=Math.min(y1,y2), sx2=Math.max(x1,x2), sy2=Math.max(y1,y2);
+    const verts = ConicMath.ellipseVertices(sx1, sy1, sx2, sy2, twoA);
+    [sx1,sx2].forEach(xv => MiniEngine.drawSegment(ctx,t,{x:xv,y:-20},{x:xv,y:20},'rgba(59,130,246,0.2)',0.8,[3,4]));
+    [sy1,sy2].forEach(yv => MiniEngine.drawSegment(ctx,t,{x:-20,y:yv},{x:20,y:yv},'rgba(59,130,246,0.2)',0.8,[3,4]));
+    if (verts) MiniEngine.drawPolyline(ctx, t, verts, color, 2.5, true);
+    MiniEngine.drawPoint(ctx, t, x1, y1, color, 4);
+    MiniEngine.drawPoint(ctx, t, x2, y2, color, 4);
+    const d0 = Math.abs(x2-x1)+Math.abs(y2-y1);
+    const out = document.getElementById('out-ellipse');
+    if (out) out.textContent = `d₀ = ${d0.toFixed(2)} | k = ${(twoA/2 - d0/2).toFixed(2)}`;
+  }
+
+  function drawHyperbola(t) {
+    const { x1=-3, y1=0, x2=3, y2=0, twoA=2 } = state.params.hyperbola;
+    const color = COLORS.hyperbola;
+    const sx1=Math.min(x1,x2), sx2=Math.max(x1,x2);
+    const result = ConicMath.hyperbolaVertices(sx1, Math.min(y1,y2), sx2, Math.max(y1,y2), twoA);
+    [sx1,sx2].forEach(xv => MiniEngine.drawSegment(ctx,t,{x:xv,y:-20},{x:xv,y:20},'rgba(245,158,11,0.2)',0.8,[3,4]));
+    [y1,y2].forEach(yv => MiniEngine.drawSegment(ctx,t,{x:-20,y:yv},{x:20,y:yv},'rgba(245,158,11,0.2)',0.8,[3,4]));
+    if (result) {
+      MiniEngine.drawPolyline(ctx, t, result.branch1, color, 2.5, false);
+      MiniEngine.drawPolyline(ctx, t, result.branch2, color, 2.5, false);
+    }
+    MiniEngine.drawPoint(ctx, t, x1, y1, color, 4);
+    MiniEngine.drawPoint(ctx, t, x2, y2, color, 4);
+    const d0 = Math.abs(x2-x1)+Math.abs(y2-y1);
+    const out = document.getElementById('out-hyperbola');
+    if (out) out.textContent = `d₀ = ${d0.toFixed(2)} | 2a = ${twoA}`;
+  }
+
+  function drawParabola(t) {
+    const { xF=0, yF=2, k=0 } = state.params.parabola;
+    const color = COLORS.parabola;
+    MiniEngine.drawSegment(ctx,t,{x:-20,y:k},{x:20,y:k},'rgba(34,197,94,0.3)',1,[5,4]);
+    const segs = ConicMath.parabolaSegments(xF, yF, k, 8);
+    segs.forEach(s => MiniEngine.drawSegment(ctx, t, s.from, s.to, color, 2.5));
+    MiniEngine.drawPoint(ctx, t, xF, yF, color, 4);
+    const out = document.getElementById('out-parabola');
+    if (out) out.textContent = `p = ${(yF-k).toFixed(2)} | F(${xF}, ${yF}) | y = ${k}`;
+  }
+
+  function togglePanel(conicName) {
+    const wasActive = state.active[conicName];
+    const wasOpen   = state.open[conicName];
+
+    if (!wasActive) {
+      state.active[conicName] = true;
+      state.open[conicName]   = true;
+    } else if (wasActive && wasOpen) {
+      state.open[conicName] = false;
+    } else {
+      state.open[conicName] = true;
+    }
+
+    const panel = document.getElementById(`panel-${conicName}`);
+    panel.classList.toggle('active', state.active[conicName]);
+    panel.classList.toggle('open',   state.open[conicName]);
+
+    draw();
+  }
+
+  function setParam(conicName, key, val) {
+    state.params[conicName][key] = parseFloat(val);
+    draw();
+  }
+
+  // Pan and zoom
+  function onWheel(e) {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const t = getTransform();
+    const before = t.toWorld(mx, my);
+    const factor = e.deltaY < 0 ? 1.12 : 1/1.12;
+    state.scale = Math.max(10, Math.min(300, state.scale * factor));
+    const t2 = getTransform();
+    const after = t2.toCanvas(before.x, before.y);
+    state.pan.x += (mx - after.x) / state.scale;
+    state.pan.y -= (my - after.y) / state.scale;
+    draw();
+  }
+
+  function onMouseDown(e) {
+    state.dragging = true;
+    state.dragStart = { mx: e.clientX, my: e.clientY, px: state.pan.x, py: state.pan.y };
+    canvas.style.cursor = 'grab';
+  }
+  function onMouseMove(e) {
+    if (!state.dragging) return;
+    const dx = e.clientX - state.dragStart.mx;
+    const dy = e.clientY - state.dragStart.my;
+    state.pan.x = state.dragStart.px + dx / state.scale;
+    state.pan.y = state.dragStart.py - dy / state.scale;
+    draw();
+  }
+  function onMouseUp() { state.dragging = false; canvas.style.cursor = 'crosshair'; }
+
+  function init() {
+    resize();
+    window.addEventListener('resize', resize);
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    canvas.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup',   onMouseUp);
+    draw();
+  }
+
+  return { init, draw, togglePanel, setParam };
+})();
+
     const Hero = (() => {
   let rafId = null;
   let offsetX = 0, offsetY = 0;
@@ -1134,6 +1597,7 @@ const meParabola = MiniEngine.create('me-parabola', 'parabola',
   { xF: 0, yF: 2, k: 0 },
   document.getElementById('me-parabola-out')
 );
+MainEngine.init();
   </script>
 </body>
 </html>
