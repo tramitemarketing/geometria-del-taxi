@@ -190,6 +190,60 @@
       text-transform: uppercase;
       color: rgba(255,255,255,0.50);
     }
+
+/* ─── MINI ENGINE ─── */
+.mini-engine-wrap {
+  background: #0d0d0d;
+  border-radius: 8px;
+  padding: 12px;
+  width: 100%;
+}
+.mini-engine-wrap canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 4px;
+}
+.mini-engine-controls {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mini-ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mini-ctrl-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  width: 60px;
+  flex-shrink: 0;
+}
+.mini-ctrl-row input[type=range] {
+  flex: 1;
+  accent-color: #e63946;
+  height: 3px;
+}
+.mini-ctrl-value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,0.6);
+  width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.mini-engine-output {
+  margin-top: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  line-height: 1.6;
+}
   </style>
 </head>
 <body>
@@ -440,6 +494,228 @@
   }
 
   return { circleVertices, ellipseVertices, hyperbolaVertices, parabolaSegments, runTests };
+})();
+
+const MiniEngine = (() => {
+
+  // World-to-canvas coordinate transform
+  function makeTransform(canvas, scale, cx, cy) {
+    // cx, cy = world coords at canvas center
+    const w = canvas.width, h = canvas.height;
+    return {
+      toCanvas: (wx, wy) => ({
+        x:  (wx - cx) * scale + w/2,
+        y: -(wy - cy) * scale + h/2
+      }),
+      toWorld: (px, py) => ({
+        x: (px - w/2) / scale + cx,
+        y: -(py - h/2) / scale + cy
+      }),
+      scale, cx, cy, w, h
+    };
+  }
+
+  function drawGrid(ctx, t) {
+    const { w, h, scale } = t;
+    ctx.save();
+    // Minor grid
+    const step = scale >= 40 ? 1 : scale >= 20 ? 2 : 5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 0.5;
+    const tl = t.toWorld(0, 0), br = t.toWorld(w, h);
+    for (let x = Math.floor(tl.x/step)*step; x <= br.x + step; x += step) {
+      const cx = t.toCanvas(x, 0).x;
+      ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke();
+    }
+    for (let y = Math.floor(br.y/step)*step; y <= tl.y + step; y += step) {
+      const cy = t.toCanvas(0, y).y;
+      ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
+    }
+    // Axes
+    ctx.strokeStyle = 'rgba(255,255,255,0.20)';
+    ctx.lineWidth = 1;
+    const ox = t.toCanvas(0, 0).x, oy = t.toCanvas(0, 0).y;
+    ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(w, oy); ctx.stroke();
+    // Axis labels
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.font = `${Math.max(9,Math.min(11, scale*0.22))}px IBM Plex Mono, monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let x = Math.ceil(tl.x/step)*step; x <= br.x; x += step) {
+      if (Math.abs(x) < 1e-9) continue;
+      const cx2 = t.toCanvas(x, 0).x;
+      const labelY = Math.min(Math.max(oy+3, 2), h-12);
+      ctx.fillText(x, cx2, labelY);
+    }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(br.y/step)*step; y <= tl.y; y += step) {
+      if (Math.abs(y) < 1e-9) continue;
+      const cy2 = t.toCanvas(0, y).y;
+      const labelX = Math.min(Math.max(ox-4, 4), w-4);
+      ctx.fillText(y, labelX, cy2);
+    }
+    ctx.restore();
+  }
+
+  function drawPoint(ctx, t, wx, wy, color, radius) {
+    const {x, y} = t.toCanvas(wx, wy);
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, radius || 5, 0, Math.PI*2);
+    ctx.fillStyle = color || 'white';
+    ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, (radius||5) + 3, 0, Math.PI*2);
+    ctx.fillStyle = (color||'white').replace(')', ',0.15)').replace('rgb','rgba');
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPolyline(ctx, t, pts, color, lineWidth, close) {
+    if (!pts || pts.length < 2) return;
+    ctx.save();
+    ctx.strokeStyle = color || '#e63946';
+    ctx.lineWidth = lineWidth || 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    const start = t.toCanvas(pts[0].x, pts[0].y);
+    ctx.moveTo(start.x, start.y);
+    for (let i = 1; i < pts.length; i++) {
+      const p = t.toCanvas(pts[i].x, pts[i].y);
+      ctx.lineTo(p.x, p.y);
+    }
+    if (close) ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawSegment(ctx, t, from, to, color, lineWidth, dashed) {
+    const a = t.toCanvas(from.x, from.y), b = t.toCanvas(to.x, to.y);
+    ctx.save();
+    ctx.strokeStyle = color || '#e63946';
+    ctx.lineWidth = lineWidth || 2.5;
+    ctx.lineCap = 'round';
+    if (dashed) ctx.setLineDash(dashed);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Creates a mini-engine instance bound to a canvas element
+  function create(canvasId, conicType, defaultParams, outputEl) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    let params = { ...defaultParams };
+    let rafId = null;
+
+    const DPR = window.devicePixelRatio || 1;
+    function resize() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const size = Math.min(rect.width, 280);
+      canvas.width  = size * DPR;
+      canvas.height = size * DPR;
+      canvas.style.width  = size + 'px';
+      canvas.style.height = size + 'px';
+      ctx.scale(DPR, DPR);
+    }
+
+    const COLORS = {
+      circle:    '#e63946',
+      ellipse:   '#3b82f6',
+      hyperbola: '#f59e0b',
+      parabola:  '#22c55e'
+    };
+
+    function draw() {
+      const size = canvas.width / DPR;
+      ctx.clearRect(0, 0, size, size);
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, size, size);
+
+      const scale = size / 12; // show ±6 units
+      const t = makeTransform({ width: size, height: size }, scale, 0, 0);
+      const color = COLORS[conicType] || '#e63946';
+
+      drawGrid(ctx, t);
+
+      if (conicType === 'circle') {
+        const { xc=0, yc=0, R=3 } = params;
+        const v = ConicMath.circleVertices(xc, yc, R);
+        const poly = [v.VN, v.VE, v.VS, v.VW];
+        // Critical lines (dashed)
+        drawSegment(ctx,t, {x:xc,y:-10},{x:xc,y:10}, 'rgba(29,53,87,0.6)',1,[4,4]);
+        drawSegment(ctx,t, {x:-10,y:yc},{x:10,y:yc}, 'rgba(29,53,87,0.6)',1,[4,4]);
+        drawPolyline(ctx, t, poly, color, 2.5, true);
+        drawPoint(ctx, t, xc, yc, 'white', 4);
+        if (outputEl) outputEl.textContent =
+          `Perimetro = ${(4*R*Math.SQRT2).toFixed(2)} | Area = ${(2*R*R).toFixed(2)} | π₁ = 4`;
+      }
+
+      if (conicType === 'ellipse') {
+        const { x1=-2,y1=0, x2=2,y2=0, twoA=6 } = params;
+        const verts = ConicMath.ellipseVertices(
+          Math.min(x1,x2), Math.min(y1,y2),
+          Math.max(x1,x2), Math.max(y1,y2), twoA
+        );
+        // Region lines
+        [x1,x2].forEach(xv => drawSegment(ctx,t,{x:xv,y:-10},{x:xv,y:10},'rgba(59,130,246,0.25)',0.8,[3,4]));
+        [y1,y2].forEach(yv => drawSegment(ctx,t,{x:-10,y:yv},{x:10,y:yv},'rgba(59,130,246,0.25)',0.8,[3,4]));
+        if (verts) drawPolyline(ctx, t, verts, color, 2.5, true);
+        drawPoint(ctx, t, x1, y1, '#60a5fa', 4);
+        drawPoint(ctx, t, x2, y2, '#60a5fa', 4);
+        const d0 = Math.abs(x2-x1)+Math.abs(y2-y1);
+        if (outputEl) outputEl.textContent =
+          `d₀ = ${d0.toFixed(2)} | k = ${((twoA/2) - d0/2).toFixed(2)}`;
+      }
+
+      if (conicType === 'hyperbola') {
+        const { x1=-3,y1=0, x2=3,y2=0, twoA=2 } = params;
+        const result = ConicMath.hyperbolaVertices(
+          Math.min(x1,x2),y1, Math.max(x1,x2),y2, twoA
+        );
+        [x1,x2].forEach(xv => drawSegment(ctx,t,{x:xv,y:-10},{x:xv,y:10},'rgba(245,158,11,0.25)',0.8,[3,4]));
+        [y1,y2].forEach(yv => drawSegment(ctx,t,{x:-10,y:yv},{x:10,y:yv},'rgba(245,158,11,0.25)',0.8,[3,4]));
+        if (result) {
+          drawPolyline(ctx, t, result.branch1, color, 2.5, false);
+          drawPolyline(ctx, t, result.branch2, color, 2.5, false);
+        }
+        drawPoint(ctx, t, x1, y1, '#fbbf24', 4);
+        drawPoint(ctx, t, x2, y2, '#fbbf24', 4);
+        if (outputEl) outputEl.textContent = `d₀ = ${(Math.abs(x2-x1)+Math.abs(y2-y1)).toFixed(2)} | 2a = ${twoA}`;
+      }
+
+      if (conicType === 'parabola') {
+        const { xF=0, yF=2, k=0 } = params;
+        const segs = ConicMath.parabolaSegments(xF, yF, k, 5);
+        // Directrix
+        drawSegment(ctx,t,{x:-10,y:k},{x:10,y:k},'rgba(34,197,94,0.35)',1,[4,4]);
+        segs.forEach(s => drawSegment(ctx, t, s.from, s.to, color, 2.5));
+        drawPoint(ctx, t, xF, yF, '#4ade80', 4);
+        if (outputEl) outputEl.textContent = `p = ${(yF-k).toFixed(2)} | F(${xF}, ${yF}) | y = ${k}`;
+      }
+    }
+
+    function updateParam(key, val) {
+      params[key] = parseFloat(val);
+      draw();
+    }
+
+    function start() {
+      if (!rafId) { resize(); draw(); }
+    }
+    function stop() {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    }
+
+    // IntersectionObserver for lazy start
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { start(); obs.disconnect(); } });
+    }, { threshold: 0.1 });
+    obs.observe(canvas);
+
+    return { draw, updateParam, start, stop };
+  }
+
+  return { create, drawGrid, drawPoint, drawPolyline, drawSegment, makeTransform };
 })();
 
     const Hero = (() => {
