@@ -352,20 +352,16 @@
       branch1.push({x:xB1, y:my - yExt}, {x:xB1, y:my + yExt});
       branch2.push({x:xB2, y:my - yExt}, {x:xB2, y:my + yExt});
     } else {
-      // Oblique foci: polygonal branches
+      // General oblique foci
       const xB1 = mx - hw + a;
       const xB2 = mx + hw - a;
-      const yExt = 5;
-      branch1.push(
-        { x: xB1, y: y1 - yExt },
-        { x: xB1, y: y1 + (hh - (hw - a)) },
-        { x: x1 - a, y: my }
-      );
-      branch2.push(
-        { x: xB2, y: y2 + yExt },
-        { x: xB2, y: y2 - (hh - (hw - a)) },
-        { x: x2 + a, y: my }
-      );
+      const elbowOffset = hh - (hw - a);
+      branch1.push({ x: xB1, y: y1 - 5 });
+      if (elbowOffset > 1e-9) branch1.push({ x: xB1, y: y1 + elbowOffset });
+      branch1.push({ x: x1 - a, y: my });
+      branch2.push({ x: xB2, y: y2 + 5 });
+      if (elbowOffset > 1e-9) branch2.push({ x: xB2, y: y2 - elbowOffset });
+      branch2.push({ x: x2 + a, y: my });
     }
     return { branch1, branch2 };
   }
