@@ -241,6 +241,211 @@
   </section>
 
   <script>
+    const ConicMath = (() => {
+
+  // ── CIRCONFERENZA ──
+  // Returns the 4 vertices of a taxicab circle
+  function circleVertices(xc, yc, R) {
+    return {
+      VN: { x: xc,   y: yc+R },
+      VE: { x: xc+R, y: yc   },
+      VS: { x: xc,   y: yc-R },
+      VW: { x: xc-R, y: yc   }
+    };
+  }
+
+  // ── ELLISSE ──
+  // Returns ordered array of {x,y} vertices for the taxicab ellipse polygon, or null if impossible.
+  // Inputs must be pre-sorted: x1 <= x2, y1 <= y2. twoA = 2a (sum of distances).
+  function ellipseVertices(x1, y1, x2, y2, twoA) {
+    const d0 = Math.abs(x2-x1) + Math.abs(y2-y1);
+    if (twoA < d0 - 1e-9) return null;
+
+    const mx = (x1+x2)/2, my = (y1+y2)/2;
+    const hw = (x2-x1)/2, hh = (y2-y1)/2;
+    const k  = twoA/2 - d0/2;
+
+    if (twoA <= d0 + 1e-9) {
+      // Degenerate: the bounding rectangle
+      return [{x:x1,y:y1},{x:x2,y:y1},{x:x2,y:y2},{x:x1,y:y2}];
+    }
+
+    const hasH = k < hh - 1e-9;  // top/bottom horizontal segments exist
+    const hasV = k < hw - 1e-9;  // left/right vertical segments exist
+
+    const yTop  = my + hh + k;
+    const yBot  = my - hh - k;
+    const xLeft  = mx - hw - k;
+    const xRight = mx + hw + k;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+
+    let verts;
+
+    if (hasH && hasV) {
+      // Full octagon: 8 points
+      verts = [
+        { x: x1 - k + dy, y: yTop   },
+        { x: x2 + k - dy, y: yTop   },
+        { x: xRight,       y: y2 + k - dx },
+        { x: xRight,       y: y1 - k + dx },
+        { x: x2 + k - dy, y: yBot   },
+        { x: x1 - k + dy, y: yBot   },
+        { x: xLeft,        y: y1 - k + dx },
+        { x: xLeft,        y: y2 + k - dx },
+      ];
+    } else if (!hasH && hasV) {
+      // k >= hh: hexagon with top/bottom single points
+      verts = [
+        { x: mx,     y: yTop  },
+        { x: xRight, y: y2 + k - dx },
+        { x: xRight, y: y1 - k + dx },
+        { x: mx,     y: yBot  },
+        { x: xLeft,  y: y1 - k + dx },
+        { x: xLeft,  y: y2 + k - dx },
+      ];
+    } else if (hasH && !hasV) {
+      // k >= hw: hexagon with left/right single points
+      verts = [
+        { x: x1 - k + dy, y: yTop  },
+        { x: x2 + k - dy, y: yTop  },
+        { x: xRight,       y: my   },
+        { x: x2 + k - dy, y: yBot  },
+        { x: x1 - k + dy, y: yBot  },
+        { x: xLeft,        y: my   },
+      ];
+    } else {
+      // k >= hw and k >= hh: rhombus
+      verts = [
+        { x: mx,     y: yTop  },
+        { x: xRight, y: my    },
+        { x: mx,     y: yBot  },
+        { x: xLeft,  y: my    },
+      ];
+    }
+
+    // Remove consecutive duplicate vertices
+    return verts.filter((v, i, arr) => {
+      const next = arr[(i+1) % arr.length];
+      return !(Math.abs(v.x - next.x) < 1e-9 && Math.abs(v.y - next.y) < 1e-9);
+    });
+  }
+
+  // ── IPERBOLE ──
+  // Returns { branch1: [{x,y},...], branch2: [{x,y},...] } or null if invalid.
+  // x1 <= x2. twoA = 2a, must satisfy 0 < twoA < d0.
+  function hyperbolaVertices(x1, y1, x2, y2, twoA) {
+    const d0 = Math.abs(x2-x1) + Math.abs(y2-y1);
+    if (twoA >= d0 - 1e-9 || twoA <= 1e-9) return null;
+
+    const a  = twoA / 2;
+    const mx = (x1+x2)/2, my = (y1+y2)/2;
+    const hw = (x2-x1)/2, hh = (y2-y1)/2;
+
+    const branch1 = [], branch2 = [];
+
+    if (Math.abs(y2 - y1) < 1e-9) {
+      // Horizontal foci: two vertical segments
+      const xB1 = mx - (hw - a);
+      const xB2 = mx + (hw - a);
+      const yExt = Math.max(hh, 1) + 5;
+      branch1.push({x:xB1, y:my - yExt}, {x:xB1, y:my + yExt});
+      branch2.push({x:xB2, y:my - yExt}, {x:xB2, y:my + yExt});
+    } else {
+      // Oblique foci: polygonal branches
+      const xB1 = mx - hw + a;
+      const xB2 = mx + hw - a;
+      const yExt = 5;
+      branch1.push(
+        { x: xB1, y: y1 - yExt },
+        { x: xB1, y: y1 + (hh - (hw - a)) },
+        { x: x1 - a, y: my }
+      );
+      branch2.push(
+        { x: xB2, y: y2 + yExt },
+        { x: xB2, y: y2 - (hh - (hw - a)) },
+        { x: x2 + a, y: my }
+      );
+    }
+    return { branch1, branch2 };
+  }
+
+  // ── PARABOLA ──
+  // Returns array of 4 {from:{x,y}, to:{x,y}} segments.
+  // Focus F(xF,yF), horizontal directrix y=k, yF > k.
+  // yExtent = how far the vertical semirays extend above yF.
+  //
+  // Shape (viewing from above):
+  //   Left semiray:    x = xF-p,  y from yF upward
+  //   Right semiray:   x = xF+p,  y from yF upward
+  //   Left slanted:    from (xF-p, yF) down to (xF+p, k)   [Region C: x = -2y + yF + k + xF]
+  //   Right slanted:   from (xF+p, yF) down to (xF-p, k)   [Region B: x =  2y - yF - k + xF]
+  function parabolaSegments(xF, yF, k, yExtent) {
+    const p = yF - k;
+    if (p < 1e-9) return [];
+    const yMax = yF + yExtent;
+    return [
+      { from:{x: xF-p, y:yF}, to:{x: xF-p, y:yMax} },  // left semiray  (vertical, going up)
+      { from:{x: xF+p, y:yF}, to:{x: xF+p, y:yMax} },  // right semiray (vertical, going up)
+      { from:{x: xF-p, y:yF}, to:{x: xF+p, y:k   } },  // left slanted  (ramo sinistro, slope -2)
+      { from:{x: xF+p, y:yF}, to:{x: xF-p, y:k   } },  // right slanted (ramo destro, slope +2)
+    ];
+  }
+
+  // ── TESTS (console.assert — removed in Task 14) ──
+  function runTests() {
+    // Circle
+    const cv = circleVertices(0, 0, 3);
+    console.assert(cv.VN.y === 3,  'circleVertices: VN.y should be 3');
+    console.assert(cv.VE.x === 3,  'circleVertices: VE.x should be 3');
+    console.assert(cv.VS.y === -3, 'circleVertices: VS.y should be -3');
+    console.assert(cv.VW.x === -3, 'circleVertices: VW.x should be -3');
+
+    // Ellipse — F1(0,0), F2(4,2), 2a=10 → k=2
+    const ev = ellipseVertices(0, 0, 4, 2, 10);
+    console.assert(ev !== null, 'ellipseVertices: should not be null');
+    console.assert(ev.length >= 4, 'ellipseVertices: should have at least 4 vertices');
+
+    // Ellipse degenerate: 2a = d0
+    const ev2 = ellipseVertices(0, 0, 3, 4, 7);
+    console.assert(Array.isArray(ev2) && ev2.length === 4, 'ellipseVertices degenerate: 4-vertex rectangle');
+
+    // Ellipse impossible: 2a < d0
+    const ev3 = ellipseVertices(0, 0, 3, 4, 5);
+    console.assert(ev3 === null, 'ellipseVertices: null when 2a < d0');
+
+    // Hyperbola — horizontal foci
+    const hv = hyperbolaVertices(-3, 0, 3, 0, 2);
+    console.assert(hv !== null, 'hyperbolaVertices: should not be null');
+    console.assert(hv.branch1.length === 2, 'hyperbolaVertices: branch1 should have 2 pts');
+    console.assert(hv.branch2.length === 2, 'hyperbolaVertices: branch2 should have 2 pts');
+
+    // Hyperbola invalid: 2a >= d0
+    const hv2 = hyperbolaVertices(-3, 0, 3, 0, 6);
+    console.assert(hv2 === null, 'hyperbolaVertices: null when 2a >= d0');
+
+    // Parabola — xF=0, yF=2, k=0, yExtent=5 → p=2
+    const ps = parabolaSegments(0, 2, 0, 5);
+    console.assert(ps.length === 4,   'parabolaSegments: 4 segments');
+    console.assert(ps[0].from.x === -2, 'parabolaSegments: left semiray from.x = xF-p = -2');
+    console.assert(ps[0].from.y === 2,  'parabolaSegments: left semiray from.y = yF = 2');
+    console.assert(ps[0].to.x === -2,   'parabolaSegments: left semiray to.x = xF-p = -2');
+    console.assert(ps[0].to.y === 7,    'parabolaSegments: left semiray to.y = yF+yExtent = 7');
+    // Left slanted: from (xF-p=−2, yF=2) to (xF+p=2, k=0)
+    console.assert(ps[2].from.x === -2, 'parabolaSegments: left slanted from.x = xF-p = -2');
+    console.assert(ps[2].to.x   ===  2, 'parabolaSegments: left slanted to.x = xF+p = 2');
+    console.assert(ps[2].to.y   ===  0, 'parabolaSegments: left slanted to.y = k = 0');
+
+    // Parabola p=0 → empty
+    const ps2 = parabolaSegments(0, 2, 2, 5);
+    console.assert(ps2.length === 0, 'parabolaSegments: p=0 → empty array');
+
+    console.log('%c✓ ConicMath tests passed', 'color: #22c55e; font-weight: bold');
+  }
+
+  return { circleVertices, ellipseVertices, hyperbolaVertices, parabolaSegments, runTests };
+})();
+
     const Hero = (() => {
   let rafId = null;
   let offsetX = 0, offsetY = 0;
@@ -329,6 +534,8 @@ const fondamentiObserver = new IntersectionObserver((entries) => {
   });
 }, { threshold: 0.15 });
 fondamentiObserver.observe(document.getElementById('fondamenti'));
+
+ConicMath.runTests();
   </script>
 </body>
 </html>
