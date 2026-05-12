@@ -17,6 +17,122 @@
       transition: background-color 0.6s ease;
     }
     body.light-mode { background: #FAFAFA; }
+
+    /* ─── ACADEMIC SECTIONS ─── */
+    .section-academic {
+      background: #FAFAFA;
+      color: #1a1a1a;
+      font-family: 'Spectral', serif;
+      font-size: clamp(0.95rem, 1.1vw, 1.05rem);
+      line-height: 1.78;
+      text-align: justify;
+    }
+    .section-academic > .section-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 5rem 2rem;
+    }
+
+    .section-number {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      color: #999;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+    .section-title {
+      font-family: 'Spectral', serif;
+      font-size: clamp(1.4rem, 2vw, 1.8rem);
+      font-weight: 600;
+      color: #0a0a0a;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .section-split {
+      display: flex;
+      gap: 2rem;
+      align-items: flex-start;
+    }
+    .section-text { flex: 65%; }
+    .section-figure {
+      flex: 35%;
+      position: sticky;
+      top: 2rem;
+    }
+
+    .definition-box {
+      border-left: 3px solid #1a1a1a;
+      padding: 1rem 1.5rem;
+      margin: 2rem 0;
+      background: #f5f5f5;
+      font-style: italic;
+    }
+    .definition-box strong { font-style: normal; font-weight: 600; }
+
+    .formula {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.88em;
+      background: #f0f0f0;
+      padding: 0.1em 0.4em;
+      border-radius: 2px;
+    }
+    .formula-display {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.95rem;
+      text-align: center;
+      margin: 2rem 0;
+      padding: 1.25rem;
+      background: #f5f5f5;
+      border: 1px solid #e8e8e8;
+      overflow-x: auto;
+      white-space: pre;
+      line-height: 1.9;
+    }
+    .theorem {
+      border: 1px solid #ccc;
+      padding: 1.25rem 1.5rem;
+      margin: 2rem 0;
+    }
+    .theorem-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
+    table.paper-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin: 2rem 0;
+    }
+    table.paper-table th {
+      border-bottom: 2px solid #1a1a1a;
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      font-weight: 600;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    table.paper-table td {
+      border-bottom: 1px solid #e0e0e0;
+      padding: 0.5rem 0.75rem;
+      vertical-align: top;
+    }
+    table.paper-table tr:last-child td { border-bottom: none; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 768px) {
+      .section-split { flex-direction: column; }
+      .section-figure { position: static; width: 100%; }
+      .section-text { flex: none; width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -25,7 +141,14 @@
   </section>
 
   <section id="fondamenti" class="section-academic">
-    <p>§1 Fondamenti placeholder</p>
+    <div class="section-inner">
+      <div class="section-number">§1</div>
+      <h2 class="section-title">Fondamenti placeholder</h2>
+      <p>Body text test — Spectral should render here.</p>
+      <div class="definition-box">
+        <strong>Definizione 1.1</strong> — Test: <span class="formula">d₁(P,A) = |x−xₐ| + |y−yₐ|</span>
+      </div>
+    </div>
   </section>
 
   <section id="circonferenza" class="section-academic">
