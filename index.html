@@ -241,7 +241,94 @@
   </section>
 
   <script>
-    console.log('Geometria del Taxi — script loaded');
+    const Hero = (() => {
+  let rafId = null;
+  let offsetX = 0, offsetY = 0;
+  let mouseX = -9999, mouseY = -9999;
+  let bgCanvas, bgCtx, cursorCanvas, cursorCtx;
+
+  const CELL = 40;
+
+  function resizeCanvases() {
+    const w = window.innerWidth, h = window.innerHeight;
+    [bgCanvas, cursorCanvas].forEach(c => {
+      c.width = w;
+      c.height = h;
+    });
+  }
+
+  function drawGrid(ctx, w, h, ox, oy) {
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1;
+    const startX = ((ox % CELL) + CELL) % CELL;
+    for (let x = startX - CELL; x < w + CELL; x += CELL) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    const startY = ((oy % CELL) + CELL) % CELL;
+    for (let y = startY - CELL; y < h + CELL; y += CELL) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+  }
+
+  function animate() {
+    offsetX = (offsetX + 0.5) % CELL;
+    offsetY = (offsetY + 0.5) % CELL;
+    const w = bgCanvas.width, h = bgCanvas.height;
+
+    // Layer 1: always visible background grid
+    drawGrid(bgCtx, w, h, offsetX, offsetY);
+
+    // Layer 2: same grid but masked to cursor radius
+    drawGrid(cursorCtx, w, h, offsetX, offsetY);
+    cursorCanvas.style.webkitMaskImage =
+      `radial-gradient(300px circle at ${mouseX}px ${mouseY}px, black, transparent)`;
+    cursorCanvas.style.maskImage =
+      `radial-gradient(300px circle at ${mouseX}px ${mouseY}px, black, transparent)`;
+
+    rafId = requestAnimationFrame(animate);
+  }
+
+  function onMouseMove(e) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  }
+
+  function init() {
+    bgCanvas     = document.getElementById('hero-grid-bg');
+    cursorCanvas = document.getElementById('hero-grid-cursor');
+    bgCtx        = bgCanvas.getContext('2d');
+    cursorCtx    = cursorCanvas.getContext('2d');
+
+    resizeCanvases();
+    window.addEventListener('resize', resizeCanvases);
+    document.addEventListener('mousemove', onMouseMove);
+
+    animate();
+  }
+
+  function start() { if (!rafId) animate(); }
+  function stop()  { if (rafId) { cancelAnimationFrame(rafId); rafId = null; } }
+
+  return { init, start, stop };
+})();
+
+// ── Bootstrap ──
+Hero.init();
+
+// Stop hero animation when hero is not visible (performance)
+const heroObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => e.isIntersecting ? Hero.start() : Hero.stop());
+}, { threshold: 0.01 });
+heroObserver.observe(document.getElementById('hero'));
+
+// Transition body background when first academic section enters viewport
+const fondamentiObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    document.body.classList.toggle('light-mode', e.isIntersecting);
+  });
+}, { threshold: 0.15 });
+fondamentiObserver.observe(document.getElementById('fondamenti'));
   </script>
 </body>
 </html>
