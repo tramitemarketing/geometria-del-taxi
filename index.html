@@ -264,31 +264,338 @@
   </section>
 
   <section id="fondamenti" class="section-academic">
-    <div class="section-inner">
-      <div class="section-number">§1</div>
-      <h2 class="section-title">Fondamenti placeholder</h2>
-      <p>Body text test — Spectral should render here.</p>
-      <div class="definition-box">
-        <strong>Definizione 1.1</strong> — Test: <span class="formula">d₁(P,A) = |x−xₐ| + |y−yₐ|</span>
+  <div class="section-inner">
+    <div class="section-number">§1</div>
+    <h2 class="section-title">Fondamenti Teorici: la Metrica L₁</h2>
+
+    <div class="section-split">
+      <div class="section-text">
+        <p>Immaginiamo di trovarci in una città a griglia perfetta — Manhattan. Per andare dall'angolo A all'angolo B non possiamo volare in diagonale: dobbiamo percorrere blocchi orizzontali e verticali. La distanza che percorriamo in questo modo è la <em>distanza di Manhattan</em>, o distanza L₁.</p>
+
+        <div class="definition-box">
+          <strong>Definizione 1.1 — Metrica L₁ (distanza di Manhattan)</strong><br>
+          Dati due punti P(x, y) e A(xₐ, yₐ) nel piano reale ℝ², si definisce la distanza di Manhattan:<br><br>
+          <span class="formula">d₁(P, A) = |x − xₐ| + |y − yₐ|</span>
+        </div>
+
+        <p>La presenza dei valori assoluti rende il calcolo analitico meno diretto rispetto alla metrica euclidea. Per trattare algebricamente questi termini è necessario scioglierli distinguendo i casi in base al segno dell'argomento.</p>
+
+        <div class="definition-box">
+          <strong>Definizione 1.2 — Scioglimento di |x − c|</strong><br>
+          Per ogni costante c ∈ ℝ, si ha:<br><br>
+          <span class="formula">|x − c| = x − c</span> &nbsp;se x ≥ c<br>
+          <span class="formula">|x − c| = c − x</span> &nbsp;se x &lt; c<br><br>
+          Il valore x = c è detto <em>valore critico</em> e corrisponde alla retta verticale che separa i due casi.
+        </div>
+
+        <p>Le rette critiche partizionano il piano in regioni in ciascuna delle quali tutti i moduli hanno segno costante, riducendo l'equazione del luogo a un sistema lineare. Questa tecnica — la costruzione della griglia di regioni — è il metodo unificante di tutta la geometria del taxi.</p>
+
+        <table class="paper-table">
+          <thead>
+            <tr>
+              <th>Proprietà</th>
+              <th>Metrica L₂ (euclidea)</th>
+              <th>Metrica L₁ (Manhattan)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Formula</td>
+              <td><span class="formula">√((x−xₐ)² + (y−yₐ)²)</span></td>
+              <td><span class="formula">|x−xₐ| + |y−yₐ|</span></td>
+            </tr>
+            <tr>
+              <td>"Cerchio" unitario</td>
+              <td>Cerchio continuo</td>
+              <td>Quadrato ruotato 45°</td>
+            </tr>
+            <tr>
+              <td>Natura dei luoghi</td>
+              <td>Coniche (curve lisce)</td>
+              <td>Poligoni (segmenti)</td>
+            </tr>
+            <tr>
+              <td>Simmetrie</td>
+              <td>Tutte le rotazioni</td>
+              <td>Solo riflessioni assiali</td>
+            </tr>
+            <tr>
+              <td>Disuguaglianza</td>
+              <td><span class="formula">d₂ ≤ d₁</span></td>
+              <td><span class="formula">d₁ ≤ √2 · d₂</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-figure">
+        <!-- Static SVG: L2 circle vs L1 diamond, same center and radius -->
+        <svg viewBox="-90 -90 180 180" width="100%" style="max-width:280px;display:block;margin:0 auto;">
+          <!-- L2 circle -->
+          <circle cx="0" cy="0" r="65" fill="none" stroke="#ccc" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <!-- L1 diamond -->
+          <polygon points="0,-65 65,0 0,65 -65,0"
+            fill="rgba(230,57,70,0.06)" stroke="#e63946" stroke-width="2.5"/>
+          <!-- Center point -->
+          <circle cx="0" cy="0" r="3" fill="#555"/>
+          <!-- Axes (light) -->
+          <line x1="-85" y1="0" x2="85" y2="0" stroke="#ddd" stroke-width="0.8"/>
+          <line x1="0" y1="-85" x2="0" y2="85" stroke="#ddd" stroke-width="0.8"/>
+          <!-- Labels -->
+          <text x="72" y="-8" font-family="IBM Plex Mono,monospace" font-size="11" fill="#aaa">L₂</text>
+          <text x="6"  y="-69" font-family="IBM Plex Mono,monospace" font-size="11" fill="#e63946">L₁</text>
+          <!-- Vertex dots -->
+          <circle cx="0" cy="-65" r="3" fill="#e63946"/>
+          <circle cx="65" cy="0"  r="3" fill="#e63946"/>
+          <circle cx="0" cy="65"  r="3" fill="#e63946"/>
+          <circle cx="-65" cy="0" r="3" fill="#e63946"/>
+        </svg>
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#aaa;text-align:center;margin-top:8px;">
+          Cerchio L₂ (tratteggiato) e circonferenza taxicab L₁ (rosso) con stesso centro e raggio unitario.
+        </p>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
   <section id="circonferenza" class="section-academic">
-    <p>§2 Circonferenza placeholder</p>
-  </section>
+  <div class="section-inner">
+    <div class="section-number">§2</div>
+    <h2 class="section-title">La Circonferenza Taxicab</h2>
+
+    <div class="section-split">
+      <div class="section-text">
+        <div class="definition-box">
+          <strong>Definizione 2.1 — Circonferenza Taxicab</strong><br>
+          La circonferenza taxicab di centro C(x꜀, y꜀) e raggio R è l'insieme dei punti P(x, y) tali che:<br><br>
+          <span class="formula">d₁(P, C) = R &nbsp;⟺&nbsp; |x − x꜀| + |y − y꜀| = R</span>
+        </div>
+
+        <p>Le rette critiche <span class="formula">x = x꜀</span> e <span class="formula">y = y꜀</span> dividono il piano in 4 quadranti. In ciascuno, i moduli si sciolgono con segni costanti, riducendo l'equazione a una retta lineare.</p>
+
+        <table class="paper-table">
+          <thead>
+            <tr><th>Regione</th><th>Condizione</th><th>Equazione sciolta</th><th>Pendenza</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>R<sub>I</sub> (NE)</td><td>x ≥ x꜀, y ≥ y꜀</td><td><span class="formula">y = −x + (x꜀ + y꜀ + R)</span></td><td>−1</td></tr>
+            <tr><td>R<sub>II</sub> (NW)</td><td>x &lt; x꜀, y ≥ y꜀</td><td><span class="formula">y = x − (x꜀ − y꜀ − R)</span></td><td>+1</td></tr>
+            <tr><td>R<sub>III</sub> (SW)</td><td>x &lt; x꜀, y &lt; y꜀</td><td><span class="formula">y = −x + (x꜀ + y꜀ − R)</span></td><td>−1</td></tr>
+            <tr><td>R<sub>IV</sub> (SE)</td><td>x ≥ x꜀, y &lt; y꜀</td><td><span class="formula">y = x − (x꜀ − y꜀ + R)</span></td><td>+1</td></tr>
+          </tbody>
+        </table>
+
+        <div class="theorem">
+          <div class="theorem-label">Teorema 2.1</div>
+          La circonferenza taxicab è un quadrato ruotato di 45° con vertici:<br>
+          V<sub>N</sub> = (x꜀, y꜀+R), &nbsp;V<sub>E</sub> = (x꜀+R, y꜀), &nbsp;V<sub>S</sub> = (x꜀, y꜀−R), &nbsp;V<sub>W</sub> = (x꜀−R, y꜀).<br><br>
+          Perimetro euclideo: <span class="formula">4R√2</span>. &nbsp;Area: <span class="formula">2R²</span>.
+        </div>
+
+        <p>Una conseguenza notevole: in questa geometria il rapporto tra perimetro e diametro vale:</p>
+        <div class="formula-display">π₁ = Perimetro / (2R) = 4R√2 / (2R) = 2√2 ≈ 2.828...
+
+oppure, usando il "diametro" taxicab (2R): π₁ = 4R√2 / 2R = 2√2
+
+Con la convenzione d = 2R (diametro taxicab):  π₁ = 4</div>
+        <p>Il valore <span class="formula">π₁ = 4</span> (rispetto a π ≈ 3.14159…) è uno dei risultati più sorprendenti della geometria del taxi.</p>
+      </div>
+
+      <div class="section-figure">
+        <div class="mini-engine-wrap">
+          <canvas id="me-circle"></canvas>
+          <div class="mini-engine-controls">
+            <div class="mini-ctrl-row">
+              <span class="mini-ctrl-label">R</span>
+              <input type="range" min="0.5" max="5" step="0.5" value="3"
+                oninput="meCircle.updateParam('R', this.value); this.nextElementSibling.textContent=this.value">
+              <span class="mini-ctrl-value">3</span>
+            </div>
+            <div class="mini-ctrl-row">
+              <span class="mini-ctrl-label">x꜀</span>
+              <input type="range" min="-3" max="3" step="0.5" value="0"
+                oninput="meCircle.updateParam('xc', this.value); this.nextElementSibling.textContent=this.value">
+              <span class="mini-ctrl-value">0</span>
+            </div>
+          </div>
+          <div class="mini-engine-output" id="me-circle-out">Perimetro = — | Area = — | π₁ = 4</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
   <section id="ellisse" class="section-academic">
-    <p>§3 Ellisse placeholder</p>
-  </section>
+  <div class="section-inner">
+    <div class="section-number">§3</div>
+    <h2 class="section-title">Ellisse Taxicab: il Metodo delle 9 Regioni</h2>
+
+    <div class="section-split">
+      <div class="section-text">
+        <div class="definition-box">
+          <strong>Definizione 3.1 — Ellisse Taxicab</strong><br>
+          Dati F₁(x₁, y₁), F₂(x₂, y₂) e una costante 2a &gt; d₁(F₁, F₂), l'ellisse taxicab è:<br><br>
+          <span class="formula">𝓔 = { P(x,y) : d₁(P,F₁) + d₁(P,F₂) = 2a }</span>
+        </div>
+
+        <p>Poniamo <span class="formula">d₀ = d₁(F₁,F₂)</span> e <span class="formula">k = a − d₀/2</span>. Le rette critiche <span class="formula">x = x₁</span>, <span class="formula">x = x₂</span>, <span class="formula">y = y₁</span>, <span class="formula">y = y₂</span> creano una griglia 3×3 di 9 regioni R<sub>ij</sub>. Questa partizione è la chiave del metodo.</p>
+
+        <p>Analizzando il segno dei moduli in ciascuna regione, si ottengono i contributi al luogo geometrico:</p>
+        <ul style="margin:1rem 0 1rem 1.5rem;line-height:2;">
+          <li>R<sub>22</sub> (tra i fuochi): la somma vale costantemente d₀ → contribuisce solo se 2a = d₀</li>
+          <li>R<sub>21</sub> e R<sub>23</sub> (sopra/sotto tra i fuochi): <strong>rette orizzontali</strong></li>
+          <li>R<sub>12</sub> e R<sub>32</sub> (a sinistra/destra tra i fuochi): <strong>rette verticali</strong></li>
+          <li>R<sub>11</sub>, R<sub>13</sub>, R<sub>31</sub>, R<sub>33</sub> (angoli esterni): <strong>rette con pendenza ±1</strong></li>
+        </ul>
+
+        <div class="theorem">
+          <div class="theorem-label">Proposizione 3.1</div>
+          Per fuochi obliqui (x₁≠x₂, y₁≠y₂) e 2a &gt; d₀, l'ellisse taxicab è un <strong>ottagono</strong> (o esagono se k supera metà della distanza tra i fuochi su uno degli assi). Per fuochi collineari sull'asse x o y: rettangolo.
+        </div>
+
+        <div class="theorem">
+          <div class="theorem-label">Proposizione 3.2 — Caso Degenere</div>
+          Se 2a = d₀, il luogo non è una linea ma una <strong>regione bidimensionale</strong>: il rettangolo [x₁,x₂] × [y₁,y₂]. Ogni punto interno ha somma delle distanze esattamente pari a d₀.
+        </div>
+
+        <p><strong>Esempio numerico.</strong> F₁(0,0), F₂(4,2), 2a = 10.</p>
+        <table class="paper-table">
+          <thead><tr><th>Dato</th><th>Calcolo</th><th>Valore</th></tr></thead>
+          <tbody>
+            <tr><td>d₀</td><td>|4−0| + |2−0|</td><td>6</td></tr>
+            <tr><td>k</td><td>5 − 6/2</td><td>2</td></tr>
+            <tr><td>x<sub>sin</sub></td><td>(0+4)/2 − k = 2 − 2</td><td>0</td></tr>
+            <tr><td>x<sub>des</sub></td><td>(0+4)/2 + k = 2 + 2</td><td>4 → 6 (con offset fuochi)</td></tr>
+            <tr><td>Forma</td><td>k=2 &lt; hw=2 → esagono</td><td>6 vertici</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-figure">
+        <div class="mini-engine-wrap">
+          <canvas id="me-ellipse"></canvas>
+          <div class="mini-engine-controls">
+            <div class="mini-ctrl-row">
+              <span class="mini-ctrl-label">2a</span>
+              <input type="range" min="3" max="14" step="0.5" value="8"
+                oninput="meEllipse.updateParam('twoA', this.value); this.nextElementSibling.textContent=this.value">
+              <span class="mini-ctrl-value">8</span>
+            </div>
+          </div>
+          <div class="mini-engine-output" id="me-ellipse-out">d₀ = — | k = —</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
   <section id="iperbole" class="section-academic">
-    <p>§4 Iperbole placeholder</p>
-  </section>
+  <div class="section-inner">
+    <div class="section-number">§4</div>
+    <h2 class="section-title">Iperbole Taxicab: la Differenza delle Distanze</h2>
+
+    <div class="section-split">
+      <div class="section-text">
+        <div class="definition-box">
+          <strong>Definizione 4.1 — Iperbole Taxicab</strong><br>
+          Dati F₁(x₁,y₁), F₂(x₂,y₂) e 0 &lt; 2a &lt; d₁(F₁,F₂):<br><br>
+          <span class="formula">ℋ = { P(x,y) : |d₁(P,F₁) − d₁(P,F₂)| = 2a }</span><br><br>
+          Equivale a due rami: <span class="formula">d₁(P,F₁) − d₁(P,F₂) = +2a</span> e <span class="formula">d₁(P,F₁) − d₁(P,F₂) = −2a</span>.
+        </div>
+
+        <p>Applicando il metodo delle 9 regioni al Ramo 1 (differenza = +2a), si ottengono i seguenti risultati nelle regioni non banali:</p>
+
+        <table class="paper-table">
+          <thead><tr><th>Regione</th><th>Risultato</th></tr></thead>
+          <tbody>
+            <tr><td>R<sub>11</sub> (NW esterno)</td><td>Nessuna soluzione</td></tr>
+            <tr><td>R<sub>33</sub> (SE esterno)</td><td>Esiste solo se 2a = d₀</td></tr>
+            <tr><td>R<sub>21</sub></td><td>Segmento verticale <span class="formula">x = (x₁+x₂)/2 + a</span></td></tr>
+            <tr><td>R<sub>23</sub></td><td>Segmento <span class="formula">x = (x₁+x₂)/2 + a − (y₂−y₁)/2</span></td></tr>
+          </tbody>
+        </table>
+
+        <div class="theorem">
+          <div class="theorem-label">Proposizione 4.1</div>
+          Per 0 &lt; 2a &lt; d₀, l'iperbole taxicab è formata da <strong>due rami poligonali</strong>. Per fuochi su asse orizzontale (y₁ = y₂): i due rami sono due <strong>segmenti verticali paralleli</strong>. Per fuochi obliqui: ogni ramo è un poligono a 3–4 lati.
+        </div>
+      </div>
+
+      <div class="section-figure">
+        <div class="mini-engine-wrap">
+          <canvas id="me-hyperbola"></canvas>
+          <div class="mini-engine-controls">
+            <div class="mini-ctrl-row">
+              <span class="mini-ctrl-label">2a</span>
+              <input type="range" min="0.5" max="5" step="0.5" value="2"
+                oninput="meHyperbola.updateParam('twoA', this.value); this.nextElementSibling.textContent=this.value">
+              <span class="mini-ctrl-value">2</span>
+            </div>
+          </div>
+          <div class="mini-engine-output" id="me-hyperbola-out">d₀ = — | 2a = —</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
   <section id="parabola" class="section-academic">
-    <p>§5 Parabola placeholder</p>
-  </section>
+  <div class="section-inner">
+    <div class="section-number">§5</div>
+    <h2 class="section-title">La Parabola Taxicab</h2>
+
+    <div class="section-split">
+      <div class="section-text">
+        <div class="definition-box">
+          <strong>Definizione 5.1 — Parabola Taxicab</strong><br>
+          Dato un fuoco F e una direttrice r, la parabola taxicab è:<br><br>
+          <span class="formula">𝒫 = { P(x,y) : d₁(P,F) = d₁(P,r) }</span><br><br>
+          dove d₁(P,r) è la distanza L₁ di P dalla retta r.
+        </div>
+
+        <p>Per una direttrice orizzontale <span class="formula">r: y = k</span> e fuoco <span class="formula">F(x<sub>F</sub>, y<sub>F</sub>)</span> con y<sub>F</sub> &gt; k, la distanza L₁ da P alla direttrice è semplicemente <span class="formula">|y − k|</span>. Ponendo <span class="formula">p = y<sub>F</sub> − k</span>, l'equazione diventa <span class="formula">|x−x<sub>F</sub>| + |y−y<sub>F</sub>| = |y−k|</span>.</p>
+
+        <p>Le quattro regioni, determinate da <span class="formula">y = k</span> e <span class="formula">y = y<sub>F</sub></span> come rette critiche orizzontali e <span class="formula">x = x<sub>F</sub></span> come verticale, producono:</p>
+
+        <table class="paper-table">
+          <thead><tr><th>Regione</th><th>Condizione</th><th>Equazione</th><th>Tipo</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>y ≥ y<sub>F</sub></td><td><span class="formula">|x−x<sub>F</sub>| = y<sub>F</sub> − k = p</span></td><td>Due semirette verticali</td></tr>
+            <tr><td>B</td><td>k ≤ y &lt; y<sub>F</sub>, x ≥ x<sub>F</sub></td><td><span class="formula">x = 2y − y<sub>F</sub> − k + x<sub>F</sub></span></td><td>Pendenza +2</td></tr>
+            <tr><td>C</td><td>k ≤ y &lt; y<sub>F</sub>, x &lt; x<sub>F</sub></td><td><span class="formula">x = −2y + y<sub>F</sub> + k + x<sub>F</sub></span></td><td>Pendenza −2</td></tr>
+            <tr><td>D</td><td>y &lt; k</td><td>—</td><td>Impossibile</td></tr>
+          </tbody>
+        </table>
+
+        <div class="formula-display">Formula Master — Parabola Taxicab (direttrice orizzontale y = k)
+
+Semiretta sinistra:  x = x_F − p,    y ≥ y_F
+Ramo sinistro:       x = −2y + y_F + k + x_F,   k ≤ y ≤ y_F
+Ramo destro:         x =  2y − y_F − k + x_F,   k ≤ y ≤ y_F
+Semiretta destra:    x = x_F + p,    y ≥ y_F
+
+dove p = y_F − k</div>
+
+        <p>Per una direttrice obliqua di equazione ax + by + c = 0, la distanza L₁ diventa <span class="formula">d₁(P,r) = |ax+by+c| / (|a|+|b|)</span>, generando una formula ibrida la cui analisi richiede la medesima tecnica di scioglimento per regioni.</p>
+      </div>
+
+      <div class="section-figure">
+        <div class="mini-engine-wrap">
+          <canvas id="me-parabola"></canvas>
+          <div class="mini-engine-controls">
+            <div class="mini-ctrl-row">
+              <span class="mini-ctrl-label">p</span>
+              <input type="range" min="0.5" max="4" step="0.5" value="2"
+                oninput="meParabola.updateParam('yF', parseFloat(this.value)); meParabola.updateParam('k', 0); this.nextElementSibling.textContent=this.value">
+              <span class="mini-ctrl-value">2</span>
+            </div>
+          </div>
+          <div class="mini-engine-output" id="me-parabola-out">p = — | F(0, —) | y = 0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
   <section id="esplora" style="background:#050505;min-height:60vh;padding:4rem 2rem;">
     <p style="color:white;font-family:sans-serif">ENGINE placeholder</p>
@@ -810,6 +1117,23 @@ const fondamentiObserver = new IntersectionObserver((entries) => {
 fondamentiObserver.observe(document.getElementById('fondamenti'));
 
 ConicMath.runTests();
+
+const meCircle = MiniEngine.create('me-circle', 'circle',
+  { xc: 0, yc: 0, R: 3 },
+  document.getElementById('me-circle-out')
+);
+const meEllipse = MiniEngine.create('me-ellipse', 'ellipse',
+  { x1: -2, y1: -1, x2: 2, y2: 1, twoA: 8 },
+  document.getElementById('me-ellipse-out')
+);
+const meHyperbola = MiniEngine.create('me-hyperbola', 'hyperbola',
+  { x1: -3, y1: 0, x2: 3, y2: 0, twoA: 2 },
+  document.getElementById('me-hyperbola-out')
+);
+const meParabola = MiniEngine.create('me-parabola', 'parabola',
+  { xF: 0, yF: 2, k: 0 },
+  document.getElementById('me-parabola-out')
+);
   </script>
 </body>
 </html>
