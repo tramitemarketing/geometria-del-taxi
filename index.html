@@ -645,7 +645,7 @@ const MiniEngine = (() => {
         drawSegment(ctx,t, {x:xc,y:-10},{x:xc,y:10}, 'rgba(29,53,87,0.6)',1,[4,4]);
         drawSegment(ctx,t, {x:-10,y:yc},{x:10,y:yc}, 'rgba(29,53,87,0.6)',1,[4,4]);
         drawPolyline(ctx, t, poly, color, 2.5, true);
-        drawPoint(ctx, t, xc, yc, 'white', 4);
+        drawPoint(ctx, t, xc, yc, 'rgb(255,255,255)', 4);
         if (outputEl) outputEl.textContent =
           `Perimetro = ${(4*R*Math.SQRT2).toFixed(2)} | Area = ${(2*R*R).toFixed(2)} | π₁ = 4`;
       }
@@ -660,8 +660,8 @@ const MiniEngine = (() => {
         [x1,x2].forEach(xv => drawSegment(ctx,t,{x:xv,y:-10},{x:xv,y:10},'rgba(59,130,246,0.25)',0.8,[3,4]));
         [y1,y2].forEach(yv => drawSegment(ctx,t,{x:-10,y:yv},{x:10,y:yv},'rgba(59,130,246,0.25)',0.8,[3,4]));
         if (verts) drawPolyline(ctx, t, verts, color, 2.5, true);
-        drawPoint(ctx, t, x1, y1, '#60a5fa', 4);
-        drawPoint(ctx, t, x2, y2, '#60a5fa', 4);
+        drawPoint(ctx, t, x1, y1, 'rgb(96,165,250)', 4);
+        drawPoint(ctx, t, x2, y2, 'rgb(96,165,250)', 4);
         const d0 = Math.abs(x2-x1)+Math.abs(y2-y1);
         if (outputEl) outputEl.textContent =
           `d₀ = ${d0.toFixed(2)} | k = ${((twoA/2) - d0/2).toFixed(2)}`;
@@ -670,7 +670,9 @@ const MiniEngine = (() => {
       if (conicType === 'hyperbola') {
         const { x1=-3,y1=0, x2=3,y2=0, twoA=2 } = params;
         const result = ConicMath.hyperbolaVertices(
-          Math.min(x1,x2),y1, Math.max(x1,x2),y2, twoA
+          Math.min(x1,x2), Math.min(y1,y2),
+          Math.max(x1,x2), Math.max(y1,y2),
+          twoA
         );
         [x1,x2].forEach(xv => drawSegment(ctx,t,{x:xv,y:-10},{x:xv,y:10},'rgba(245,158,11,0.25)',0.8,[3,4]));
         [y1,y2].forEach(yv => drawSegment(ctx,t,{x:-10,y:yv},{x:10,y:yv},'rgba(245,158,11,0.25)',0.8,[3,4]));
@@ -678,8 +680,8 @@ const MiniEngine = (() => {
           drawPolyline(ctx, t, result.branch1, color, 2.5, false);
           drawPolyline(ctx, t, result.branch2, color, 2.5, false);
         }
-        drawPoint(ctx, t, x1, y1, '#fbbf24', 4);
-        drawPoint(ctx, t, x2, y2, '#fbbf24', 4);
+        drawPoint(ctx, t, x1, y1, 'rgb(251,191,36)', 4);
+        drawPoint(ctx, t, x2, y2, 'rgb(251,191,36)', 4);
         if (outputEl) outputEl.textContent = `d₀ = ${(Math.abs(x2-x1)+Math.abs(y2-y1)).toFixed(2)} | 2a = ${twoA}`;
       }
 
@@ -689,7 +691,7 @@ const MiniEngine = (() => {
         // Directrix
         drawSegment(ctx,t,{x:-10,y:k},{x:10,y:k},'rgba(34,197,94,0.35)',1,[4,4]);
         segs.forEach(s => drawSegment(ctx, t, s.from, s.to, color, 2.5));
-        drawPoint(ctx, t, xF, yF, '#4ade80', 4);
+        drawPoint(ctx, t, xF, yF, 'rgb(74,222,128)', 4);
         if (outputEl) outputEl.textContent = `p = ${(yF-k).toFixed(2)} | F(${xF}, ${yF}) | y = ${k}`;
       }
     }
