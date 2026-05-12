@@ -133,11 +133,80 @@
       .section-figure { position: static; width: 100%; }
       .section-text { flex: none; width: 100%; }
     }
+
+    /* ─── HERO ─── */
+    #hero {
+      position: relative;
+      min-height: 100vh;
+      background: #050505;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      color: white;
+    }
+    .hero-grid-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .hero-blob {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .hero-blob-amber {
+      top: -100px; right: -100px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(245,158,11,0.30) 0%, transparent 70%);
+      filter: blur(40px);
+    }
+    .hero-blob-blue {
+      bottom: -120px; left: -100px;
+      width: 520px; height: 520px;
+      background: radial-gradient(circle, rgba(59,130,246,0.28) 0%, transparent 70%);
+      filter: blur(40px);
+    }
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 2rem;
+      max-width: 800px;
+    }
+    .hero-title {
+      font-family: 'Playfair Display', serif;
+      font-weight: 800;
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      color: #ffffff;
+      line-height: 1.12;
+      letter-spacing: -0.01em;
+      margin-bottom: 1.5rem;
+    }
+    .hero-subtitle {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: clamp(0.75rem, 1.5vw, 1rem);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.50);
+    }
   </style>
 </head>
 <body>
-  <section id="hero" style="min-height:100vh;background:#050505;display:flex;align-items:center;justify-content:center;">
-    <p style="color:white;font-family:sans-serif">HERO placeholder</p>
+  <section id="hero">
+    <!-- Animated grid layers (populated by Hero.init()) -->
+    <canvas class="hero-grid-layer" id="hero-grid-bg" style="opacity:0.05"></canvas>
+    <canvas class="hero-grid-layer" id="hero-grid-cursor" style="opacity:0.4"></canvas>
+
+    <!-- Blob lights -->
+    <div class="hero-blob hero-blob-amber"></div>
+    <div class="hero-blob hero-blob-blue"></div>
+
+    <!-- Text content -->
+    <div class="hero-content">
+      <h1 class="hero-title">Quando la retta più breve<br>non è la diagonale</h1>
+      <p class="hero-subtitle">Geometria del Taxi &nbsp;—&nbsp; Metrica L₁</p>
+    </div>
   </section>
 
   <section id="fondamenti" class="section-academic">
