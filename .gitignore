@@ -1,0 +1,17 @@
+# Sensitive files
+ANTHROPIC_API_KEY*
+*.key
+*.secret
+*.env
+.env*
+
+# Internal Claude / agent tooling
+.claude/
+.agents/
+.playwright-mcp/
+skills-lock.json
+
+# Misc local dirs
+TEST.1/
+blog/
+blog-master/
