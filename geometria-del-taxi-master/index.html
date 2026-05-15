@@ -456,6 +456,16 @@
   /* Clear all */
   .csb-clear-btn { font-family:'IBM Plex Mono',monospace;font-size:0.62rem;background:transparent;border:1px solid rgba(255,80,80,0.2);color:rgba(255,100,100,0.4);padding:4px 8px;border-radius:3px;cursor:pointer;transition:all 0.15s; }
   .csb-clear-btn:hover { border-color:rgba(255,80,80,0.6);color:rgba(255,100,100,0.9); }
+
+  /* Inline color picker button in header */
+  .csb-color-btn { width:26px;height:16px;border-radius:3px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;flex-shrink:0;transition:transform 0.12s,box-shadow 0.12s;position:relative; }
+  .csb-color-btn:hover { transform:scale(1.08);box-shadow:0 0 0 2px rgba(255,255,255,0.15); }
+  .csb-color-btn.open { box-shadow:0 0 0 2px rgba(255,255,255,0.35); }
+  /* Inline color panel (below header, above accordion) */
+  .csb-color-panel { padding:10px 9px;background:#080808;border-top:1px solid #1a1a1a;border-bottom:1px solid #1a1a1a; }
+  .csb-color-panel-row { display:flex;align-items:center;gap:6px;margin-bottom:6px; }
+  .csb-color-panel .csb-palette { gap:6px;margin:0; }
+  .csb-color-panel .csb-swatch { width:22px;height:22px; }
   .csb-param-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
   .csb-param-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: rgba(255,255,255,0.3); text-transform: uppercase; width: 30px; flex-shrink: 0; }
   .csb-param-row input[type=range] { flex: 1; height: 3px; cursor: pointer; }
@@ -1411,6 +1421,7 @@ const GraphCalc = (() => {
     isOpen: false,
     _initialized: false,
     expandedIds: new Set(),   // accordion open/closed per object
+    colorOpenId:  null,        // which object has color picker open
     pendingValue: null,        // { type, points, paramKey, label, val, min, max, step }
   };
 
@@ -2025,16 +2036,56 @@ const GraphCalc = (() => {
     const obj = _getObj(id);
     if (!obj) return;
     obj.color = color;
-    renderSidebar(); _draw();
+    // Update color button and swatches in place without full re-render
+    const btn = document.getElementById('csb-cbtn-'+id);
+    if (btn) btn.style.background = color;
+    const dot = document.getElementById('dot-'+id);
+    if (dot) dot.style.background = color;
+    // Re-render palette swatches active state
+    const panel = document.getElementById('csb-cpanel-'+id);
+    if (panel) {
+      panel.querySelectorAll('.csb-swatch').forEach(sw => {
+        sw.classList.toggle('active', sw.getAttribute('data-c') === color);
+      });
+    }
+    _draw();
   }
 
   function setObjOpacity(id, val) {
     const obj = _getObj(id);
     if (!obj) return;
     obj.opacity = parseFloat(val);
-    const outEl = document.getElementById('csb-opacity-'+id);
-    if (outEl) outEl.textContent = Math.round(val*100)+'%';
+    // Update opacity label and dot opacity in place
+    const lbl = document.getElementById('csb-opacity-'+id);
+    if (lbl) lbl.textContent = Math.round(val*100)+'%';
+    const dot = document.getElementById('dot-'+id);
+    if (dot) dot.style.opacity = val;
+    const cbtn = document.getElementById('csb-cbtn-'+id);
+    if (cbtn) cbtn.style.opacity = val;
     _draw();
+  }
+
+  function toggleColorPicker(id) {
+    state.colorOpenId = state.colorOpenId === id ? null : id;
+    renderSidebar();
+  }
+
+  function _colorPanelHTML(obj) {
+    return `<div class="csb-color-panel" id="csb-cpanel-${obj.id}">
+      <div class="csb-label" style="margin-bottom:6px;">Colore</div>
+      <div class="csb-palette">
+        ${PALETTE.map(c=>`<div class="csb-swatch ${obj.color===c?'active':''}"
+          data-c="${c}" style="background:${c};"
+          onclick="GraphCalc.setObjColor(${obj.id},'${c}')"></div>`).join('')}
+      </div>
+      <div class="csb-color-panel-row" style="margin-top:8px;">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:rgba(255,255,255,0.3);flex-shrink:0;">Opacità</span>
+        <input type="range" min="0.1" max="1" step="0.05" value="${obj.opacity||1}"
+          style="flex:1;accent-color:${obj.color}"
+          oninput="GraphCalc.setObjOpacity(${obj.id},this.value)">
+        <span id="csb-opacity-${obj.id}" style="font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:rgba(255,255,255,0.4);width:32px;text-align:right;">${Math.round((obj.opacity||1)*100)}%</span>
+      </div>
+    </div>`;
   }
 
   function selectObject(id) {
@@ -2339,17 +2390,18 @@ const GraphCalc = (() => {
             const expanded = state.expandedIds.has(obj.id);
             const isolated = state.isolatedId===obj.id;
             const def = OBJ_DEFS[obj.type] || '';
+            const colorOpen = state.colorOpenId === obj.id;
             return `<div class="csb-obj-item ${obj.id===state.selectedId?'selected':''}">
               <div class="csb-obj-header">
                 <!-- Eye (visibility) -->
                 <button class="csb-eye-btn ${!obj.visible?'hidden':''}"
                   onclick="GraphCalc.toggleVisible(${obj.id})"
                   title="${obj.visible?'Nascondi':'Mostra'}">${_eyeSVG(obj.visible)}</button>
-                <!-- Color dot -->
-                <div class="csb-obj-dot" id="dot-${obj.id}"
+                <!-- Color button (always visible, opens inline color picker) -->
+                <div id="csb-cbtn-${obj.id}" class="csb-color-btn ${colorOpen?'open':''}"
                   style="background:${obj.color};opacity:${obj.opacity||1};"
-                  onclick="event.stopPropagation();GraphCalc.toggleExpanded(${obj.id})"
-                  title="Clicca per aprire parametri e colore"></div>
+                  onclick="event.stopPropagation();GraphCalc.toggleColorPicker(${obj.id})"
+                  title="Colore e opacità"></div>
                 <!-- Name -->
                 <span class="csb-obj-name ${!obj.visible?'hidden-obj':''}" id="name-${obj.id}"
                   onclick="event.stopPropagation();GraphCalc.selectObject(${obj.id})"
@@ -2368,25 +2420,10 @@ const GraphCalc = (() => {
                     style="color:rgba(255,100,100,0.6);" title="Elimina">×</button>
                 </div>
               </div>
+              <!-- Inline color picker (toggled by color button) -->
+              ${colorOpen ? _colorPanelHTML(obj) : ''}
+              <!-- Full params accordion -->
               ${expanded?`<div class="csb-obj-params">
-                <!-- Color picker section -->
-                <div class="csb-color-section">
-                  <div class="csb-label" style="margin-bottom:5px;">Colore</div>
-                  <div class="csb-palette">
-                    ${PALETTE.map(c=>`<div class="csb-swatch ${obj.color===c?'active':''}"
-                      style="background:${c};"
-                      onclick="GraphCalc.setObjColor(${obj.id},'${c}')"
-                      title="${c}"></div>`).join('')}
-                  </div>
-                  <div class="csb-alpha-row">
-                    <span class="csb-param-label" style="width:auto;margin-right:4px;">Opacità</span>
-                    <input type="range" min="0.1" max="1" step="0.05" value="${obj.opacity||1}"
-                      style="flex:1;accent-color:${obj.color}"
-                      oninput="GraphCalc.setObjOpacity(${obj.id},this.value)">
-                    <span id="csb-opacity-${obj.id}" style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.4);width:30px;text-align:right;">${Math.round((obj.opacity||1)*100)}%</span>
-                  </div>
-                </div>
-                <!-- Object params -->
                 ${_renderParamsInline(obj)}
                 ${isolated?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid #1e1e1e;">
                   <label class="csb-regions-toggle">
@@ -2846,7 +2883,7 @@ const GraphCalc = (() => {
   // ── PUBLIC API ──
   return {
     open, close, renderSidebar, toggleDrawer,
-    setMode, toggleSnap, startTool, toggleExpanded,
+    setMode, toggleSnap, startTool, toggleExpanded, toggleColorPicker,
     selectObject, deleteObject, toggleVisible, clearAll,
     isolateObject, toggleRegions, renameObject, pickColor,
     confirmValue, cancelValue, updatePendingVal,
