@@ -438,6 +438,22 @@
   .csb-regions-toggle { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: rgba(255,255,255,0.45); cursor: pointer; padding: 4px 0; }
   .csb-regions-toggle input[type=checkbox] { accent-color: #a78bfa; }
 
+  /* Accordion object list */
+  .csb-obj-header { display:flex;align-items:center;gap:6px;padding:7px 6px;cursor:pointer;border-radius:4px;transition:background 0.12s; }
+  .csb-obj-header:hover { background:#111; }
+  .csb-obj-item.selected .csb-obj-header { background:#141414; }
+  .csb-obj-params { padding:10px 10px 8px;background:#060606;border-top:1px solid #181818;border-radius:0 0 4px 4px; }
+  .csb-expand-btn { font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:rgba(255,255,255,0.25);background:transparent;border:none;cursor:pointer;padding:2px 4px;line-height:1;transition:color 0.1s; }
+  .csb-expand-btn:hover { color:rgba(255,255,255,0.6); }
+
+  /* XY coord pairs */
+  .csb-xy-row { display:flex;gap:6px;margin-bottom:6px; }
+  .csb-xy-field { flex:1;display:flex;align-items:center;gap:4px;min-width:0; }
+  .csb-xy-field .csb-param-label { width:14px;flex-shrink:0; }
+  .csb-xy-field input[type=number] { flex:1;width:100%;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;background:#0f0f0f;border:1px solid #222;color:rgba(255,255,255,0.7);padding:3px 5px;border-radius:3px;min-width:0; }
+  .csb-xy-field input[type=number]:focus { outline:none;border-color:rgba(255,255,255,0.3); }
+  .csb-sub-label { font-family:'IBM Plex Mono',monospace;font-size:0.58rem;color:rgba(255,255,255,0.2);letter-spacing:0.08em;text-transform:uppercase;margin:6px 0 3px; }
+
   #btn-open-calc:hover {
     border-color: rgba(255,255,255,0.6);
     color: #ffffff;
@@ -1355,17 +1371,20 @@ const GraphCalc = (() => {
     nextId: 1,
     selectedId: null,
     isolatedId: null,
-    mode: 'select',
+    mode: 'normal',          // 'normal' | 'point'
     snap: false,
     pan: { x: 0, y: 0 },
     scale: 60,
-    dragging: null,
+    dragging: null,          // 'pan'
     dragStart: null,
+    draggingPoint: null,     // { objId, key } — dragging a control point
+    pendingDraggingIdx: null,// index of pending point being dragged
     mouseWorld: null,
     pendingTool: null,
     showRegions: false,
     isOpen: false,
     _initialized: false,
+    expandedIds: new Set(),  // accordion: which objects have params visible
   };
 
   const DEFAULT_COLORS = {
@@ -1375,6 +1394,7 @@ const GraphCalc = (() => {
     iperbole:      '#fb923c',
     parabola:      '#22c55e',
     luogo:         '#a78bfa',
+    distanza:      '#ec4899',
   };
 
   const TYPE_LABELS = {
@@ -1384,6 +1404,7 @@ const GraphCalc = (() => {
     iperbole:      'Iperbole',
     parabola:      'Parabola',
     luogo:         'Luogo',
+    distanza:      'Distanza',
   };
 
   // ── OPEN / CLOSE ──
@@ -1478,6 +1499,7 @@ const GraphCalc = (() => {
       const before = t.toWorld(mx, my);
       const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
       state.scale = Math.max(10, Math.min(400, state.scale * factor));
+      // Pin world point under cursor
       state.pan.x = before.x - (mx - canvas.width / DPR / 2) / state.scale;
       state.pan.y = before.y + (my - canvas.height / DPR / 2) / state.scale;
       _draw();
@@ -1545,8 +1567,8 @@ const GraphCalc = (() => {
           _touchStart = null; // cancel tap
         }
         if (state.dragging === 'pan') {
-          state.pan.x = state.dragStart.px + dx / state.scale;
-          state.pan.y = state.dragStart.py - dy / state.scale;
+          state.pan.x = state.dragStart.px - dx / state.scale;
+          state.pan.y = state.dragStart.py + dy / state.scale;
           _draw();
         }
       }
@@ -1562,9 +1584,21 @@ const GraphCalc = (() => {
         const my = _touchStart.y - rect.top;
         const raw = _canvasToWorld(mx, my);
         const world = _snapCoord(raw.x, raw.y);
-        if (state.mode === 'point' && state.pendingTool) {
+        if (state.pendingTool && state.pendingTool.pointsPlaced.length > 0) {
+          // Check tap on already-placed pending point
+          let hitPending = false;
+          for (let i = 0; i < state.pendingTool.pointsPlaced.length; i++) {
+            const pt = state.pendingTool.pointsPlaced[i];
+            if (Math.abs(world.x-pt.x)+Math.abs(world.y-pt.y) < 0.8) { hitPending=true; break; }
+          }
+          if (!hitPending) _placePendingPoint(world);
+        } else if (state.pendingTool) {
           _placePendingPoint(world);
-        } else if (state.mode === 'select') {
+        } else {
+          // Try control point
+          const cp = _hitTestControlPoint(world.x, world.y, 0.7);
+          if (cp) { state.selectedId = cp.objId; renderSidebar(); return; }
+          // Try object
           let hit = false;
           for (const obj of [...state.objects].reverse()) {
             if (!obj.visible) continue;
@@ -1592,28 +1626,101 @@ const GraphCalc = (() => {
     resize();
   }
 
+  // ── CONTROL POINT HIT TEST ──
+  function _hitTestControlPoint(wx, wy, thr) {
+    for (const obj of [...state.objects].reverse()) {
+      if (!obj.visible) continue;
+      const d = (ax,ay) => Math.abs(wx-ax)+Math.abs(wy-ay);
+      if (obj.type==='asse') {
+        const{p1,p2}=obj.params;
+        if(p1&&d(p1.x,p1.y)<thr)return{objId:obj.id,key:'p1_xy'};
+        if(p2&&d(p2.x,p2.y)<thr)return{objId:obj.id,key:'p2_xy'};
+      } else if(obj.type==='circonferenza') {
+        const{xc=0,yc=0}=obj.params;
+        if(d(xc,yc)<thr)return{objId:obj.id,key:'center_xy'};
+      } else if(obj.type==='ellisse'||obj.type==='iperbole') {
+        const{x1=0,y1=0,x2=0,y2=0}=obj.params;
+        if(d(x1,y1)<thr)return{objId:obj.id,key:'f1_xy'};
+        if(d(x2,y2)<thr)return{objId:obj.id,key:'f2_xy'};
+      } else if(obj.type==='parabola') {
+        const{xF=0,yF=0}=obj.params;
+        if(d(xF,yF)<thr)return{objId:obj.id,key:'focus_xy'};
+      } else if(obj.type==='distanza') {
+        const{p1,p2}=obj.params;
+        if(p1&&d(p1.x,p1.y)<thr)return{objId:obj.id,key:'p1_xy'};
+        if(p2&&d(p2.x,p2.y)<thr)return{objId:obj.id,key:'p2_xy'};
+      }
+    }
+    return null;
+  }
+
+  function _applyControlPointDrag(objId, key, rawX, rawY) {
+    const obj = _getObj(objId);
+    if (!obj) return;
+    const s = _snapCoord(rawX, rawY);
+    if(key==='p1_xy')     obj.params.p1={x:s.x,y:s.y};
+    else if(key==='p2_xy')obj.params.p2={x:s.x,y:s.y};
+    else if(key==='center_xy'){obj.params.xc=s.x;obj.params.yc=s.y;}
+    else if(key==='f1_xy'){obj.params.x1=s.x;obj.params.y1=s.y;}
+    else if(key==='f2_xy'){obj.params.x2=s.x;obj.params.y2=s.y;}
+    else if(key==='focus_xy'){obj.params.xF=s.x;obj.params.yF=s.y;}
+    // Live update output without full sidebar re-render
+    const outEl=document.getElementById('csb-out-'+objId);
+    if(outEl)outEl.innerHTML=_getOutputText(obj);
+    _draw();
+  }
+
   // ── MOUSE HANDLERS ──
   function _onMouseDown(e) {
+    if (!state.isOpen) return;
     const canvas = document.getElementById('calc-canvas');
     const rect = canvas.getBoundingClientRect();
     const mx = e.clientX - rect.left, my = e.clientY - rect.top;
     const raw = _canvasToWorld(mx, my);
     const world = _snapCoord(raw.x, raw.y);
 
-    if (state.mode === 'point' && state.pendingTool) {
-      _placePendingPoint(world);
-      return;
-    }
-    if (state.mode === 'select') {
-      for (const obj of [...state.objects].reverse()) {
-        if (!obj.visible) continue;
-        if (_isNearObject(obj, world.x, world.y, 10 / state.scale)) {
-          selectObject(obj.id);
+    // 1. Pending point tool
+    if (state.pendingTool) {
+      // Check if clicking near an already-placed pending point → drag it
+      for (let i = 0; i < state.pendingTool.pointsPlaced.length; i++) {
+        const pt = state.pendingTool.pointsPlaced[i];
+        if (Math.abs(raw.x-pt.x)+Math.abs(raw.y-pt.y) < 0.7) {
+          state.pendingDraggingIdx = i;
           return;
         }
       }
-      selectObject(null);
+      _placePendingPoint(world);
+      return;
     }
+
+    // 2. Control point drag
+    const cp = _hitTestControlPoint(raw.x, raw.y, 0.7);
+    if (cp) {
+      state.draggingPoint = cp;
+      state.selectedId = cp.objId;
+      state.expandedIds.add(cp.objId);
+      renderSidebar();
+      return;
+    }
+
+    // 3. Object click → select
+    for (const obj of [...state.objects].reverse()) {
+      if (!obj.visible) continue;
+      if (_isNearObject(obj, world.x, world.y, 10 / state.scale)) {
+        if (state.selectedId === obj.id) {
+          // Toggle accordion on second click
+          state.expandedIds.has(obj.id) ? state.expandedIds.delete(obj.id) : state.expandedIds.add(obj.id);
+        } else {
+          state.selectedId = obj.id;
+          state.expandedIds.add(obj.id);
+        }
+        renderSidebar();
+        return;
+      }
+    }
+
+    // 4. Empty → deselect + pan
+    if (state.selectedId !== null) { state.selectedId = null; renderSidebar(); }
     state.dragging = 'pan';
     state.dragStart = { mx: e.clientX, my: e.clientY, px: state.pan.x, py: state.pan.y };
     canvas.style.cursor = 'grab';
@@ -1627,27 +1734,45 @@ const GraphCalc = (() => {
     const raw = _canvasToWorld(mx, my);
     state.mouseWorld = _snapCoord(raw.x, raw.y);
 
+    // Drag pending point
+    if (state.pendingDraggingIdx !== null && state.pendingTool) {
+      state.pendingTool.pointsPlaced[state.pendingDraggingIdx] = { ...state.mouseWorld };
+      _draw(); return;
+    }
+
+    // Drag control point
+    if (state.draggingPoint) {
+      _applyControlPointDrag(state.draggingPoint.objId, state.draggingPoint.key, raw.x, raw.y);
+      return;
+    }
+
+    // Pan — direction fixed: drag right → objects move right
     if (state.dragging === 'pan' && state.dragStart) {
       const dx = e.clientX - state.dragStart.mx;
       const dy = e.clientY - state.dragStart.my;
-      state.pan.x = state.dragStart.px + dx / state.scale;
-      state.pan.y = state.dragStart.py - dy / state.scale;
-      _draw();
-      return;
+      state.pan.x = state.dragStart.px - dx / state.scale;
+      state.pan.y = state.dragStart.py + dy / state.scale;
+      _draw(); return;
     }
-    if (state.mode === 'select') {
+
+    // Hover cursor
+    const cp = _hitTestControlPoint(raw.x, raw.y, 0.6);
+    if (cp) { canvas.style.cursor = 'move'; }
+    else {
       let hovering = false;
-      state.objects.forEach(obj => {
-        if (!obj.visible) return;
-        if (_isNearObject(obj, state.mouseWorld.x, state.mouseWorld.y, 10 / state.scale)) hovering = true;
-      });
-      canvas.style.cursor = hovering ? 'pointer' : 'default';
+      for (const obj of state.objects) {
+        if (!obj.visible) continue;
+        if (_isNearObject(obj, state.mouseWorld.x, state.mouseWorld.y, 10/state.scale)) { hovering=true; break; }
+      }
+      canvas.style.cursor = hovering ? 'pointer' : state.mode==='point' ? 'crosshair' : 'default';
     }
     _draw();
   }
 
   function _onMouseUp() {
     state.dragging = null;
+    state.draggingPoint = null;
+    state.pendingDraggingIdx = null;
     const canvas = document.getElementById('calc-canvas');
     if (canvas) canvas.style.cursor = state.mode === 'point' ? 'crosshair' : 'default';
   }
@@ -1655,10 +1780,14 @@ const GraphCalc = (() => {
   function _placePendingPoint(world) {
     if (!state.pendingTool) return;
     state.pendingTool.pointsPlaced.push({ x: world.x, y: world.y });
+    state.pendingDraggingIdx = null;
     if (state.pendingTool.pointsPlaced.length >= state.pendingTool.pointsNeeded) {
-      _createObject(state.pendingTool.type, state.pendingTool.pointsPlaced);
+      const obj = _createObject(state.pendingTool.type, state.pendingTool.pointsPlaced);
       state.pendingTool = null;
-      state.mode = 'select';
+      state.mode = 'normal';
+      state.expandedIds.add(obj.id);
+      const canvas = document.getElementById('calc-canvas');
+      if (canvas) canvas.style.cursor = 'default';
       renderSidebar();
       _draw();
     } else {
@@ -1687,6 +1816,8 @@ const GraphCalc = (() => {
       params = { xF: points[0].x, yF: points[0].y, m: 0, q: points[1].y };
     } else if (type === 'luogo') {
       params = { equation: '' };
+    } else if (type === 'distanza') {
+      params = { p1: points[0], p2: points[1] };
     }
     const obj = { id, name, type, params, color, visible: true };
     state.objects.push(obj);
@@ -1703,9 +1834,60 @@ const GraphCalc = (() => {
     }
     const obj = _getObj(objId);
     if (!obj) return;
-    obj.params[key] = val;
+    _applyParamKey(obj, key, val);
     renderSidebar();
     _draw();
+  }
+
+  // ── OUTPUT TEXT (live update without full sidebar re-render) ──
+  function _getOutputText(obj) {
+    if (obj.type==='circonferenza') {
+      const{R=3}=obj.params;
+      return `Perimetro = ${(4*R*Math.SQRT2).toFixed(2)} &nbsp;|&nbsp; Area = ${(2*R*R).toFixed(2)} &nbsp;|&nbsp; π₁ = 4`;
+    }
+    if (obj.type==='ellisse') {
+      const{x1=0,y1=0,x2=2,y2=0,twoA=6}=obj.params;
+      const d0=Math.abs(x2-x1)+Math.abs(y2-y1);
+      return `d₀ = ${d0.toFixed(2)} &nbsp;|&nbsp; k = ${(twoA/2-d0/2).toFixed(2)}`;
+    }
+    if (obj.type==='iperbole') {
+      const{x1=0,y1=0,x2=4,y2=0,twoA=2}=obj.params;
+      const d0=Math.abs(x2-x1)+Math.abs(y2-y1);
+      return `d₀ = ${d0.toFixed(2)} &nbsp;|&nbsp; S = ${parseFloat(twoA).toFixed(2)}`;
+    }
+    if (obj.type==='parabola') {
+      const{xF=0,yF=2,m=0,q=0,vertical=false}=obj.params;
+      const dF=(Math.abs(m*xF-yF+q)/(Math.abs(m)+1)).toFixed(2);
+      const dir=vertical?`x = ${q}`:m===0?`y = ${q}`:`y = ${m}x + ${q}`;
+      return `p = ${dF} &nbsp;|&nbsp; ${dir}`;
+    }
+    if (obj.type==='asse') {
+      const p1=obj.params.p1||{x:0,y:0},p2=obj.params.p2||{x:0,y:0};
+      return `d₁(P₁,P₂) = ${(Math.abs(p2.x-p1.x)+Math.abs(p2.y-p1.y)).toFixed(2)}`;
+    }
+    if (obj.type==='distanza') {
+      const p1=obj.params.p1||{x:0,y:0},p2=obj.params.p2||{x:0,y:0};
+      return `d₁ = ${(Math.abs(p2.x-p1.x)+Math.abs(p2.y-p1.y)).toFixed(3)}`;
+    }
+    return '';
+  }
+
+  function _setParamQuiet(objId, key, val) {
+    const obj = _getObj(objId);
+    if (!obj) return;
+    _applyParamKey(obj, key, val);
+    const outEl = document.getElementById('csb-out-'+objId);
+    if (outEl) outEl.innerHTML = _getOutputText(obj);
+    _draw();
+  }
+
+  // Handle virtual keys like _p1x, _p2y for asse/distanza
+  function _applyParamKey(obj, key, val) {
+    if (key === '_p1x') { if (!obj.params.p1) obj.params.p1={x:0,y:0}; obj.params.p1.x = val; }
+    else if (key === '_p1y') { if (!obj.params.p1) obj.params.p1={x:0,y:0}; obj.params.p1.y = val; }
+    else if (key === '_p2x') { if (!obj.params.p2) obj.params.p2={x:0,y:0}; obj.params.p2.x = val; }
+    else if (key === '_p2y') { if (!obj.params.p2) obj.params.p2={x:0,y:0}; obj.params.p2.y = val; }
+    else obj.params[key] = val;
   }
 
   // ── PUBLIC ACTIONS ──
@@ -1720,12 +1902,13 @@ const GraphCalc = (() => {
 
   function startTool(type) {
     if (type === 'luogo') {
-      _createObject('luogo', []);
-      state.mode = 'select';
+      const obj = _createObject('luogo', []);
+      state.mode = 'normal';
       state.pendingTool = null;
+      state.expandedIds.add(obj.id);
       renderSidebar(); _draw(); return;
     }
-    const pointsNeeded = { asse:2, circonferenza:1, ellisse:2, iperbole:2, parabola:2 };
+    const pointsNeeded = { asse:2, circonferenza:1, ellisse:2, iperbole:2, parabola:2, distanza:2 };
     state.pendingTool = { type, pointsNeeded: pointsNeeded[type] || 0, pointsPlaced: [] };
     state.mode = 'point';
     const canvas = document.getElementById('calc-canvas');
@@ -1733,7 +1916,14 @@ const GraphCalc = (() => {
     renderSidebar(); _draw();
   }
 
+  function toggleExpanded(id) {
+    if (state.expandedIds.has(id)) state.expandedIds.delete(id);
+    else state.expandedIds.add(id);
+    renderSidebar();
+  }
+
   function selectObject(id) {
+    if (id !== null && state.selectedId !== id) state.expandedIds.add(id);
     state.selectedId = (id === null || state.selectedId === id) ? null : id;
     renderSidebar();
   }
@@ -1813,17 +2003,32 @@ const GraphCalc = (() => {
   function _getStatusMessage() {
     if (state.pendingTool) {
       const labels = {
-        asse:          ['P₁ (primo punto)','P₂ (secondo punto)'],
-        circonferenza: ['Centro C'],
-        ellisse:       ['F₁ (primo fuoco)','F₂ (secondo fuoco)'],
-        iperbole:      ['F₁ (primo fuoco)','F₂ (secondo fuoco)'],
-        parabola:      ['Fuoco F','Punto sulla direttrice'],
+        asse:          ['Posiziona P₁','Posiziona P₂ — o trascina P₁'],
+        circonferenza: ['Posiziona il Centro C'],
+        ellisse:       ['Posiziona F₁ (primo fuoco)','Posiziona F₂ — o trascina F₁'],
+        iperbole:      ['Posiziona F₁ (primo fuoco)','Posiziona F₂ — o trascina F₁'],
+        parabola:      ['Posiziona il Fuoco F','Clicca un punto sulla direttrice'],
+        distanza:      ['Posiziona P₁','Posiziona P₂ — o trascina P₁'],
       };
       const placed = state.pendingTool.pointsPlaced.length;
-      const lbl = (labels[state.pendingTool.type] || [])[placed] || 'punto';
-      return `Clicca sul piano — ${lbl}`;
+      return (labels[state.pendingTool.type] || [])[placed] || 'Clicca sul piano';
     }
     return '';
+  }
+
+  function _xyPair(labelA, labelB, valA, valB, objId, keyA, keyB) {
+    return `<div class="csb-xy-row">
+      <div class="csb-xy-field">
+        <span class="csb-param-label">${labelA}</span>
+        <input type="number" value="${(+valA).toFixed(2)}" step="0.5"
+          onchange="GraphCalc._setParam(${objId},'${keyA}',parseFloat(this.value))">
+      </div>
+      <div class="csb-xy-field">
+        <span class="csb-param-label">${labelB}</span>
+        <input type="number" value="${(+valB).toFixed(2)}" step="0.5"
+          onchange="GraphCalc._setParam(${objId},'${keyB}',parseFloat(this.value))">
+      </div>
+    </div>`;
   }
 
   function _sliderRow(label, value, min, max, step, objId, paramKey, color) {
@@ -1833,102 +2038,102 @@ const GraphCalc = (() => {
       <span class="csb-param-label">${label}</span>
       <input type="range" min="${min}" max="${max}" step="${step}" value="${sliderVal}"
         style="flex:1;accent-color:${accentColor}"
-        oninput="(()=>{const v=parseFloat(this.value);GraphCalc._setParam(${objId},'${paramKey}',v);this.nextElementSibling.value=v;})()">
+        oninput="(()=>{const v=parseFloat(this.value);GraphCalc._setParamQuiet(${objId},'${paramKey}',v);this.nextElementSibling.value=v;})()">
       <input type="number" class="csb-param-hitbox" value="${value}" step="${step}"
         onchange="(()=>{const v=parseFloat(this.value)||0;GraphCalc._setParam(${objId},'${paramKey}',v,true);this.previousElementSibling.value=Math.min(${max},Math.max(${min},v));})()">
     </div>`;
   }
 
-  function _renderParamsPanel(obj) {
+  function _renderParamsInline(obj) {
     if (obj.type === 'asse') {
-      const p1 = obj.params.p1 || {x:0,y:0};
-      const p2 = obj.params.p2 || {x:0,y:0};
-      const d1 = (Math.abs(p2.x-p1.x)+Math.abs(p2.y-p1.y)).toFixed(2);
-      return `<div class="csb-section">
-        <div class="csb-label">Parametri — Asse</div>
-        <div class="csb-param-row"><span class="csb-param-label">P₁</span><span style="font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:rgba(255,255,255,0.55);">(${p1.x.toFixed(2)}, ${p1.y.toFixed(2)})</span></div>
-        <div class="csb-param-row"><span class="csb-param-label">P₂</span><span style="font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:rgba(255,255,255,0.55);">(${p2.x.toFixed(2)}, ${p2.y.toFixed(2)})</span></div>
-        <div class="csb-output">d₁(P₁,P₂) = ${d1}</div>
-        <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.4);cursor:pointer;">
+      const p1=obj.params.p1||{x:0,y:0}, p2=obj.params.p2||{x:0,y:0};
+      return `
+        <div class="csb-sub-label">P₁</div>
+        ${_xyPair('x','y',p1.x,p1.y,obj.id,'_p1x','_p1y')}
+        <div class="csb-sub-label">P₂</div>
+        ${_xyPair('x','y',p2.x,p2.y,obj.id,'_p2x','_p2y')}
+        <div class="csb-output" id="csb-out-${obj.id}">${_getOutputText(obj)}</div>
+        <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.35);cursor:pointer;">
           <input type="checkbox" ${obj.params.showBisector?'checked':''} style="accent-color:#22c55e"
             onchange="(()=>{const o=GraphCalc._getObj(${obj.id});if(o){o.params.showBisector=this.checked;GraphCalc._redraw();}})()">
-          Mostra bisettrice euclidea
-        </label>
-      </div>`;
+          Bisettrice euclidea
+        </label>`;
     }
     if (obj.type === 'circonferenza') {
-      const { xc=0, yc=0, R=3 } = obj.params;
-      return `<div class="csb-section">
-        <div class="csb-label">Parametri — Circonferenza</div>
-        ${_sliderRow('x꜀', xc, -10, 10, 0.5, obj.id, 'xc', obj.color)}
-        ${_sliderRow('y꜀', yc, -10, 10, 0.5, obj.id, 'yc', obj.color)}
-        ${_sliderRow('R',  R,   0.5, 10, 0.5, obj.id, 'R',  obj.color)}
-        <div class="csb-output">Perimetro = ${(4*R*Math.SQRT2).toFixed(2)} &nbsp;|&nbsp; Area = ${(2*R*R).toFixed(2)} &nbsp;|&nbsp; π₁ = 4</div>
-      </div>`;
+      const{xc=0,yc=0,R=3}=obj.params;
+      return `
+        <div class="csb-sub-label">Centro</div>
+        ${_xyPair('x','y',xc,yc,obj.id,'xc','yc')}
+        ${_sliderRow('R', R, 0.5, 10, 0.5, obj.id, 'R', obj.color)}
+        <div class="csb-output" id="csb-out-${obj.id}">${_getOutputText(obj)}</div>`;
     }
     if (obj.type === 'ellisse') {
-      const { x1=0, y1=0, x2=2, y2=0, twoA=6 } = obj.params;
-      const d0 = Math.abs(x2-x1)+Math.abs(y2-y1);
-      return `<div class="csb-section">
-        <div class="csb-label">Parametri — Ellisse</div>
-        ${_sliderRow('x₁', x1, -10, 10, 0.5, obj.id, 'x1', obj.color)}
-        ${_sliderRow('y₁', y1, -10, 10, 0.5, obj.id, 'y1', obj.color)}
-        ${_sliderRow('x₂', x2, -10, 10, 0.5, obj.id, 'x2', obj.color)}
-        ${_sliderRow('y₂', y2, -10, 10, 0.5, obj.id, 'y2', obj.color)}
-        ${_sliderRow('2a', twoA, 0.5, 10, 0.5, obj.id, 'twoA', obj.color)}
-        <div class="csb-output">d₀ = ${d0.toFixed(2)} &nbsp;|&nbsp; k = ${(twoA/2 - d0/2).toFixed(2)}</div>
-      </div>`;
+      const{x1=0,y1=0,x2=2,y2=0,twoA=6}=obj.params;
+      return `
+        <div class="csb-sub-label">F₁</div>
+        ${_xyPair('x','y',x1,y1,obj.id,'x1','y1')}
+        <div class="csb-sub-label">F₂</div>
+        ${_xyPair('x','y',x2,y2,obj.id,'x2','y2')}
+        ${_sliderRow('S', twoA, 0.5, 10, 0.5, obj.id, 'twoA', obj.color)}
+        <div class="csb-output" id="csb-out-${obj.id}">${_getOutputText(obj)}</div>`;
     }
     if (obj.type === 'iperbole') {
-      const { x1=0, y1=0, x2=4, y2=0, twoA=2 } = obj.params;
-      const d0 = Math.abs(x2-x1)+Math.abs(y2-y1);
-      return `<div class="csb-section">
-        <div class="csb-label">Parametri — Iperbole</div>
-        ${_sliderRow('x₁', x1, -10, 10, 0.5, obj.id, 'x1', obj.color)}
-        ${_sliderRow('y₁', y1, -10, 10, 0.5, obj.id, 'y1', obj.color)}
-        ${_sliderRow('x₂', x2, -10, 10, 0.5, obj.id, 'x2', obj.color)}
-        ${_sliderRow('y₂', y2, -10, 10, 0.5, obj.id, 'y2', obj.color)}
-        ${_sliderRow('2a', twoA, 0.5, 10, 0.5, obj.id, 'twoA', obj.color)}
-        <div class="csb-output">d₀ = ${d0.toFixed(2)} &nbsp;|&nbsp; 2a = ${parseFloat(twoA).toFixed(2)}</div>
-      </div>`;
+      const{x1=0,y1=0,x2=4,y2=0,twoA=2}=obj.params;
+      return `
+        <div class="csb-sub-label">F₁</div>
+        ${_xyPair('x','y',x1,y1,obj.id,'x1','y1')}
+        <div class="csb-sub-label">F₂</div>
+        ${_xyPair('x','y',x2,y2,obj.id,'x2','y2')}
+        ${_sliderRow('S', twoA, 0.5, 10, 0.5, obj.id, 'twoA', obj.color)}
+        <div class="csb-output" id="csb-out-${obj.id}">${_getOutputText(obj)}</div>`;
     }
     if (obj.type === 'parabola') {
-      const { xF=0, yF=2, m=0, q=0, vertical=false } = obj.params;
-      const denom = Math.abs(m) + 1;
-      const dF = (Math.abs(m * xF - yF + q) / denom).toFixed(2);
-      const dirLabel = vertical ? `x = ${q}` : m === 0 ? `y = ${q}` : `y = ${m >= 0 ? m : '('+m+')'}x + ${q}`;
-      return `<div class="csb-section">
-        <div class="csb-label">Parametri — Parabola</div>
-        ${_sliderRow('x_F', xF, -10, 10, 0.5, obj.id, 'xF', obj.color)}
-        ${_sliderRow('y_F', yF, -10, 10, 0.5, obj.id, 'yF', obj.color)}
-        <div class="csb-param-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
-          <span class="csb-param-label" style="width:auto;margin-bottom:2px;">Direttrice</span>
+      const{xF=0,yF=2,m=0,q=0,vertical=false}=obj.params;
+      const mDisplay = vertical ? 10 : Math.max(-10, Math.min(10, m));
+      const dirLabel = vertical?`x = ${q}`:m===0?`y = ${q}`:`y = ${m}x + ${q}`;
+      return `
+        <div class="csb-sub-label">Fuoco</div>
+        ${_xyPair('x','y',xF,yF,obj.id,'xF','yF')}
+        <div class="csb-param-row" style="flex-direction:column;align-items:flex-start;gap:3px;margin-bottom:6px;">
+          <span class="csb-sub-label" style="margin:0 0 3px;">Direttrice</span>
           <input type="text" style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;background:#0f0f0f;border:1px solid #222;color:rgba(255,255,255,0.7);padding:4px 8px;border-radius:3px;width:100%;"
             value="${dirLabel}" placeholder="y = mx + q"
             onchange="GraphCalc._parseDirectrix(${obj.id}, this.value)">
         </div>
-        ${_sliderRow('m', m, -5, 5, 0.5, obj.id, 'm', obj.color)}
+        <div class="csb-param-row">
+          <span class="csb-param-label">m</span>
+          <input type="range" min="-10" max="10" step="0.5" value="${mDisplay}"
+            style="flex:1;accent-color:${obj.color}"
+            oninput="(()=>{const v=parseFloat(this.value);const inf=Math.abs(v)>=10;GraphCalc._setParamQuiet(${obj.id},'vertical',inf);if(!inf)GraphCalc._setParamQuiet(${obj.id},'m',v);this.nextElementSibling.textContent=inf?'∞':v;})()">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:rgba(255,255,255,0.55);width:24px;text-align:right;">${vertical?'∞':m}</span>
+        </div>
         ${_sliderRow('q', q, -10, 10, 0.5, obj.id, 'q', obj.color)}
-        <div class="csb-output">p = ${dF} &nbsp;|&nbsp; ${dirLabel}</div>
-      </div>`;
+        <div class="csb-output" id="csb-out-${obj.id}">${_getOutputText(obj)}</div>`;
     }
     if (obj.type === 'luogo') {
-      return `<div class="csb-section">
-        <div class="csb-label">Parametri — Luogo Libero</div>
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:rgba(255,255,255,0.25);margin-bottom:8px;">Es: |x-2| + |y-3| = 5</div>
+      return `
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:rgba(255,255,255,0.2);margin-bottom:6px;">Es: |x-2| + |y-3| = 5</div>
         <input type="text" style="font-family:'IBM Plex Mono',monospace;font-size:0.75rem;background:#0f0f0f;border:1px solid #222;color:rgba(255,255,255,0.8);padding:6px 8px;border-radius:3px;width:100%;"
-          value="${obj.params.equation || ''}" placeholder="f(x,y) = g(x,y)"
-          oninput="GraphCalc._setParam(${obj.id},'equation',this.value)">
-        <div class="csb-output" style="margin-top:6px;">Usa |expr| per valore assoluto.<br>Zoom in per attivare il rendering.</div>
-      </div>`;
+          value="${obj.params.equation||''}" placeholder="f(x,y) = g(x,y)"
+          onchange="GraphCalc._setParam(${obj.id},'equation',this.value)">
+        <div class="csb-output" style="margin-top:6px;">Usa |expr| per valore assoluto. Zoom in per attivare.</div>`;
+    }
+    if (obj.type === 'distanza') {
+      const p1=obj.params.p1||{x:0,y:0},p2=obj.params.p2||{x:0,y:0};
+      return `
+        <div class="csb-sub-label">P₁</div>
+        ${_xyPair('x','y',p1.x,p1.y,obj.id,'_p1x','_p1y')}
+        <div class="csb-sub-label">P₂</div>
+        ${_xyPair('x','y',p2.x,p2.y,obj.id,'_p2x','_p2y')}
+        <div class="csb-output" id="csb-out-${obj.id}">${_getOutputText(obj)}</div>`;
     }
     return '';
   }
 
   function _attachLongPressListeners() {
     state.objects.forEach(obj => {
-      const dot  = document.getElementById(`dot-${obj.id}`);
-      const name = document.getElementById(`name-${obj.id}`);
+      const dot  = document.getElementById('dot-'+obj.id);
+      const name = document.getElementById('name-'+obj.id);
       if (dot)  _addLongPress(dot,  () => { pickColor(obj.id); }, 400);
       if (name) _addLongPress(name, () => { renameObject(obj.id, name); }, 500);
     });
@@ -1937,82 +2142,87 @@ const GraphCalc = (() => {
   function renderSidebar() {
     const sb = document.getElementById('calc-sidebar');
     if (!sb) return;
+    const isIsolated = !!state.isolatedId;
+    const statusMsg  = _getStatusMessage();
+
     const tools = [
-      { type:'asse',          icon:'⊥', label:'Asse taxicab',   disabled:false },
-      { type:'circonferenza', icon:'○', label:'Circonferenza',  disabled:false },
-      { type:'ellisse',       icon:'⬡', label:'Ellisse',        disabled:false },
-      { type:'iperbole',      icon:'⟩⟨',label:'Iperbole',       disabled:false },
-      { type:'parabola',      icon:'⌒', label:'Parabola',       disabled:false },
-      { type:'luogo',         icon:'ƒ', label:'Luogo libero…',  disabled:false },
-      { type:'distanza',      icon:'↔', label:'Distanza',       disabled:true  },
+      { type:'asse',          label:'Asse taxicab',   color:'#f59e0b' },
+      { type:'circonferenza', label:'Circonferenza',  color:'#e63946' },
+      { type:'ellisse',       label:'Ellisse',        color:'#3b82f6' },
+      { type:'iperbole',      label:'Iperbole',       color:'#fb923c' },
+      { type:'parabola',      label:'Parabola',       color:'#22c55e' },
+      { type:'luogo',         label:'Luogo libero',   color:'#a78bfa' },
+      { type:'distanza',      label:'Distanza',       color:'#ec4899' },
     ];
-    const selectedObj = state.objects.find(o => o.id === state.selectedId);
-    const isIsolated  = !!state.isolatedId;
 
     sb.innerHTML = `
-      <div class="csb-section" style="padding:10px 14px;">
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;color:rgba(255,255,255,0.3);text-transform:uppercase;">Calcolatore Grafico</span>
+      <!-- Header -->
+      <div class="csb-section" style="padding:12px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <span style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:#fff;letter-spacing:0.01em;">Calcolatore Grafico</span>
+        <button onclick="GraphCalc.close()" style="font-family:'IBM Plex Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;color:rgba(255,255,255,0.3);background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:3px;padding:3px 8px;cursor:pointer;transition:color 0.15s,border-color 0.15s;" onmouseover="this.style.color='rgba(255,255,255,0.7)';this.style.borderColor='rgba(255,255,255,0.3)'" onmouseout="this.style.color='rgba(255,255,255,0.3)';this.style.borderColor='rgba(255,255,255,0.12)'">ESC ×</button>
       </div>
-      <div class="csb-status" id="csb-status">${_getStatusMessage()}</div>
-      <div class="csb-section">
-        <div class="csb-label">Modalità</div>
-        <div class="csb-mode-row">
-          <button class="csb-mode-btn ${state.mode==='select'?'active':''}" onclick="GraphCalc.setMode('select')">↖ Seleziona</button>
-          <button class="csb-mode-btn ${state.mode==='point'?'active':''}"  onclick="GraphCalc.setMode('point')">✦ Punto</button>
-          <button class="csb-mode-btn ${state.mode==='pan'?'active':''}"    onclick="GraphCalc.setMode('pan')">✋ Sposta</button>
-        </div>
-      </div>
-      <div class="csb-section">
+
+      <!-- Status / placement guide -->
+      ${statusMsg ? `<div class="csb-status">${statusMsg}</div>` : ''}
+
+      <!-- Snap -->
+      <div class="csb-section" style="flex-shrink:0;">
         <div class="csb-snap-row">
           <button class="csb-snap-toggle ${state.snap?'active':''}" onclick="GraphCalc.toggleSnap()">🧲 Snap</button>
-          <span class="csb-info-icon" data-tip="Agganciamento alla griglia intera. Attivalo per posizionare punti esatti su coordinate intere.">ⓘ</span>
+          <span class="csb-info-icon" data-tip="Agganciamento alla griglia intera. I punti vengono posizionati su coordinate intere.">ⓘ</span>
         </div>
       </div>
-      <div class="csb-section">
+
+      <!-- Create object -->
+      <div class="csb-section" style="flex-shrink:0;">
         <div class="csb-label">Crea oggetto</div>
         ${tools.map(t => `
-          <button class="csb-tool-btn ${t.disabled?'disabled':''} ${state.pendingTool&&state.pendingTool.type===t.type?'active':''}"
-            ${t.disabled?'disabled title="In sviluppo"':`onclick="GraphCalc.startTool('${t.type}')"`}>
-            <span class="csb-tool-icon">${t.icon}</span>${t.label}
-            ${t.disabled?'<span style="margin-left:auto;font-size:0.55rem;opacity:0.4;">🔒</span>':''}
+          <button class="csb-tool-btn ${state.pendingTool&&state.pendingTool.type===t.type?'active':''}"
+            onclick="GraphCalc.startTool('${t.type}')">
+            <span style="width:10px;height:10px;border-radius:50%;background:${t.color};flex-shrink:0;display:inline-block;"></span>
+            <span style="margin-left:2px;">${t.label}</span>
           </button>`).join('')}
       </div>
-      <div class="csb-section" style="flex:1;">
+
+      <!-- Object list -->
+      <div class="csb-section" style="flex:1;overflow-y:auto;">
         <div class="csb-label">Oggetti ${state.objects.length>0?`(${state.objects.length})`:''}</div>
         ${state.objects.length===0
           ?`<div style="font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:rgba(255,255,255,0.15);padding:4px 0;">Nessun oggetto creato.</div>`
-          :state.objects.map(obj=>`
-            <div class="csb-obj-item ${obj.id===state.selectedId?'selected':''}" onclick="GraphCalc.selectObject(${obj.id})">
-              <div class="csb-obj-dot"
-                id="dot-${obj.id}"
-                style="background:${obj.visible?obj.color:'transparent'};border:${obj.visible?'none':'1px solid '+obj.color};"
-                onclick="event.stopPropagation();GraphCalc.toggleVisible(${obj.id})"
-                ondblclick="event.stopPropagation();GraphCalc.pickColor(${obj.id})"
-                title="Click: nascondi/mostra · Dbl-click: colore"></div>
-              <span class="csb-obj-name ${!obj.visible?'hidden-obj':''}"
-                id="name-${obj.id}"
-                ondblclick="event.stopPropagation();GraphCalc.renameObject(${obj.id},this)"
-                title="Doppio click per rinominare">${obj.name}</span>
-              <div class="csb-obj-actions">
-                <button class="csb-obj-act-btn isolate-btn ${state.isolatedId===obj.id?'active':''}"
-                  onclick="event.stopPropagation();GraphCalc.isolateObject(${obj.id})"
-                  title="${state.isolatedId===obj.id?'Esci':'Isola'}">${state.isolatedId===obj.id?'ESCI':'ISOLA'}</button>
-                <button class="csb-obj-act-btn" onclick="event.stopPropagation();GraphCalc.deleteObject(${obj.id})"
-                  style="color:rgba(255,100,100,0.6);" title="Elimina">×</button>
+          :state.objects.map(obj => {
+            const expanded = state.expandedIds.has(obj.id);
+            const isolated = state.isolatedId===obj.id;
+            return `
+            <div class="csb-obj-item ${obj.id===state.selectedId?'selected':''}">
+              <div class="csb-obj-header" onclick="GraphCalc.selectObject(${obj.id})">
+                <div class="csb-obj-dot" id="dot-${obj.id}"
+                  style="background:${obj.visible?obj.color:'transparent'};border:${obj.visible?'none':'1px solid '+obj.color};"
+                  onclick="event.stopPropagation();GraphCalc.toggleVisible(${obj.id})"
+                  ondblclick="event.stopPropagation();GraphCalc.pickColor(${obj.id})"
+                  title="Click: nascondi/mostra · Dbl-click: colore"></div>
+                <span class="csb-obj-name ${!obj.visible?'hidden-obj':''}" id="name-${obj.id}"
+                  ondblclick="event.stopPropagation();GraphCalc.renameObject(${obj.id},this)">${obj.name}</span>
+                <div class="csb-obj-actions">
+                  <button class="csb-expand-btn" onclick="event.stopPropagation();GraphCalc.toggleExpanded(${obj.id})" title="${expanded?'Chiudi parametri':'Apri parametri'}">${expanded?'▲':'▼'}</button>
+                  <button class="csb-obj-act-btn isolate-btn ${isolated?'active':''}"
+                    onclick="event.stopPropagation();GraphCalc.isolateObject(${obj.id})"
+                    title="${isolated?'Esci':'Isola'}">${isolated?'ESCI':'ISOLA'}</button>
+                  <button class="csb-obj-act-btn" onclick="event.stopPropagation();GraphCalc.deleteObject(${obj.id})"
+                    style="color:rgba(255,100,100,0.6);" title="Elimina">×</button>
+                </div>
               </div>
-            </div>`).join('')}
+              ${expanded ? `<div class="csb-obj-params">${_renderParamsInline(obj)}</div>` : ''}
+              ${expanded && isolated ? `
+                <div class="csb-obj-params" style="border-top:1px solid #1e1e1e;">
+                  <label class="csb-regions-toggle">
+                    <input type="checkbox" ${state.showRegions?'checked':''} onchange="GraphCalc.toggleRegions(this.checked)">
+                    Analisi regioni e equazioni
+                  </label>
+                </div>` : ''}
+            </div>`;
+          }).join('')}
       </div>
-      ${selectedObj?_renderParamsPanel(selectedObj):''}
-      ${isIsolated&&selectedObj?`
-        <div class="csb-section">
-          <div class="csb-label">Analisi Regioni</div>
-          <label class="csb-regions-toggle">
-            <input type="checkbox" ${state.showRegions?'checked':''} onchange="GraphCalc.toggleRegions(this.checked)">
-            Mostra regioni e equazioni
-          </label>
-        </div>`:''}
     `;
-    // Attach long-press listeners for touch rename/color
     _attachLongPressListeners();
   }
 
@@ -2038,6 +2248,28 @@ const GraphCalc = (() => {
       _drawObject(ctx, t, obj);
       ctx.globalAlpha = 1.0;
     });
+
+    // Draw pending tool points (visible immediately after first click)
+    if (state.pendingTool && state.pendingTool.pointsPlaced.length > 0) {
+      const ptLabels = {
+        asse:['P₁','P₂'], circonferenza:['C'],
+        ellisse:['F₁','F₂'], iperbole:['F₁','F₂'],
+        parabola:['F','dir'], distanza:['P₁','P₂']
+      };
+      const pColor = DEFAULT_COLORS[state.pendingTool.type] || '#fff';
+      state.pendingTool.pointsPlaced.forEach((pt, i) => {
+        const lbl = (ptLabels[state.pendingTool.type]||[])[i] || ('P'+(i+1));
+        MiniEngine.drawPoint(ctx, t, pt.x, pt.y, pColor, 6);
+        const cp = t.toCanvas(pt.x, pt.y);
+        ctx.save();
+        ctx.font = 'bold 11px IBM Plex Mono, monospace';
+        ctx.fillStyle = pColor;
+        ctx.textAlign = 'left';
+        ctx.shadowColor = pColor+'88'; ctx.shadowBlur = 8;
+        ctx.fillText(lbl, cp.x+8, cp.y-8);
+        ctx.restore();
+      });
+    }
 
     // Snap cursor cross
     if (state.snap && state.mouseWorld && state.mode === 'point') {
@@ -2095,6 +2327,7 @@ const GraphCalc = (() => {
     else if (obj.type === 'iperbole')      _drawIperbole(ctx, t, obj);
     else if (obj.type === 'parabola')      _drawParabola(ctx, t, obj, w, h);
     else if (obj.type === 'luogo')         _drawLuogo(ctx, t, obj, w, h);
+    else if (obj.type === 'distanza')      _drawDistanza(ctx, t, obj);
 
     if (isHovered) {
       ctx.restore();
@@ -2252,6 +2485,9 @@ const GraphCalc = (() => {
 
   // ── CIRCONFERENZA ──
   function _drawCirconferenza(ctx,t,obj){
+    const canvas=document.getElementById('calc-canvas');
+    const DPR=window.devicePixelRatio||1;
+    const w=canvas.width/DPR, h=canvas.height/DPR;
     const{xc=0,yc=0,R=3}=obj.params;
     const rgba=obj.color+'40';
     MiniEngine.drawSegment(ctx,t,{x:xc,y:-100},{x:xc,y:100},rgba,0.8,[4,4]);
@@ -2259,6 +2495,92 @@ const GraphCalc = (() => {
     const v=ConicMath.circleVertices(xc,yc,R);
     MiniEngine.drawPolyline(ctx,t,[v.VN,v.VE,v.VS,v.VW],obj.color,2.5,true);
     MiniEngine.drawPoint(ctx,t,xc,yc,'rgba(255,255,255,0.8)',4);
+    if(state.showRegions && state.isolatedId===obj.id && state.mouseWorld)
+      _drawCirconferenzaRegions(ctx,t,obj,w,h);
+  }
+
+  function _drawCirconferenzaRegions(ctx,t,obj,w,h){
+    const{xc=0,yc=0,R=3}=obj.params;
+    // Critical lines
+    ctx.save();ctx.strokeStyle='rgba(160,160,255,0.35)';ctx.lineWidth=1;ctx.setLineDash([5,4]);
+    const xcpx=t.toCanvas(xc,0).x, ycpx=t.toCanvas(0,yc).y;
+    ctx.beginPath();ctx.moveTo(xcpx,0);ctx.lineTo(xcpx,h);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,ycpx);ctx.lineTo(w,ycpx);ctx.stroke();
+    ctx.setLineDash([]);ctx.restore();
+    if(!state.mouseWorld)return;
+    const{x:mx,y:my}=state.mouseWorld;
+    const isR=mx>=xc, isT=my>=yc;
+    const sx=isR?1:-1, sy=isT?1:-1;
+    // Region highlight
+    const vMin=t.toWorld(0,h),vMax=t.toWorld(w,0);
+    const rxMin=isR?xc:vMin.x-1,rxMax=isR?vMax.x+1:xc;
+    const ryMin=isT?yc:vMin.y-1,ryMax=isT?vMax.y+1:yc;
+    const ca=t.toCanvas(rxMin,ryMax),cb=t.toCanvas(rxMax,ryMin);
+    ctx.save();ctx.fillStyle='rgba(12,14,35,0.72)';
+    ctx.fillRect(Math.min(ca.x,cb.x),Math.min(ca.y,cb.y),Math.abs(cb.x-ca.x),Math.abs(cb.y-ca.y));ctx.restore();
+    // sx*(x-xc)+sy*(y-yc)=R → y = (-sx/sy)*x + (R+sx*xc+sy*yc)/sy
+    const slope=-sx*sy;
+    const intY=(R+sx*xc+sy*yc)/sy;
+    const xc1=Math.max(rxMin,vMin.x-1),xc2=Math.min(rxMax,vMax.x+1);
+    const seg=_clipSegment(xc1,slope*xc1+intY,xc2,slope*xc2+intY,xc1,xc2,
+      Math.max(ryMin,vMin.y-1),Math.min(ryMax,vMax.y+1));
+    if(seg){
+      const p0=t.toCanvas(seg[0][0],seg[0][1]),p1e=t.toCanvas(seg[1][0],seg[1][1]);
+      ctx.save();ctx.strokeStyle='white';ctx.lineWidth=3.5;ctx.lineCap='round';
+      ctx.shadowColor='rgba(255,255,255,0.8)';ctx.shadowBlur=14;
+      ctx.beginPath();ctx.moveTo(p0.x,p0.y);ctx.lineTo(p1e.x,p1e.y);ctx.stroke();ctx.restore();
+    }
+    // Equation lines
+    const f=n=>{const r=Math.round(n*1000)/1000;return r===0?'0':String(r);};
+    const sxs=sx===1?'':'-', sys=sy===1?'':'-';
+    const xcS=xc===0?'x':(xc>0?`x − ${f(xc)}`:`x + ${f(-xc)}`);
+    const ycS=yc===0?'y':(yc>0?`y − ${f(yc)}`:`y + ${f(-yc)}`);
+    const l1=`|x − ${f(xc)}| + |y − ${f(yc)}| = ${R}`;
+    const l2=`${sxs}(${xcS}) ${sy>0?'+':'-'} (${ycS}) = ${R}`;
+    const lhs=(R+sx*xc+sy*yc);
+    const l3=`${sxs}x ${sy>0?'+':'-'} y = ${f(lhs)}`;
+    const l4=slope>0?(intY===0?'→  y = x':`→  y = x + ${f(intY)}`):
+              (intY===0?'→  y = −x':`→  y = −x + ${f(intY)}`);
+    const lines=[l1,l2,l3,l4];
+    ctx.save();ctx.font='12.5px IBM Plex Mono,monospace';
+    const lineH=20,pad=14,maxW=Math.max(...lines.map(l=>ctx.measureText(l).width));
+    const boxW=maxW+pad*2,boxH=lines.length*lineH+pad*1.5;
+    const ctrX=Math.max(boxW/2+8,Math.min(w-boxW/2-8,w/2));
+    const ctrY=Math.max(boxH/2+8,Math.min(h-boxH/2-8,h/2));
+    const bx=ctrX-boxW/2,by=ctrY-boxH/2;
+    ctx.fillStyle='rgba(10,12,28,0.92)';ctx.strokeStyle='rgba(99,102,241,0.45)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(bx,by,boxW,boxH,7);ctx.fill();ctx.stroke();
+    const lc=['rgba(255,255,255,0.42)','rgba(226,232,240,0.9)','rgba(245,158,11,0.95)','#22c55e'];
+    ctx.textAlign='left';ctx.textBaseline='top';
+    lines.forEach((line,i)=>{
+      ctx.fillStyle=lc[i];
+      ctx.font=i===0?'11px IBM Plex Mono,monospace':i===3?'bold 13px IBM Plex Mono,monospace':'12.5px IBM Plex Mono,monospace';
+      ctx.fillText(line,bx+pad,by+pad*0.75+i*lineH);
+    });ctx.restore();
+  }
+
+  // ── DISTANZA ──
+  function _drawDistanza(ctx,t,obj){
+    const{p1,p2}=obj.params;
+    if(!p1||!p2)return;
+    const color=obj.color;
+    // L-shaped Manhattan path
+    const corner={x:p2.x,y:p1.y};
+    MiniEngine.drawSegment(ctx,t,p1,corner,color,1.5,[5,3]);
+    MiniEngine.drawSegment(ctx,t,corner,p2,color,1.5,[5,3]);
+    // Points
+    MiniEngine.drawPoint(ctx,t,p1.x,p1.y,color,5);
+    MiniEngine.drawPoint(ctx,t,p2.x,p2.y,color,5);
+    // Distance label
+    const d1=(Math.abs(p2.x-p1.x)+Math.abs(p2.y-p1.y)).toFixed(2);
+    const midPx=t.toCanvas((p1.x+p2.x)/2,(p1.y+p2.y)/2);
+    ctx.save();
+    ctx.font='bold 12px IBM Plex Mono,monospace';
+    ctx.fillStyle=color;ctx.strokeStyle='rgba(0,0,0,0.7)';ctx.lineWidth=3;
+    ctx.textAlign='center';
+    ctx.strokeText('d₁ = '+d1,midPx.x,midPx.y-12);
+    ctx.fillText('d₁ = '+d1,midPx.x,midPx.y-12);
+    ctx.restore();
   }
 
   // ── ELLISSE ──
@@ -2348,10 +2670,10 @@ const GraphCalc = (() => {
   // ── PUBLIC API ──
   return {
     open, close, renderSidebar, toggleDrawer,
-    setMode, toggleSnap, startTool,
+    setMode, toggleSnap, startTool, toggleExpanded,
     selectObject, deleteObject, toggleVisible,
     isolateObject, toggleRegions, renameObject, pickColor,
-    _getObj, _redraw, _setParam, _parseDirectrix,
+    _getObj, _redraw, _setParam, _setParamQuiet, _parseDirectrix,
   };
 })();
 
