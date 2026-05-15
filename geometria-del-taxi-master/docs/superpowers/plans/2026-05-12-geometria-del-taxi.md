@@ -1,0 +1,2213 @@
+# Geometria del Taxi — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Build a single-file academic website about Taxicab Geometry (L₁ metric) with animated hero, 5 academic sections each with interactive mini-canvas, and a final multi-conic engine canvas.
+
+**Architecture:** Single `index.html` with inline `<style>` and `<script>`. JS uses module pattern (namespace objects): `ConicMath` (pure math), `Hero` (animated grid), `MiniEngine` (per-section canvases), `MainEngine` (multi-conic final canvas). All drawing reuses `ConicMath` functions.
+
+**Tech Stack:** HTML5, CSS3, Vanilla JS (ES6), Canvas API, SVG, Google Fonts CDN (Playfair Display, IBM Plex Mono, Spectral)
+
+**Spec:** `docs/superpowers/specs/2026-05-12-geometria-del-taxi-design.md`
+
+**Output:** `C:\Users\gioff\Desktop\CLAUDE CODE\index.html`
+
+**Testing:** No build tool. Test = open file in browser, verify visually + check DevTools console for errors. Math functions verified with `console.assert` blocks (removed in final cleanup task).
+
+---
+
+## File Structure
+
+```
+C:\Users\gioff\Desktop\CLAUDE CODE\
+└── index.html          ← Everything: HTML + <style> + <script>
+    ├── HTML sections:  #hero, #fondamenti, #circonferenza, #ellisse,
+    │                   #iperbole, #parabola, #esplora
+    ├── <style>:        CSS reset, hero styles, academic styles,
+    │                   engine styles, responsive breakpoints
+    └── <script>:       ConicMath, Hero, MiniEngine, MainEngine,
+                        bootstrap/init calls, IntersectionObserver setup
+```
+
+---
+
+## Task 1: HTML Skeleton + Google Fonts + CSS Reset
+
+**Files:**
+- Create: `C:/Users/gioff/Desktop/CLAUDE CODE/index.html`
+
+- [ ] **Step 1: Create the file with document structure**
+
+```html
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geometria del Taxi — Metrica L₁</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Playfair+Display:wght@700;800&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: #050505;
+      color: #1a1a1a;
+      transition: background-color 0.6s ease;
+    }
+    body.light-mode { background: #FAFAFA; }
+  </style>
+</head>
+<body>
+  <section id="hero" style="min-height:100vh;background:#050505;display:flex;align-items:center;justify-content:center;">
+    <p style="color:white;font-family:sans-serif">HERO placeholder</p>
+  </section>
+
+  <section id="fondamenti" class="section-academic">
+    <p>§1 Fondamenti placeholder</p>
+  </section>
+
+  <section id="circonferenza" class="section-academic">
+    <p>§2 Circonferenza placeholder</p>
+  </section>
+
+  <section id="ellisse" class="section-academic">
+    <p>§3 Ellisse placeholder</p>
+  </section>
+
+  <section id="iperbole" class="section-academic">
+    <p>§4 Iperbole placeholder</p>
+  </section>
+
+  <section id="parabola" class="section-academic">
+    <p>§5 Parabola placeholder</p>
+  </section>
+
+  <section id="esplora" style="background:#050505;min-height:60vh;padding:4rem 2rem;">
+    <p style="color:white;font-family:sans-serif">ENGINE placeholder</p>
+  </section>
+
+  <script>
+    console.log('Geometria del Taxi — script loaded');
+  </script>
+</body>
+</html>
+```
+
+- [ ] **Step 2: Open in browser and verify**
+
+Open `index.html` in Chrome/Firefox. Expected:
+- Page loads without console errors
+- Sections visible as vertical blocks
+- Body background is dark (`#050505`)
+- No FOUT (fonts load with `display=swap`)
+
+- [ ] **Step 3: Commit**
+
+```bash
+cd "C:/Users/gioff/Desktop/CLAUDE CODE"
+git init
+git add index.html
+git commit -m "feat: initial HTML skeleton with section placeholders"
+```
+
+---
+
+## Task 2: Academic Section CSS
+
+**Files:**
+- Modify: `index.html` — add to `<style>`
+
+- [ ] **Step 1: Add all academic CSS inside `<style>`**
+
+Add after the body rule:
+
+```css
+/* ─── ACADEMIC SECTIONS ─── */
+.section-academic {
+  background: #FAFAFA;
+  color: #1a1a1a;
+  font-family: 'Spectral', serif;
+  font-size: clamp(0.95rem, 1.1vw, 1.05rem);
+  line-height: 1.78;
+  text-align: justify;
+}
+.section-academic > .section-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 5rem 2rem;
+}
+
+.section-number {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  color: #999;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+.section-title {
+  font-family: 'Spectral', serif;
+  font-size: clamp(1.4rem, 2vw, 1.8rem);
+  font-weight: 600;
+  color: #0a0a0a;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+.section-split {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+.section-text { flex: 65%; }
+.section-figure {
+  flex: 35%;
+  position: sticky;
+  top: 2rem;
+}
+
+.definition-box {
+  border-left: 3px solid #1a1a1a;
+  padding: 1rem 1.5rem;
+  margin: 2rem 0;
+  background: #f5f5f5;
+  font-style: italic;
+}
+.definition-box strong { font-style: normal; font-weight: 600; }
+
+.formula {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.88em;
+  background: #f0f0f0;
+  padding: 0.1em 0.4em;
+  border-radius: 2px;
+}
+.formula-display {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.95rem;
+  text-align: center;
+  margin: 2rem 0;
+  padding: 1.25rem;
+  background: #f5f5f5;
+  border: 1px solid #e8e8e8;
+  overflow-x: auto;
+  white-space: pre;
+  line-height: 1.9;
+}
+.theorem {
+  border: 1px solid #ccc;
+  padding: 1.25rem 1.5rem;
+  margin: 2rem 0;
+}
+.theorem-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+table.paper-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  margin: 2rem 0;
+}
+table.paper-table th {
+  border-bottom: 2px solid #1a1a1a;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+table.paper-table td {
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+}
+table.paper-table tr:last-child td { border-bottom: none; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 768px) {
+  .section-split { flex-direction: column; }
+  .section-figure { position: static; width: 100%; }
+  .section-text { flex: none; width: 100%; }
+}
+```
+
+- [ ] **Step 2: Update section placeholders to use `.section-inner`**
+
+In the HTML, wrap each placeholder content:
+```html
+<section id="fondamenti" class="section-academic">
+  <div class="section-inner">
+    <div class="section-number">§1</div>
+    <h2 class="section-title">Fondamenti placeholder</h2>
+    <p>Body text test — Spectral should render here.</p>
+    <div class="definition-box">
+      <strong>Definizione 1.1</strong> — Test: <span class="formula">d₁(P,A) = |x−xₐ| + |y−yₐ|</span>
+    </div>
+  </div>
+</section>
+```
+(Apply same `.section-inner` wrapper to all academic sections, keep other placeholders as-is for now)
+
+- [ ] **Step 3: Open in browser and verify**
+
+Expected:
+- White background on academic sections
+- Spectral font renders in body text
+- Definition box has left border, italic text
+- Formula span has monospace background pill
+- On narrow window (< 768px): section-split stacks vertically
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: add academic section CSS (Spectral, definition-box, theorem, formula, table)"
+```
+
+---
+
+## Task 3: Hero Section — Static Layout
+
+**Files:**
+- Modify: `index.html` — hero HTML + hero CSS
+
+- [ ] **Step 1: Add hero CSS to `<style>`**
+
+```css
+/* ─── HERO ─── */
+#hero {
+  position: relative;
+  min-height: 100vh;
+  background: #050505;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: white;
+}
+.hero-grid-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.hero-blob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.hero-blob-amber {
+  top: -100px; right: -100px;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(245,158,11,0.30) 0%, transparent 70%);
+  filter: blur(40px);
+}
+.hero-blob-blue {
+  bottom: -120px; left: -100px;
+  width: 520px; height: 520px;
+  background: radial-gradient(circle, rgba(59,130,246,0.28) 0%, transparent 70%);
+  filter: blur(40px);
+}
+.hero-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 2rem;
+  max-width: 800px;
+}
+.hero-title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 800;
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  color: #ffffff;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  margin-bottom: 1.5rem;
+}
+.hero-subtitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: clamp(0.75rem, 1.5vw, 1rem);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.50);
+}
+```
+
+- [ ] **Step 2: Replace hero placeholder HTML**
+
+```html
+<section id="hero">
+  <!-- Animated grid layers (populated by Hero.init()) -->
+  <canvas class="hero-grid-layer" id="hero-grid-bg" style="opacity:0.05"></canvas>
+  <canvas class="hero-grid-layer" id="hero-grid-cursor" style="opacity:0.4"></canvas>
+
+  <!-- Blob lights -->
+  <div class="hero-blob hero-blob-amber"></div>
+  <div class="hero-blob hero-blob-blue"></div>
+
+  <!-- Text content -->
+  <div class="hero-content">
+    <h1 class="hero-title">Quando la retta più breve<br>non è la diagonale</h1>
+    <p class="hero-subtitle">Geometria del Taxi &nbsp;—&nbsp; Metrica L₁</p>
+  </div>
+</section>
+```
+
+- [ ] **Step 3: Verify static hero**
+
+Open in browser. Expected:
+- Full-viewport dark section
+- Two blob lights visible (amber top-right, blue bottom-left)
+- Title in large serif, subtitle in small monospace
+- Two canvas elements exist (invisible until Task 4)
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: hero section static layout — blobs, title, subtitle"
+```
+
+---
+
+## Task 4: Hero Section — Animated Grid + Cursor Mask
+
+**Files:**
+- Modify: `index.html` — add `Hero` object to `<script>`
+
+- [ ] **Step 1: Add Hero module to `<script>`**
+
+Add this as the first thing inside `<script>`:
+
+```js
+const Hero = (() => {
+  let rafId = null;
+  let offsetX = 0, offsetY = 0;
+  let mouseX = -9999, mouseY = -9999;
+  let bgCanvas, bgCtx, cursorCanvas, cursorCtx;
+
+  const CELL = 40;
+
+  function buildSVGPattern() {
+    // SVG grid: only two sides of each cell (top-left L shape)
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${CELL}' height='${CELL}'><path d='M ${CELL} 0 L 0 0 0 ${CELL}' fill='none' stroke='white' stroke-width='1'/></svg>`;
+    const encoded = encodeURIComponent(svg);
+    return `url("data:image/svg+xml,${encoded}")`;
+  }
+
+  function resizeCanvases() {
+    const w = window.innerWidth, h = window.innerHeight;
+    [bgCanvas, cursorCanvas].forEach(c => {
+      c.width = w;
+      c.height = h;
+    });
+  }
+
+  function drawGrid(ctx, w, h, ox, oy) {
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 1;
+    // Draw vertical lines
+    const startX = ((ox % CELL) + CELL) % CELL;
+    for (let x = startX - CELL; x < w + CELL; x += CELL) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    // Draw horizontal lines
+    const startY = ((oy % CELL) + CELL) % CELL;
+    for (let y = startY - CELL; y < h + CELL; y += CELL) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+  }
+
+  function animate() {
+    offsetX = (offsetX + 0.5) % CELL;
+    offsetY = (offsetY + 0.5) % CELL;
+    const w = bgCanvas.width, h = bgCanvas.height;
+
+    // Layer 1: always visible background grid
+    drawGrid(bgCtx, w, h, offsetX, offsetY);
+
+    // Layer 2: same grid but masked to cursor radius
+    drawGrid(cursorCtx, w, h, offsetX, offsetY);
+    cursorCanvas.style.webkitMaskImage =
+      `radial-gradient(300px circle at ${mouseX}px ${mouseY}px, black, transparent)`;
+    cursorCanvas.style.maskImage =
+      `radial-gradient(300px circle at ${mouseX}px ${mouseY}px, black, transparent)`;
+
+    rafId = requestAnimationFrame(animate);
+  }
+
+  function onMouseMove(e) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  }
+
+  function init() {
+    bgCanvas = document.getElementById('hero-grid-bg');
+    cursorCanvas = document.getElementById('hero-grid-cursor');
+    bgCtx = bgCanvas.getContext('2d');
+    cursorCtx = cursorCanvas.getContext('2d');
+
+    resizeCanvases();
+    window.addEventListener('resize', resizeCanvases);
+    document.addEventListener('mousemove', onMouseMove);
+
+    animate();
+  }
+
+  function start() { if (!rafId) animate(); }
+  function stop()  { if (rafId) { cancelAnimationFrame(rafId); rafId = null; } }
+
+  return { init, start, stop };
+})();
+```
+
+- [ ] **Step 2: Call `Hero.init()` at bottom of script**
+
+```js
+// Bootstrap
+Hero.init();
+```
+
+- [ ] **Step 3: Verify animation**
+
+Open in browser. Expected:
+- Subtle scrolling grid visible in hero (two sides of each cell, L-shape pattern)
+- Moving cursor reveals brighter grid in 300px radius
+- No console errors
+
+- [ ] **Step 4: Add IntersectionObserver for hero rAF management**
+
+Add after `Hero.init()`:
+
+```js
+// Stop hero animation when hero is not visible (performance)
+const heroObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => e.isIntersecting ? Hero.start() : Hero.stop());
+}, { threshold: 0.01 });
+heroObserver.observe(document.getElementById('hero'));
+```
+
+- [ ] **Step 5: Add IntersectionObserver for body background transition**
+
+```js
+// Transition body background when first academic section enters viewport
+const fondamentiObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    document.body.classList.toggle('light-mode', e.isIntersecting);
+  });
+}, { threshold: 0.15 });
+fondamentiObserver.observe(document.getElementById('fondamenti'));
+```
+
+- [ ] **Step 6: Verify transitions**
+
+Scroll down. Expected:
+- Body background transitions from `#050505` to `#FAFAFA` when `#fondamenti` enters viewport
+- Scrolling back up restores dark background
+- Hero animation pauses when scrolled past (check in DevTools Performance tab)
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: hero animated grid with cursor mask and IntersectionObserver lifecycle"
+```
+
+---
+
+## Task 5: ConicMath — Pure Math Module
+
+**Files:**
+- Modify: `index.html` — add `ConicMath` object before `Hero` in `<script>`
+
+- [ ] **Step 1: Add ConicMath module**
+
+```js
+const ConicMath = (() => {
+
+  // ── CIRCONFERENZA ──
+  // Returns the 4 vertices of a taxicab circle
+  function circleVertices(xc, yc, R) {
+    return {
+      VN: { x: xc,   y: yc+R },
+      VE: { x: xc+R, y: yc   },
+      VS: { x: xc,   y: yc-R },
+      VW: { x: xc-R, y: yc   }
+    };
+  }
+
+  // ── ELLISSE ──
+  // Returns ordered array of vertices for the taxicab ellipse polygon.
+  // F1={x1,y1}, F2={x2,y2}, sumDist=2a
+  // Assumes x1 <= x2, y1 <= y2 (caller must sort).
+  function ellipseVertices(x1, y1, x2, y2, twoA) {
+    const d0 = Math.abs(x2-x1) + Math.abs(y2-y1);
+    if (twoA < d0 - 1e-9) return null; // impossible
+    const k = twoA/2 - d0/2;
+    const mx = (x1+x2)/2, my = (y1+y2)/2;
+    const hw = (x2-x1)/2, hh = (y2-y1)/2; // half-widths
+
+    if (twoA <= d0 + 1e-9) {
+      // Degenerate: the rectangle [x1,x2] x [y1,y2]
+      return [
+        {x:x1,y:y1},{x:x2,y:y1},{x:x2,y:y2},{x:x1,y:y2}
+      ];
+    }
+
+    const pts = [];
+    // Top horizontal segment: y = my + hh + k  (if k <= hw)
+    // Right vertical segment: x = mx + hw + k  (if k <= hh)
+    // etc. — build all 8 candidate vertices, filter duplicates
+
+    // P1: top-left corner  (−hw−k, hh)  → absolute: (mx−hw−k, my+hh)
+    // P2: top-right corner (hw, hh+k−hw) when k < hw; else top-only
+    // Use the standard 8-vertex octagon formula:
+    const candidates = [
+      { x: mx - hw - k, y: my + hh      },  // P1 left of top
+      { x: mx + hw + k, y: my + hh      },  // P2 right of top  (if k<hw these differ)
+      { x: mx + hw    , y: my + hh + k  },  // but wait — need correct formulas
+    ];
+    // Correct octagon vertices for oblique foci (x1≠x2, y1≠y2):
+    //   Top side:    y = my + hh + k,  x ∈ [mx−(k−... hmm
+    // Re-derive cleanly:
+    // In region R12 (above both foci): x=x1..x2, y > y2
+    //   eq → (x−x1)+(y−y1)+(x−x2)+(... wait need full derivation
+    // Use the analytical solution from the spec directly:
+    const verts = [];
+    // Horizontal segments (R₁₂ top, R₃₂ bottom):
+    const yTop = my + hh + k;    // top horizontal: y = (y1+y2)/2 − k  in spec notation
+    const yBot = my - hh - k;
+    // Vertical segments (R₂₁ left, R₂₃ right):
+    const xLeft  = mx - hw - k;
+    const xRight = mx + hw + k;
+    // Diagonal segments (slope ±1) in corners:
+    // Top-right (R₁₃): x+y = x2+y2+2k → at x=xRight: y = x2+y2+2k-xRight; at y=yTop: x = x2+y2+2k-yTop
+    // Top-left (R₃₁):  −x+y = −x1+y2+2k → at x=xLeft: y = −x1+y2+2k+xLeft; at y=yTop: x = x1−y2−2k+yTop
+
+    // Build octagon points in CCW order:
+    // Clamp: if k >= hw, left/right vertical segments collapse
+    // If k >= hh, top/bottom horizontal segments collapse
+    const hasH = k < hh - 1e-9;
+    const hasV = k < hw - 1e-9;
+
+    if (hasH && hasV) {
+      // Full octagon: 8 points
+      // Top side (left to right along y=yTop)
+      verts.push({ x: x1 - k + (y2 - y1), y: yTop }); // top-left corner of top segment
+      verts.push({ x: x2 + k - (y2 - y1), y: yTop }); // top-right
+      // Right side (top to bottom along x=xRight)
+      verts.push({ x: xRight, y: y2 + k - (x2 - x1) });
+      verts.push({ x: xRight, y: y1 - k + (x2 - x1) });
+      // Bottom side (right to left along y=yBot)
+      verts.push({ x: x2 + k - (y2 - y1), y: yBot });
+      verts.push({ x: x1 - k + (y2 - y1), y: yBot });
+      // Left side (bottom to top along x=xLeft)
+      verts.push({ x: xLeft, y: y1 - k + (x2 - x1) });
+      verts.push({ x: xLeft, y: y2 + k - (x2 - x1) });
+    } else if (!hasH && hasV) {
+      // k >= hh: no horizontal segments, hexagon with top/bottom points
+      verts.push({ x: mx, y: yTop });
+      verts.push({ x: xRight, y: y2 + k - (x2-x1) });
+      verts.push({ x: xRight, y: y1 - k + (x2-x1) });
+      verts.push({ x: mx, y: yBot });
+      verts.push({ x: xLeft,  y: y1 - k + (x2-x1) });
+      verts.push({ x: xLeft,  y: y2 + k - (x2-x1) });
+    } else if (hasH && !hasV) {
+      // k >= hw: no vertical segments, hexagon with left/right points
+      verts.push({ x: x1 - k + (y2-y1), y: yTop });
+      verts.push({ x: x2 + k - (y2-y1), y: yTop });
+      verts.push({ x: xRight, y: my });
+      verts.push({ x: x2 + k - (y2-y1), y: yBot });
+      verts.push({ x: x1 - k + (y2-y1), y: yBot });
+      verts.push({ x: xLeft, y: my });
+    } else {
+      // k >= hw and k >= hh: rhombus (4 extreme points)
+      verts.push({ x: mx,     y: yTop  });
+      verts.push({ x: xRight, y: my    });
+      verts.push({ x: mx,     y: yBot  });
+      verts.push({ x: xLeft,  y: my    });
+    }
+
+    // Remove duplicate consecutive points (coincident vertices)
+    return verts.filter((v, i, arr) => {
+      const next = arr[(i+1) % arr.length];
+      return !(Math.abs(v.x - next.x) < 1e-9 && Math.abs(v.y - next.y) < 1e-9);
+    });
+  }
+
+  // ── IPERBOLE ──
+  // Returns two arrays of vertices (branch1, branch2).
+  // Assumes foci sorted: x1 <= x2. diffDist = 2a.
+  function hyperbolaVertices(x1, y1, x2, y2, twoA) {
+    const d0 = Math.abs(x2-x1) + Math.abs(y2-y1);
+    if (twoA >= d0 - 1e-9 || twoA <= 1e-9) return null;
+    const a = twoA / 2;
+    const mx = (x1+x2)/2, my = (y1+y2)/2;
+    const hw = (x2-x1)/2, hh = (y2-y1)/2;
+
+    // Branch 1: d(P,F1) - d(P,F2) = +2a
+    // Branch 2: d(P,F1) - d(P,F2) = -2a
+    // For horizontal foci (y1===y2): two vertical segments x = mx ± (hw - a)
+    // For general foci: polygonal branches — compute key vertices per region
+
+    const branch1 = [], branch2 = [];
+
+    if (Math.abs(y2 - y1) < 1e-9) {
+      // Horizontal foci: simple vertical segments
+      const xB1 = mx - (hw - a); // branch1: closer to F1
+      const xB2 = mx + (hw - a); // branch2: closer to F2
+      const yExt = hh + 5; // extend 5 units past foci
+      branch1.push({x:xB1, y:my-yExt}, {x:xB1, y:my+yExt});
+      branch2.push({x:xB2, y:my-yExt}, {x:xB2, y:my+yExt});
+    } else {
+      // General oblique foci
+      // Branch 1: two-segment polygon in regions R21 and adjacent
+      const xB1 = mx - hw + a;
+      const xB2 = mx + hw - a;
+      branch1.push(
+        { x: xB1,       y: y1 - 5       },
+        { x: xB1,       y: y1 + (hh - (hw - a)) },
+        { x: x1 - a,    y: my           }
+      );
+      branch2.push(
+        { x: xB2,       y: y2 + 5       },
+        { x: xB2,       y: y2 - (hh - (hw - a)) },
+        { x: x2 + a,    y: my           }
+      );
+    }
+    return { branch1, branch2 };
+  }
+
+  // ── PARABOLA ──
+  // Returns array of segments: [{from:{x,y}, to:{x,y}}, ...]
+  // Focus F(xF,yF), horizontal directrix y=k, with yF > k.
+  function parabolaSegments(xF, yF, k, yExtent) {
+    const p = yF - k; // parameter
+    if (p < 1e-9) return [];
+    const yMax = yF + yExtent;
+    const segs = [];
+    // Left semiray:  x = xF - p,  y from yF to yMax
+    segs.push({ from:{x: xF-p, y:yF}, to:{x: xF-p, y:yMax} });
+    // Right semiray: x = xF + p,  y from yF to yMax
+    segs.push({ from:{x: xF+p, y:yF}, to:{x: xF+p, y:yMax} });
+    // Left slanted:  x = -2y + yF + k + xF,  y from k to yF
+    segs.push({ from:{x: xF, y:yF}, to:{x: -2*k + yF + k + xF, y:k} });
+    // Right slanted: x =  2y - yF - k + xF,  y from k to yF
+    segs.push({ from:{x: xF, y:yF}, to:{x:  2*k - yF - k + xF, y:k} });
+    return segs;
+  }
+
+  // ── VERIFY (console.assert tests — remove before final) ──
+  function runTests() {
+    // Circle
+    const cv = circleVertices(0, 0, 3);
+    console.assert(cv.VN.y === 3,  'circleVertices: VN.y should be 3');
+    console.assert(cv.VE.x === 3,  'circleVertices: VE.x should be 3');
+    console.assert(cv.VS.y === -3, 'circleVertices: VS.y should be -3');
+    console.assert(cv.VW.x === -3, 'circleVertices: VW.x should be -3');
+
+    // Ellipse — spec example: F1(0,0), F2(4,2), 2a=10 → k=2
+    const ev = ellipseVertices(0, 0, 4, 2, 10);
+    console.assert(ev !== null, 'ellipseVertices: should not be null');
+    console.assert(ev.length >= 4, 'ellipseVertices: should have at least 4 vertices');
+
+    // Hyperbola — horizontal foci
+    const hv = hyperbolaVertices(-3, 0, 3, 0, 2);
+    console.assert(hv !== null, 'hyperbolaVertices: should not be null');
+    console.assert(hv.branch1.length === 2, 'hyperbolaVertices: branch1 should have 2 pts');
+
+    // Parabola
+    const ps = parabolaSegments(0, 2, 0, 5);
+    console.assert(ps.length === 4, 'parabolaSegments: should return 4 segments');
+    console.assert(ps[0].from.x === -2, 'parabolaSegments: left semiray x should be xF-p = -2');
+
+    console.log('✓ ConicMath tests passed');
+  }
+
+  return { circleVertices, ellipseVertices, hyperbolaVertices, parabolaSegments, runTests };
+})();
+```
+
+- [ ] **Step 2: Call `ConicMath.runTests()` temporarily**
+
+At the bottom of `<script>` (before `Hero.init()`):
+```js
+ConicMath.runTests();
+```
+
+- [ ] **Step 3: Open browser, check console**
+
+Expected output: `✓ ConicMath tests passed` with no failed assertions.
+If any assertion fails, fix the formula in `ConicMath` before proceeding.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: ConicMath module with circle/ellipse/hyperbola/parabola vertex algorithms"
+```
+
+---
+
+## Task 6: MiniEngine — Reusable Canvas Infrastructure
+
+**Files:**
+- Modify: `index.html` — add `MiniEngine` factory, add mini-engine CSS
+
+- [ ] **Step 1: Add mini-engine CSS to `<style>`**
+
+```css
+/* ─── MINI ENGINE ─── */
+.mini-engine-wrap {
+  background: #0d0d0d;
+  border-radius: 8px;
+  padding: 12px;
+  width: 100%;
+}
+.mini-engine-wrap canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 4px;
+}
+.mini-engine-controls {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mini-ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mini-ctrl-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  width: 60px;
+  flex-shrink: 0;
+}
+.mini-ctrl-row input[type=range] {
+  flex: 1;
+  accent-color: #e63946;
+  height: 3px;
+}
+.mini-ctrl-value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,0.6);
+  width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.mini-engine-output {
+  margin-top: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  line-height: 1.6;
+}
+```
+
+- [ ] **Step 2: Add MiniEngine factory to `<script>` (after ConicMath, before Hero)**
+
+```js
+const MiniEngine = (() => {
+
+  // World-to-canvas coordinate transform
+  function makeTransform(canvas, scale, cx, cy) {
+    // cx, cy = world coords at canvas center
+    const w = canvas.width, h = canvas.height;
+    return {
+      toCanvas: (wx, wy) => ({
+        x:  (wx - cx) * scale + w/2,
+        y: -(wy - cy) * scale + h/2
+      }),
+      toWorld: (px, py) => ({
+        x: (px - w/2) / scale + cx,
+        y: -(py - h/2) / scale + cy
+      }),
+      scale, cx, cy, w, h
+    };
+  }
+
+  function drawGrid(ctx, t) {
+    const { w, h, scale } = t;
+    ctx.save();
+    // Minor grid
+    const step = scale >= 40 ? 1 : scale >= 20 ? 2 : 5;
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 0.5;
+    const tl = t.toWorld(0, 0), br = t.toWorld(w, h);
+    for (let x = Math.floor(tl.x/step)*step; x <= br.x + step; x += step) {
+      const cx = t.toCanvas(x, 0).x;
+      ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke();
+    }
+    for (let y = Math.floor(br.y/step)*step; y <= tl.y + step; y += step) {
+      const cy = t.toCanvas(0, y).y;
+      ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
+    }
+    // Axes
+    ctx.strokeStyle = 'rgba(255,255,255,0.20)';
+    ctx.lineWidth = 1;
+    const ox = t.toCanvas(0, 0).x, oy = t.toCanvas(0, 0).y;
+    ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(w, oy); ctx.stroke();
+    // Axis labels
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.font = `${Math.max(9,Math.min(11, scale*0.22))}px IBM Plex Mono, monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let x = Math.ceil(tl.x/step)*step; x <= br.x; x += step) {
+      if (Math.abs(x) < 1e-9) continue;
+      const cx2 = t.toCanvas(x, 0).x;
+      const labelY = Math.min(Math.max(oy+3, 2), h-12);
+      ctx.fillText(x, cx2, labelY);
+    }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(br.y/step)*step; y <= tl.y; y += step) {
+      if (Math.abs(y) < 1e-9) continue;
+      const cy2 = t.toCanvas(0, y).y;
+      const labelX = Math.min(Math.max(ox-4, 4), w-4);
+      ctx.fillText(y, labelX, cy2);
+    }
+    ctx.restore();
+  }
+
+  function drawPoint(ctx, t, wx, wy, color, radius) {
+    const {x, y} = t.toCanvas(wx, wy);
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x, y, radius || 5, 0, Math.PI*2);
+    ctx.fillStyle = color || 'white';
+    ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, (radius||5) + 3, 0, Math.PI*2);
+    ctx.fillStyle = (color||'white').replace(')', ',0.15)').replace('rgb','rgba');
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPolyline(ctx, t, pts, color, lineWidth, close) {
+    if (!pts || pts.length < 2) return;
+    ctx.save();
+    ctx.strokeStyle = color || '#e63946';
+    ctx.lineWidth = lineWidth || 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    const start = t.toCanvas(pts[0].x, pts[0].y);
+    ctx.moveTo(start.x, start.y);
+    for (let i = 1; i < pts.length; i++) {
+      const p = t.toCanvas(pts[i].x, pts[i].y);
+      ctx.lineTo(p.x, p.y);
+    }
+    if (close) ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawSegment(ctx, t, from, to, color, lineWidth, dashed) {
+    const a = t.toCanvas(from.x, from.y), b = t.toCanvas(to.x, to.y);
+    ctx.save();
+    ctx.strokeStyle = color || '#e63946';
+    ctx.lineWidth = lineWidth || 2.5;
+    ctx.lineCap = 'round';
+    if (dashed) ctx.setLineDash(dashed);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Creates a mini-engine instance bound to a canvas element
+  function create(canvasId, conicType, defaultParams, outputEl) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    let params = { ...defaultParams };
+    let rafId = null;
+
+    const DPR = window.devicePixelRatio || 1;
+    function resize() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const size = Math.min(rect.width, 280);
+      canvas.width  = size * DPR;
+      canvas.height = size * DPR;
+      canvas.style.width  = size + 'px';
+      canvas.style.height = size + 'px';
+      ctx.scale(DPR, DPR);
+    }
+
+    const COLORS = {
+      circle:    '#e63946',
+      ellipse:   '#3b82f6',
+      hyperbola: '#f59e0b',
+      parabola:  '#22c55e'
+    };
+
+    function draw() {
+      const size = canvas.width / DPR;
+      ctx.clearRect(0, 0, size, size);
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, size, size);
+
+      const scale = size / 12; // show ±6 units
+      const t = makeTransform({ width: size, height: size }, scale, 0, 0);
+      const color = COLORS[conicType] || '#e63946';
+
+      drawGrid(ctx, t);
+
+      if (conicType === 'circle') {
+        const { xc=0, yc=0, R=3 } = params;
+        const v = ConicMath.circleVertices(xc, yc, R);
+        const poly = [v.VN, v.VE, v.VS, v.VW];
+        // Critical lines (dashed)
+        drawSegment(ctx,t, {x:xc,y:-10},{x:xc,y:10}, 'rgba(29,53,87,0.6)',1,[4,4]);
+        drawSegment(ctx,t, {x:-10,y:yc},{x:10,y:yc}, 'rgba(29,53,87,0.6)',1,[4,4]);
+        drawPolyline(ctx, t, poly, color, 2.5, true);
+        drawPoint(ctx, t, xc, yc, 'white', 4);
+        if (outputEl) outputEl.textContent =
+          `Perimetro = ${(4*R*Math.SQRT2).toFixed(2)} | Area = ${(2*R*R).toFixed(2)} | π₁ = 4`;
+      }
+
+      if (conicType === 'ellipse') {
+        const { x1=-2,y1=0, x2=2,y2=0, twoA=6 } = params;
+        const verts = ConicMath.ellipseVertices(
+          Math.min(x1,x2), Math.min(y1,y2),
+          Math.max(x1,x2), Math.max(y1,y2), twoA
+        );
+        // Region lines
+        [x1,x2].forEach(xv => drawSegment(ctx,t,{x:xv,y:-10},{x:xv,y:10},'rgba(59,130,246,0.25)',0.8,[3,4]));
+        [y1,y2].forEach(yv => drawSegment(ctx,t,{x:-10,y:yv},{x:10,y:yv},'rgba(59,130,246,0.25)',0.8,[3,4]));
+        if (verts) drawPolyline(ctx, t, verts, color, 2.5, true);
+        drawPoint(ctx, t, x1, y1, '#60a5fa', 4);
+        drawPoint(ctx, t, x2, y2, '#60a5fa', 4);
+        const d0 = Math.abs(x2-x1)+Math.abs(y2-y1);
+        if (outputEl) outputEl.textContent =
+          `d₀ = ${d0.toFixed(2)} | k = ${((twoA/2) - d0/2).toFixed(2)}`;
+      }
+
+      if (conicType === 'hyperbola') {
+        const { x1=-3,y1=0, x2=3,y2=0, twoA=2 } = params;
+        const result = ConicMath.hyperbolaVertices(
+          Math.min(x1,x2),y1, Math.max(x1,x2),y2, twoA
+        );
+        [x1,x2].forEach(xv => drawSegment(ctx,t,{x:xv,y:-10},{x:xv,y:10},'rgba(245,158,11,0.25)',0.8,[3,4]));
+        [y1,y2].forEach(yv => drawSegment(ctx,t,{x:-10,y:yv},{x:10,y:yv},'rgba(245,158,11,0.25)',0.8,[3,4]));
+        if (result) {
+          drawPolyline(ctx, t, result.branch1, color, 2.5, false);
+          drawPolyline(ctx, t, result.branch2, color, 2.5, false);
+        }
+        drawPoint(ctx, t, x1, y1, '#fbbf24', 4);
+        drawPoint(ctx, t, x2, y2, '#fbbf24', 4);
+        if (outputEl) outputEl.textContent = `d₀ = ${(Math.abs(x2-x1)+Math.abs(y2-y1)).toFixed(2)} | 2a = ${twoA}`;
+      }
+
+      if (conicType === 'parabola') {
+        const { xF=0, yF=2, k=0 } = params;
+        const segs = ConicMath.parabolaSegments(xF, yF, k, 5);
+        // Directrix
+        drawSegment(ctx,t,{x:-10,y:k},{x:10,y:k},'rgba(34,197,94,0.35)',1,[4,4]);
+        segs.forEach(s => drawSegment(ctx, t, s.from, s.to, color, 2.5));
+        drawPoint(ctx, t, xF, yF, '#4ade80', 4);
+        if (outputEl) outputEl.textContent = `p = ${(yF-k).toFixed(2)} | F(${xF}, ${yF}) | y = ${k}`;
+      }
+    }
+
+    function updateParam(key, val) {
+      params[key] = parseFloat(val);
+      draw();
+    }
+
+    function start() {
+      if (!rafId) { resize(); draw(); }
+    }
+    function stop() {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    }
+
+    // IntersectionObserver for lazy start
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) { start(); obs.disconnect(); } });
+    }, { threshold: 0.1 });
+    obs.observe(canvas);
+
+    return { draw, updateParam, start, stop };
+  }
+
+  return { create, drawGrid, drawPoint, drawPolyline, drawSegment, makeTransform };
+})();
+```
+
+- [ ] **Step 3: Verify module loads without errors**
+
+Open browser console. No errors expected. The module only creates engines when `create()` is called, so nothing draws yet.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: MiniEngine factory — canvas transforms, grid drawing, conic rendering helpers"
+```
+
+---
+
+## Task 7: Section §1 — Fondamenti Teorici (HTML content + static SVG)
+
+**Files:**
+- Modify: `index.html` — replace `#fondamenti` placeholder
+
+- [ ] **Step 1: Replace `#fondamenti` section content**
+
+```html
+<section id="fondamenti" class="section-academic">
+  <div class="section-inner">
+    <div class="section-number">§1</div>
+    <h2 class="section-title">Fondamenti Teorici: la Metrica L₁</h2>
+
+    <div class="section-split">
+      <div class="section-text">
+        <p>Immaginiamo di trovarci in una città a griglia perfetta — Manhattan. Per andare dall'angolo A all'angolo B non possiamo volare in diagonale: dobbiamo percorrere blocchi orizzontali e verticali. La distanza che percorriamo in questo modo è la <em>distanza di Manhattan</em>, o distanza L₁.</p>
+
+        <div class="definition-box">
+          <strong>Definizione 1.1 — Metrica L₁ (distanza di Manhattan)</strong><br>
+          Dati due punti P(x, y) e A(xₐ, yₐ) nel piano reale ℝ², si definisce la distanza di Manhattan:<br><br>
+          <span class="formula">d₁(P, A) = |x − xₐ| + |y − yₐ|</span>
+        </div>
+
+        <p>La presenza dei valori assoluti rende il calcolo analitico meno diretto rispetto alla metrica euclidea. Per trattare algebricamente questi termini è necessario scioglierli distinguendo i casi in base al segno dell'argomento.</p>
+
+        <div class="definition-box">
+          <strong>Definizione 1.2 — Scioglimento di |x − c|</strong><br>
+          Per ogni costante c ∈ ℝ, si ha:<br><br>
+          <span class="formula">|x − c| = x − c</span> &nbsp;se x ≥ c<br>
+          <span class="formula">|x − c| = c − x</span> &nbsp;se x &lt; c<br><br>
+          Il valore x = c è detto <em>valore critico</em> e corrisponde alla retta verticale che separa i due casi.
+        </div>
+
+        <p>Le rette critiche partizionano il piano in regioni in ciascuna delle quali tutti i moduli hanno segno costante, riducendo l'equazione del luogo a un sistema lineare. Questa tecnica — la costruzione della griglia di regioni — è il metodo unificante di tutta la geometria del taxi.</p>
+
+        <table class="paper-table">
+          <thead>
+            <tr>
+              <th>Proprietà</th>
+              <th>Metrica L₂ (euclidea)</th>
+              <th>Metrica L₁ (Manhattan)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Formula</td>
+              <td><span class="formula">√((x−xₐ)² + (y−yₐ)²)</span></td>
+              <td><span class="formula">|x−xₐ| + |y−yₐ|</span></td>
+            </tr>
+            <tr>
+              <td>"Cerchio" unitario</td>
+              <td>Cerchio continuo</td>
+              <td>Quadrato ruotato 45°</td>
+            </tr>
+            <tr>
+              <td>Natura dei luoghi</td>
+              <td>Coniche (curve lisce)</td>
+              <td>Poligoni (segmenti)</td>
+            </tr>
+            <tr>
+              <td>Simmetrie</td>
+              <td>Tutte le rotazioni</td>
+              <td>Solo riflessioni assiali</td>
+            </tr>
+            <tr>
+              <td>Disuguaglianza</td>
+              <td><span class="formula">d₂ ≤ d₁</span></td>
+              <td><span class="formula">d₁ ≤ √2 · d₂</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-figure">
+        <!-- Static SVG: L2 circle vs L1 diamond, same center and radius -->
+        <svg viewBox="-90 -90 180 180" width="100%" style="max-width:280px;display:block;margin:0 auto;">
+          <!-- L2 circle -->
+          <circle cx="0" cy="0" r="65" fill="none" stroke="#ccc" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <!-- L1 diamond -->
+          <polygon points="0,-65 65,0 0,65 -65,0"
+            fill="rgba(230,57,70,0.06)" stroke="#e63946" stroke-width="2.5"/>
+          <!-- Center point -->
+          <circle cx="0" cy="0" r="3" fill="#555"/>
+          <!-- Axes (light) -->
+          <line x1="-85" y1="0" x2="85" y2="0" stroke="#ddd" stroke-width="0.8"/>
+          <line x1="0" y1="-85" x2="0" y2="85" stroke="#ddd" stroke-width="0.8"/>
+          <!-- Labels -->
+          <text x="72" y="-8" font-family="IBM Plex Mono,monospace" font-size="11" fill="#aaa">L₂</text>
+          <text x="6"  y="-69" font-family="IBM Plex Mono,monospace" font-size="11" fill="#e63946">L₁</text>
+          <!-- Vertex dots -->
+          <circle cx="0" cy="-65" r="3" fill="#e63946"/>
+          <circle cx="65" cy="0"  r="3" fill="#e63946"/>
+          <circle cx="0" cy="65"  r="3" fill="#e63946"/>
+          <circle cx="-65" cy="0" r="3" fill="#e63946"/>
+        </svg>
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#aaa;text-align:center;margin-top:8px;">
+          Cerchio L₂ (tratteggiato) e circonferenza taxicab L₁ (rosso) con stesso centro e raggio unitario.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+- [ ] **Step 2: Verify in browser**
+
+Expected:
+- Section renders with Spectral body text
+- Two definition boxes with left border
+- Comparative table renders cleanly
+- SVG shows overlapping circle and diamond with labels
+- On mobile: figure drops below text
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: §1 Fondamenti Teorici — content, definitions, comparative table, static SVG"
+```
+
+---
+
+## Task 8: Section §2 — Circonferenza Taxicab + Mini-Engine
+
+**Files:**
+- Modify: `index.html` — replace `#circonferenza` placeholder
+
+- [ ] **Step 1: Replace `#circonferenza` content**
+
+```html
+<section id="circonferenza" class="section-academic">
+  <div class="section-inner">
+    <div class="section-number">§2</div>
+    <h2 class="section-title">La Circonferenza Taxicab</h2>
+
+    <div class="section-split">
+      <div class="section-text">
+        <div class="definition-box">
+          <strong>Definizione 2.1 — Circonferenza Taxicab</strong><br>
+          La circonferenza taxicab di centro C(x꜀, y꜀) e raggio R è l'insieme dei punti P(x, y) tali che:<br><br>
+          <span class="formula">d₁(P, C) = R &nbsp;⟺&nbsp; |x − x꜀| + |y − y꜀| = R</span>
+        </div>
+
+        <p>Le rette critiche <span class="formula">x = x꜀</span> e <span class="formula">y = y꜀</span> dividono il piano in 4 quadranti. In ciascuno, i moduli si sciolgono con segni costanti, riducendo l'equazione a una retta lineare.</p>
+
+        <table class="paper-table">
+          <thead>
+            <tr><th>Regione</th><th>Condizione</th><th>Equazione sciolta</th><th>Pendenza</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>R<sub>I</sub> (NE)</td><td>x ≥ x꜀, y ≥ y꜀</td><td><span class="formula">y = −x + (x꜀ + y꜀ + R)</span></td><td>−1</td></tr>
+            <tr><td>R<sub>II</sub> (NW)</td><td>x &lt; x꜀, y ≥ y꜀</td><td><span class="formula">y = x − (x꜀ − y꜀ − R)</span></td><td>+1</td></tr>
+            <tr><td>R<sub>III</sub> (SW)</td><td>x &lt; x꜀, y &lt; y꜀</td><td><span class="formula">y = −x + (x꜀ + y꜀ − R)</span></td><td>−1</td></tr>
+            <tr><td>R<sub>IV</sub> (SE)</td><td>x ≥ x꜀, y &lt; y꜀</td><td><span class="formula">y = x − (x꜀ − y꜀ + R)</span></td><td>+1</td></tr>
+          </tbody>
+        </table>
+
+        <div class="theorem">
+          <div class="theorem-label">Teorema 2.1</div>
+          La circonferenza taxicab è un quadrato ruotato di 45° con vertici:<br>
+          V<sub>N</sub> = (x꜀, y꜀+R), &nbsp;V<sub>E</sub> = (x꜀+R, y꜀), &nbsp;V<sub>S</sub> = (x꜀, y꜀−R), &nbsp;V<sub>W</sub> = (x꜀−R, y꜀).<br><br>
+          Perimetro euclideo: <span class="formula">4R√2</span>. &nbsp;Area: <span class="formula">2R²</span>.
+        </div>
+
+        <p>Una conseguenza notevole: in questa geometria il rapporto tra perimetro e diametro vale:</p>
+        <div class="formula-display">π₁ = Perimetro / (2R) = 4R√2 / (2R) = 2√2 ≈ 2.828...
+
+oppure, usando il "diametro" taxicab (2R): π₁ = 4R√2 / 2R = 2√2
+
+Con la convenzione d = 2R (diametro taxicab):  π₁ = 4</div>
+        <p>Il valore <span class="formula">π₁ = 4</span> (rispetto a π ≈ 3.14159…) è uno dei risultati più sorprendenti della geometria del taxi.</p>
+      </div>
+
+      <div class="section-figure">
+        <div class="mini-engine-wrap">
+          <canvas id="me-circle"></canvas>
+          <div class="mini-engine-controls">
+            <div class="mini-ctrl-row">
+              <span class="mini-ctrl-label">R</span>
+              <input type="range" min="0.5" max="5" step="0.5" value="3"
+                oninput="meCircle.updateParam('R', this.value); this.nextElementSibling.textContent=this.value">
+              <span class="mini-ctrl-value">3</span>
+            </div>
+            <div class="mini-ctrl-row">
+              <span class="mini-ctrl-label">x꜀</span>
+              <input type="range" min="-3" max="3" step="0.5" value="0"
+                oninput="meCircle.updateParam('xc', this.value); this.nextElementSibling.textContent=this.value">
+              <span class="mini-ctrl-value">0</span>
+            </div>
+          </div>
+          <div class="mini-engine-output" id="me-circle-out">Perimetro = — | Area = — | π₁ = 4</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+- [ ] **Step 2: Initialize the mini-engine in `<script>`**
+
+At the bottom of `<script>` (before or after `Hero.init()`):
+```js
+const meCircle = MiniEngine.create('me-circle', 'circle',
+  { xc: 0, yc: 0, R: 3 },
+  document.getElementById('me-circle-out')
+);
+```
+
+- [ ] **Step 3: Verify in browser**
+
+Expected:
+- Dark canvas renders with diamond shape in red
+- Moving slider R changes diamond size in real-time
+- Moving slider x꜀ shifts the center
+- Output line shows Perimetro/Area/π₁
+- On mobile: canvas appears below text
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: §2 Circonferenza — content, theorem, mini-engine with R slider"
+```
+
+---
+
+## Task 9: Section §3 — Ellisse Taxicab + Mini-Engine
+
+**Files:**
+- Modify: `index.html` — replace `#ellisse` placeholder
+
+- [ ] **Step 1: Replace `#ellisse` content**
+
+```html
+<section id="ellisse" class="section-academic">
+  <div class="section-inner">
+    <div class="section-number">§3</div>
+    <h2 class="section-title">Ellisse Taxicab: il Metodo delle 9 Regioni</h2>
+
+    <div class="section-split">
+      <div class="section-text">
+        <div class="definition-box">
+          <strong>Definizione 3.1 — Ellisse Taxicab</strong><br>
+          Dati F₁(x₁, y₁), F₂(x₂, y₂) e una costante 2a &gt; d₁(F₁, F₂), l'ellisse taxicab è:<br><br>
+          <span class="formula">𝓔 = { P(x,y) : d₁(P,F₁) + d₁(P,F₂) = 2a }</span>
+        </div>
+
+        <p>Poniamo <span class="formula">d₀ = d₁(F₁,F₂)</span> e <span class="formula">k = a − d₀/2</span>. Le rette critiche <span class="formula">x = x₁</span>, <span class="formula">x = x₂</span>, <span class="formula">y = y₁</span>, <span class="formula">y = y₂</span> creano una griglia 3×3 di 9 regioni R<sub>ij</sub>. Questa partizione è la chiave del metodo.</p>
+
+        <p>Analizzando il segno dei moduli in ciascuna regione, si ottengono i contributi al luogo geometrico:</p>
+        <ul style="margin:1rem 0 1rem 1.5rem;line-height:2;">
+          <li>R<sub>22</sub> (tra i fuochi): la somma vale costantemente d₀ → contribuisce solo se 2a = d₀</li>
+          <li>R<sub>21</sub> e R<sub>23</sub> (sopra/sotto tra i fuochi): <strong>rette orizzontali</strong></li>
+          <li>R<sub>12</sub> e R<sub>32</sub> (a sinistra/destra tra i fuochi): <strong>rette verticali</strong></li>
+          <li>R<sub>11</sub>, R<sub>13</sub>, R<sub>31</sub>, R<sub>33</sub> (angoli esterni): <strong>rette con pendenza ±1</strong></li>
+        </ul>
+
+        <div class="theorem">
+          <div class="theorem-label">Proposizione 3.1</div>
+          Per fuochi obliqui (x₁≠x₂, y₁≠y₂) e 2a &gt; d₀, l'ellisse taxicab è un <strong>ottagono</strong> (o esagono se k supera metà della distanza tra i fuochi su uno degli assi). Per fuochi collineari sull'asse x o y: rettangolo.
+        </div>
+
+        <div class="theorem">
+          <div class="theorem-label">Proposizione 3.2 — Caso Degenere</div>
+          Se 2a = d₀, il luogo non è una linea ma una <strong>regione bidimensionale</strong>: il rettangolo [x₁,x₂] × [y₁,y₂]. Ogni punto interno ha somma delle distanze esattamente pari a d₀.
+        </div>
+
+        <p><strong>Esempio numerico.</strong> F₁(0,0), F₂(4,2), 2a = 10.</p>
+        <table class="paper-table">
+          <thead><tr><th>Dato</th><th>Calcolo</th><th>Valore</th></tr></thead>
+          <tbody>
+            <tr><td>d₀</td><td>|4−0| + |2−0|</td><td>6</td></tr>
+            <tr><td>k</td><td>5 − 6/2</td><td>2</td></tr>
+            <tr><td>x<sub>sin</sub></td><td>(0+4)/2 − k = 2 − 2</td><td>0</td></tr>
+            <tr><td>x<sub>des</sub></td><td>(0+4)/2 + k = 2 + 2</td><td>4 → 6 (con offset fuochi)</td></tr>
+            <tr><td>Forma</td><td>k=2 &lt; hw=2 → esagono</td><td>6 vertici</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-figure">
+        <div class="mini-engine-wrap">
+          <canvas id="me-ellipse"></canvas>
+          <div class="mini-engine-controls">
+            <div class="mini-ctrl-row">
+              <span class="mini-ctrl-label">2a</span>
+              <input type="range" min="3" max="14" step="0.5" value="8"
+                oninput="meEllipse.updateParam('twoA', this.value); this.nextElementSibling.textContent=this.value">
+              <span class="mini-ctrl-value">8</span>
+            </div>
+          </div>
+          <div class="mini-engine-output" id="me-ellipse-out">d₀ = — | k = —</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+- [ ] **Step 2: Initialize ellipse mini-engine in `<script>`**
+
+```js
+const meEllipse = MiniEngine.create('me-ellipse', 'ellipse',
+  { x1: -2, y1: -1, x2: 2, y2: 1, twoA: 8 },
+  document.getElementById('me-ellipse-out')
+);
+```
+
+- [ ] **Step 3: Verify — octagon shape changes with 2a slider**
+
+Expected: blue polygon (octagon/hexagon/rhombus depending on 2a value) with blue region lines visible. Output shows d₀ and k values.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: §3 Ellisse — content, 9-region method, propositions, mini-engine"
+```
+
+---
+
+## Task 10: Section §4 — Iperbole Taxicab + Mini-Engine
+
+**Files:**
+- Modify: `index.html` — replace `#iperbole` placeholder
+
+- [ ] **Step 1: Replace `#iperbole` content**
+
+```html
+<section id="iperbole" class="section-academic">
+  <div class="section-inner">
+    <div class="section-number">§4</div>
+    <h2 class="section-title">Iperbole Taxicab: la Differenza delle Distanze</h2>
+
+    <div class="section-split">
+      <div class="section-text">
+        <div class="definition-box">
+          <strong>Definizione 4.1 — Iperbole Taxicab</strong><br>
+          Dati F₁(x₁,y₁), F₂(x₂,y₂) e 0 &lt; 2a &lt; d₁(F₁,F₂):<br><br>
+          <span class="formula">ℋ = { P(x,y) : |d₁(P,F₁) − d₁(P,F₂)| = 2a }</span><br><br>
+          Equivale a due rami: <span class="formula">d₁(P,F₁) − d₁(P,F₂) = +2a</span> e <span class="formula">d₁(P,F₁) − d₁(P,F₂) = −2a</span>.
+        </div>
+
+        <p>Applicando il metodo delle 9 regioni al Ramo 1 (differenza = +2a), si ottengono i seguenti risultati nelle regioni non banali:</p>
+
+        <table class="paper-table">
+          <thead><tr><th>Regione</th><th>Risultato</th></tr></thead>
+          <tbody>
+            <tr><td>R<sub>11</sub> (NW esterno)</td><td>Nessuna soluzione</td></tr>
+            <tr><td>R<sub>33</sub> (SE esterno)</td><td>Esiste solo se 2a = d₀</td></tr>
+            <tr><td>R<sub>21</sub></td><td>Segmento verticale <span class="formula">x = (x₁+x₂)/2 + a</span></td></tr>
+            <tr><td>R<sub>23</sub></td><td>Segmento <span class="formula">x = (x₁+x₂)/2 + a − (y₂−y₁)/2</span></td></tr>
+          </tbody>
+        </table>
+
+        <div class="theorem">
+          <div class="theorem-label">Proposizione 4.1</div>
+          Per 0 &lt; 2a &lt; d₀, l'iperbole taxicab è formata da <strong>due rami poligonali</strong>. Per fuochi su asse orizzontale (y₁ = y₂): i due rami sono due <strong>segmenti verticali paralleli</strong>. Per fuochi obliqui: ogni ramo è un poligono a 3–4 lati.
+        </div>
+      </div>
+
+      <div class="section-figure">
+        <div class="mini-engine-wrap">
+          <canvas id="me-hyperbola"></canvas>
+          <div class="mini-engine-controls">
+            <div class="mini-ctrl-row">
+              <span class="mini-ctrl-label">2a</span>
+              <input type="range" min="0.5" max="5" step="0.5" value="2"
+                oninput="meHyperbola.updateParam('twoA', this.value); this.nextElementSibling.textContent=this.value">
+              <span class="mini-ctrl-value">2</span>
+            </div>
+          </div>
+          <div class="mini-engine-output" id="me-hyperbola-out">d₀ = — | 2a = —</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+- [ ] **Step 2: Initialize hyperbola mini-engine in `<script>`**
+
+```js
+const meHyperbola = MiniEngine.create('me-hyperbola', 'hyperbola',
+  { x1: -3, y1: 0, x2: 3, y2: 0, twoA: 2 },
+  document.getElementById('me-hyperbola-out')
+);
+```
+
+- [ ] **Step 3: Verify — two amber vertical segments visible**
+
+Expected: two amber parallel vertical lines (for horizontal foci), shifting as 2a slider changes. Region dashed lines visible.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: §4 Iperbole — content, proposition, mini-engine with 2a slider"
+```
+
+---
+
+## Task 11: Section §5 — Parabola Taxicab + Mini-Engine
+
+**Files:**
+- Modify: `index.html` — replace `#parabola` placeholder
+
+- [ ] **Step 1: Replace `#parabola` content**
+
+```html
+<section id="parabola" class="section-academic">
+  <div class="section-inner">
+    <div class="section-number">§5</div>
+    <h2 class="section-title">La Parabola Taxicab</h2>
+
+    <div class="section-split">
+      <div class="section-text">
+        <div class="definition-box">
+          <strong>Definizione 5.1 — Parabola Taxicab</strong><br>
+          Dato un fuoco F e una direttrice r, la parabola taxicab è:<br><br>
+          <span class="formula">𝒫 = { P(x,y) : d₁(P,F) = d₁(P,r) }</span><br><br>
+          dove d₁(P,r) è la distanza L₁ di P dalla retta r.
+        </div>
+
+        <p>Per una direttrice orizzontale <span class="formula">r: y = k</span> e fuoco <span class="formula">F(x<sub>F</sub>, y<sub>F</sub>)</span> con y<sub>F</sub> &gt; k, la distanza L₁ da P alla direttrice è semplicemente <span class="formula">|y − k|</span>. Ponendo <span class="formula">p = y<sub>F</sub> − k</span>, l'equazione diventa <span class="formula">|x−x<sub>F</sub>| + |y−y<sub>F</sub>| = |y−k|</span>.</p>
+
+        <p>Le quattro regioni, determinate da <span class="formula">y = k</span> e <span class="formula">y = y<sub>F</sub></span> come rette critiche orizzontali e <span class="formula">x = x<sub>F</sub></span> come verticale, producono:</p>
+
+        <table class="paper-table">
+          <thead><tr><th>Regione</th><th>Condizione</th><th>Equazione</th><th>Tipo</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>y ≥ y<sub>F</sub></td><td><span class="formula">|x−x<sub>F</sub>| = y<sub>F</sub> − k = p</span></td><td>Due semirette verticali</td></tr>
+            <tr><td>B</td><td>k ≤ y &lt; y<sub>F</sub>, x ≥ x<sub>F</sub></td><td><span class="formula">x = 2y − y<sub>F</sub> − k + x<sub>F</sub></span></td><td>Pendenza +2</td></tr>
+            <tr><td>C</td><td>k ≤ y &lt; y<sub>F</sub>, x &lt; x<sub>F</sub></td><td><span class="formula">x = −2y + y<sub>F</sub> + k + x<sub>F</sub></span></td><td>Pendenza −2</td></tr>
+            <tr><td>D</td><td>y &lt; k</td><td>—</td><td>Impossibile</td></tr>
+          </tbody>
+        </table>
+
+        <div class="formula-display">Formula Master — Parabola Taxicab (direttrice orizzontale y = k)
+
+Semiretta sinistra:  x = x_F − p,    y ≥ y_F
+Ramo sinistro:       x = −2y + y_F + k + x_F,   k ≤ y ≤ y_F
+Ramo destro:         x =  2y − y_F − k + x_F,   k ≤ y ≤ y_F
+Semiretta destra:    x = x_F + p,    y ≥ y_F
+
+dove p = y_F − k</div>
+
+        <p>Per una direttrice obliqua di equazione ax + by + c = 0, la distanza L₁ diventa <span class="formula">d₁(P,r) = |ax+by+c| / (|a|+|b|)</span>, generando una formula ibrida la cui analisi richiede la medesima tecnica di scioglimento per regioni.</p>
+      </div>
+
+      <div class="section-figure">
+        <div class="mini-engine-wrap">
+          <canvas id="me-parabola"></canvas>
+          <div class="mini-engine-controls">
+            <div class="mini-ctrl-row">
+              <span class="mini-ctrl-label">p</span>
+              <input type="range" min="0.5" max="4" step="0.5" value="2"
+                oninput="meParabola.updateParam('yF', parseFloat(this.value)); meParabola.updateParam('k', 0); this.nextElementSibling.textContent=this.value">
+              <span class="mini-ctrl-value">2</span>
+            </div>
+          </div>
+          <div class="mini-engine-output" id="me-parabola-out">p = — | F(0, —) | y = 0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+- [ ] **Step 2: Initialize parabola mini-engine in `<script>`**
+
+```js
+const meParabola = MiniEngine.create('me-parabola', 'parabola',
+  { xF: 0, yF: 2, k: 0 },
+  document.getElementById('me-parabola-out')
+);
+```
+
+- [ ] **Step 3: Verify — V-shape with vertical semirays**
+
+Expected: green parabola shape — two slanted segments meeting at focus, two vertical semirays above, dashed directrix below. Shape changes with p slider.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: §5 Parabola — content, formula master, mini-engine with p slider"
+```
+
+---
+
+## Task 12: MainEngine — Multi-Conic Canvas Infrastructure
+
+**Files:**
+- Modify: `index.html` — add MainEngine CSS + replace `#esplora` placeholder + MainEngine JS
+
+- [ ] **Step 1: Add engine CSS to `<style>`**
+
+```css
+/* ─── MAIN ENGINE ─── */
+#esplora {
+  background: #050505;
+  padding: 5rem 2rem;
+  color: white;
+}
+.engine-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.engine-header { margin-bottom: 2rem; }
+.engine-title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: clamp(2rem, 4vw, 3rem);
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+.engine-subtitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+}
+.engine-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+#main-canvas-wrap {
+  flex: 1;
+  min-width: 0;
+}
+#main-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  max-width: 600px;
+  background: #0a0a0a;
+  border: 1px solid #1a1a1a;
+  border-radius: 6px;
+  cursor: crosshair;
+}
+.engine-controls {
+  width: 260px;
+  flex-shrink: 0;
+}
+.conic-panel {
+  border: 1px solid #1e1e1e;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.conic-panel.active { border-color: var(--panel-color, #444); }
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: #0f0f0f;
+  user-select: none;
+  transition: background 0.15s;
+}
+.panel-header:hover { background: #161616; }
+.panel-toggle {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--panel-color, #444);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.conic-panel.active .panel-toggle { background: var(--panel-color, #444); }
+.panel-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  flex: 1;
+  letter-spacing: 0.05em;
+}
+.conic-panel.active .panel-name { color: rgba(255,255,255,0.9); }
+.panel-chevron {
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  transition: transform 0.2s;
+}
+.panel-body {
+  padding: 12px 14px;
+  display: none;
+  background: #080808;
+}
+.conic-panel.open .panel-body { display: block; }
+.conic-panel.open .panel-chevron { transform: rotate(180deg); }
+.engine-ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.engine-ctrl-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+  width: 40px;
+  flex-shrink: 0;
+}
+.engine-ctrl-row input[type=range] {
+  flex: 1;
+  height: 3px;
+}
+.engine-ctrl-value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
+  width: 36px;
+  text-align: right;
+}
+.panel-output {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+  margin-top: 8px;
+  line-height: 1.7;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 8px;
+}
+@media (max-width: 768px) {
+  .engine-layout { flex-direction: column; }
+  .engine-controls { width: 100%; }
+  #main-canvas { max-width: 100%; }
+}
+```
+
+- [ ] **Step 2: Replace `#esplora` HTML**
+
+```html
+<section id="esplora">
+  <div class="engine-inner">
+    <div class="engine-header">
+      <div class="engine-title">Esplora</div>
+      <div class="engine-subtitle">Attiva le coniche e modifica i parametri</div>
+    </div>
+
+    <div class="engine-layout">
+      <div id="main-canvas-wrap">
+        <canvas id="main-canvas"></canvas>
+      </div>
+
+      <div class="engine-controls">
+
+        <!-- Circonferenza panel -->
+        <div class="conic-panel active open" id="panel-circle" style="--panel-color:#e63946">
+          <div class="panel-header" onclick="MainEngine.togglePanel('circle')">
+            <div class="panel-toggle"></div>
+            <span class="panel-name">Circonferenza</span>
+            <span class="panel-chevron">▼</span>
+          </div>
+          <div class="panel-body">
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">x꜀</span>
+              <input type="range" min="-4" max="4" step="0.5" value="0"
+                oninput="MainEngine.setParam('circle','xc',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#e63946">
+              <span class="engine-ctrl-value">0</span>
+            </div>
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">y꜀</span>
+              <input type="range" min="-4" max="4" step="0.5" value="0"
+                oninput="MainEngine.setParam('circle','yc',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#e63946">
+              <span class="engine-ctrl-value">0</span>
+            </div>
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">R</span>
+              <input type="range" min="0.5" max="5" step="0.5" value="3"
+                oninput="MainEngine.setParam('circle','R',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#e63946">
+              <span class="engine-ctrl-value">3</span>
+            </div>
+            <div class="panel-output" id="out-circle">Perimetro = — | Area = — | π₁ = 4</div>
+          </div>
+        </div>
+
+        <!-- Ellisse panel -->
+        <div class="conic-panel" id="panel-ellipse" style="--panel-color:#3b82f6">
+          <div class="panel-header" onclick="MainEngine.togglePanel('ellipse')">
+            <div class="panel-toggle"></div>
+            <span class="panel-name">Ellisse</span>
+            <span class="panel-chevron">▼</span>
+          </div>
+          <div class="panel-body">
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">x₁</span>
+              <input type="range" min="-4" max="0" step="0.5" value="-2"
+                oninput="MainEngine.setParam('ellipse','x1',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#3b82f6">
+              <span class="engine-ctrl-value">-2</span>
+            </div>
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">x₂</span>
+              <input type="range" min="0" max="4" step="0.5" value="2"
+                oninput="MainEngine.setParam('ellipse','x2',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#3b82f6">
+              <span class="engine-ctrl-value">2</span>
+            </div>
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">2a</span>
+              <input type="range" min="2" max="14" step="0.5" value="8"
+                oninput="MainEngine.setParam('ellipse','twoA',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#3b82f6">
+              <span class="engine-ctrl-value">8</span>
+            </div>
+            <div class="panel-output" id="out-ellipse">d₀ = — | k = —</div>
+          </div>
+        </div>
+
+        <!-- Iperbole panel -->
+        <div class="conic-panel" id="panel-hyperbola" style="--panel-color:#f59e0b">
+          <div class="panel-header" onclick="MainEngine.togglePanel('hyperbola')">
+            <div class="panel-toggle"></div>
+            <span class="panel-name">Iperbole</span>
+            <span class="panel-chevron">▼</span>
+          </div>
+          <div class="panel-body">
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">x₁</span>
+              <input type="range" min="-5" max="0" step="0.5" value="-3"
+                oninput="MainEngine.setParam('hyperbola','x1',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#f59e0b">
+              <span class="engine-ctrl-value">-3</span>
+            </div>
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">x₂</span>
+              <input type="range" min="0" max="5" step="0.5" value="3"
+                oninput="MainEngine.setParam('hyperbola','x2',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#f59e0b">
+              <span class="engine-ctrl-value">3</span>
+            </div>
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">2a</span>
+              <input type="range" min="0.5" max="5" step="0.5" value="2"
+                oninput="MainEngine.setParam('hyperbola','twoA',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#f59e0b">
+              <span class="engine-ctrl-value">2</span>
+            </div>
+            <div class="panel-output" id="out-hyperbola">d₀ = — | 2a = —</div>
+          </div>
+        </div>
+
+        <!-- Parabola panel -->
+        <div class="conic-panel" id="panel-parabola" style="--panel-color:#22c55e">
+          <div class="panel-header" onclick="MainEngine.togglePanel('parabola')">
+            <div class="panel-toggle"></div>
+            <span class="panel-name">Parabola</span>
+            <span class="panel-chevron">▼</span>
+          </div>
+          <div class="panel-body">
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">x<sub>F</sub></span>
+              <input type="range" min="-4" max="4" step="0.5" value="0"
+                oninput="MainEngine.setParam('parabola','xF',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#22c55e">
+              <span class="engine-ctrl-value">0</span>
+            </div>
+            <div class="engine-ctrl-row">
+              <span class="engine-ctrl-label">p</span>
+              <input type="range" min="0.5" max="4" step="0.5" value="2"
+                oninput="MainEngine.setParam('parabola','yF',this.value);this.nextElementSibling.textContent=this.value"
+                style="accent-color:#22c55e">
+              <span class="engine-ctrl-value">2</span>
+            </div>
+            <div class="panel-output" id="out-parabola">p = — | F(—, —) | y = 0</div>
+          </div>
+        </div>
+
+      </div><!-- /.engine-controls -->
+    </div><!-- /.engine-layout -->
+  </div>
+</section>
+```
+
+- [ ] **Step 3: Commit structure before adding JS**
+
+```bash
+git add index.html
+git commit -m "feat: §7 Esplora — dark engine layout with 4 collapsible accordion panels"
+```
+
+---
+
+## Task 13: MainEngine — Multi-Conic Drawing Logic
+
+**Files:**
+- Modify: `index.html` — add `MainEngine` object to `<script>`
+
+- [ ] **Step 1: Add MainEngine module to `<script>` (after MiniEngine, before Hero)**
+
+```js
+const MainEngine = (() => {
+  const canvas = document.getElementById('main-canvas');
+  const ctx = canvas.getContext('2d');
+  const DPR = window.devicePixelRatio || 1;
+
+  const COLORS = {
+    circle:    '#e63946',
+    ellipse:   '#3b82f6',
+    hyperbola: '#f59e0b',
+    parabola:  '#22c55e'
+  };
+
+  // State
+  const state = {
+    active: { circle: true, ellipse: false, hyperbola: false, parabola: false },
+    open:   { circle: true, ellipse: false, hyperbola: false, parabola: false },
+    params: {
+      circle:    { xc:0, yc:0, R:3 },
+      ellipse:   { x1:-2, y1:0, x2:2, y2:0, twoA:8 },
+      hyperbola: { x1:-3, y1:0, x2:3, y2:0, twoA:2 },
+      parabola:  { xF:0, yF:2, k:0 }
+    },
+    pan:   { x:0, y:0 },
+    scale: 50,
+    dragging: false,
+    dragStart: null
+  };
+
+  function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const size = Math.min(rect.width, 600);
+    canvas.width  = size * DPR;
+    canvas.height = size * DPR;
+    canvas.style.width  = size + 'px';
+    canvas.style.height = size + 'px';
+    ctx.scale(DPR, DPR);
+    draw();
+  }
+
+  function getTransform() {
+    const w = canvas.width/DPR, h = canvas.height/DPR;
+    return MiniEngine.makeTransform(
+      { width: w, height: h },
+      state.scale,
+      state.pan.x,
+      state.pan.y
+    );
+  }
+
+  function draw() {
+    const w = canvas.width/DPR, h = canvas.height/DPR;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, w, h);
+    const t = getTransform();
+    MiniEngine.drawGrid(ctx, t);
+
+    if (state.active.circle) drawCircle(t);
+    if (state.active.ellipse) drawEllipse(t);
+    if (state.active.hyperbola) drawHyperbola(t);
+    if (state.active.parabola) drawParabola(t);
+  }
+
+  function drawCircle(t) {
+    const { xc=0, yc=0, R=3 } = state.params.circle;
+    const v = ConicMath.circleVertices(xc, yc, R);
+    const color = COLORS.circle;
+    // Critical lines
+    MiniEngine.drawSegment(ctx,t,{x:xc,y:-20},{x:xc,y:20},color.replace(')',',0.25)').replace('#','rgba(').replace(/[a-f0-9]{6}/i,(h)=>{const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return`${r},${g},${b}`}),0.8,[4,4]);
+    MiniEngine.drawSegment(ctx,t,{x:-20,y:yc},{x:20,y:yc},'rgba(230,57,70,0.25)',0.8,[4,4]);
+    MiniEngine.drawPolyline(ctx, t, [v.VN,v.VE,v.VS,v.VW], color, 2.5, true);
+    MiniEngine.drawPoint(ctx, t, xc, yc, 'white', 4);
+    const out = document.getElementById('out-circle');
+    if (out) out.textContent = `Perimetro = ${(4*R*Math.SQRT2).toFixed(2)} | Area = ${(2*R*R).toFixed(2)} | π₁ = 4`;
+  }
+
+  function drawEllipse(t) {
+    const { x1=-2, y1=0, x2=2, y2=0, twoA=8 } = state.params.ellipse;
+    const color = COLORS.ellipse;
+    const sx1=Math.min(x1,x2), sy1=Math.min(y1,y2), sx2=Math.max(x1,x2), sy2=Math.max(y1,y2);
+    const verts = ConicMath.ellipseVertices(sx1, sy1, sx2, sy2, twoA);
+    [sx1,sx2].forEach(xv => MiniEngine.drawSegment(ctx,t,{x:xv,y:-20},{x:xv,y:20},'rgba(59,130,246,0.2)',0.8,[3,4]));
+    [sy1,sy2].forEach(yv => MiniEngine.drawSegment(ctx,t,{x:-20,y:yv},{x:20,y:yv},'rgba(59,130,246,0.2)',0.8,[3,4]));
+    if (verts) MiniEngine.drawPolyline(ctx, t, verts, color, 2.5, true);
+    MiniEngine.drawPoint(ctx, t, x1, y1, color, 4);
+    MiniEngine.drawPoint(ctx, t, x2, y2, color, 4);
+    const d0 = Math.abs(x2-x1)+Math.abs(y2-y1);
+    const out = document.getElementById('out-ellipse');
+    if (out) out.textContent = `d₀ = ${d0.toFixed(2)} | k = ${(twoA/2 - d0/2).toFixed(2)}`;
+  }
+
+  function drawHyperbola(t) {
+    const { x1=-3, y1=0, x2=3, y2=0, twoA=2 } = state.params.hyperbola;
+    const color = COLORS.hyperbola;
+    const sx1=Math.min(x1,x2), sx2=Math.max(x1,x2);
+    const result = ConicMath.hyperbolaVertices(sx1, y1, sx2, y2, twoA);
+    [sx1,sx2].forEach(xv => MiniEngine.drawSegment(ctx,t,{x:xv,y:-20},{x:xv,y:20},'rgba(245,158,11,0.2)',0.8,[3,4]));
+    [y1,y2].forEach(yv => MiniEngine.drawSegment(ctx,t,{x:-20,y:yv},{x:20,y:yv},'rgba(245,158,11,0.2)',0.8,[3,4]));
+    if (result) {
+      MiniEngine.drawPolyline(ctx, t, result.branch1, color, 2.5, false);
+      MiniEngine.drawPolyline(ctx, t, result.branch2, color, 2.5, false);
+    }
+    MiniEngine.drawPoint(ctx, t, x1, y1, color, 4);
+    MiniEngine.drawPoint(ctx, t, x2, y2, color, 4);
+    const d0 = Math.abs(x2-x1)+Math.abs(y2-y1);
+    const out = document.getElementById('out-hyperbola');
+    if (out) out.textContent = `d₀ = ${d0.toFixed(2)} | 2a = ${twoA}`;
+  }
+
+  function drawParabola(t) {
+    const { xF=0, yF=2, k=0 } = state.params.parabola;
+    const color = COLORS.parabola;
+    MiniEngine.drawSegment(ctx,t,{x:-20,y:k},{x:20,y:k},'rgba(34,197,94,0.3)',1,[5,4]);
+    const segs = ConicMath.parabolaSegments(xF, yF, k, 8);
+    segs.forEach(s => MiniEngine.drawSegment(ctx, t, s.from, s.to, color, 2.5));
+    MiniEngine.drawPoint(ctx, t, xF, yF, color, 4);
+    const out = document.getElementById('out-parabola');
+    if (out) out.textContent = `p = ${(yF-k).toFixed(2)} | F(${xF}, ${yF}) | y = ${k}`;
+  }
+
+  function togglePanel(conicName) {
+    const wasActive = state.active[conicName];
+    const wasOpen   = state.open[conicName];
+
+    if (!wasActive) {
+      // Activate and open
+      state.active[conicName] = true;
+      state.open[conicName]   = true;
+    } else if (wasActive && wasOpen) {
+      // Collapse (keep active)
+      state.open[conicName] = false;
+    } else {
+      // Re-open
+      state.open[conicName] = true;
+    }
+
+    // Update panel UI
+    const panel = document.getElementById(`panel-${conicName}`);
+    panel.classList.toggle('active', state.active[conicName]);
+    panel.classList.toggle('open',   state.open[conicName]);
+
+    draw();
+  }
+
+  function setParam(conicName, key, val) {
+    state.params[conicName][key] = parseFloat(val);
+    draw();
+  }
+
+  // Pan and zoom
+  function onWheel(e) {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const t = getTransform();
+    const before = t.toWorld(mx, my);
+    const factor = e.deltaY < 0 ? 1.12 : 1/1.12;
+    state.scale = Math.max(10, Math.min(300, state.scale * factor));
+    const t2 = getTransform();
+    const after = t2.toCanvas(before.x, before.y);
+    state.pan.x += (mx - after.x) / state.scale;
+    state.pan.y -= (my - after.y) / state.scale;
+    draw();
+  }
+
+  function onMouseDown(e) {
+    state.dragging = true;
+    state.dragStart = { mx: e.clientX, my: e.clientY, px: state.pan.x, py: state.pan.y };
+    canvas.style.cursor = 'grab';
+  }
+  function onMouseMove(e) {
+    if (!state.dragging) return;
+    const dx = e.clientX - state.dragStart.mx;
+    const dy = e.clientY - state.dragStart.my;
+    state.pan.x = state.dragStart.px + dx / state.scale;
+    state.pan.y = state.dragStart.py - dy / state.scale;
+    draw();
+  }
+  function onMouseUp()   { state.dragging = false; canvas.style.cursor = 'crosshair'; }
+
+  function init() {
+    resize();
+    window.addEventListener('resize', resize);
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    canvas.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup',   onMouseUp);
+    draw();
+  }
+
+  return { init, draw, togglePanel, setParam };
+})();
+```
+
+- [ ] **Step 2: Add `MainEngine.init()` to bootstrap section in `<script>`**
+
+```js
+// In the bootstrap section at bottom of <script>:
+MainEngine.init();
+```
+
+- [ ] **Step 3: Verify multi-conic canvas**
+
+Open browser, scroll to Esplora section. Expected:
+- Dark canvas with red taxicab circle visible (Circonferenza active by default)
+- Clicking "Ellisse" panel header activates blue ellipse on same canvas
+- Both draw simultaneously
+- Pan with drag, zoom with scroll wheel
+- Sliders update conics in real-time
+- Output lines show correct values
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add index.html
+git commit -m "feat: MainEngine — multi-conic canvas with pan/zoom and accordion controls"
+```
+
+---
+
+## Task 14: Remove console.assert Tests + Final Polish
+
+**Files:**
+- Modify: `index.html` — remove test call, fix any visual issues, final responsive check
+
+- [ ] **Step 1: Remove test call**
+
+Find and delete this line from `<script>`:
+```js
+ConicMath.runTests();
+```
+
+Also remove the `runTests` method from `ConicMath` if desired (optional — it's harmless).
+
+- [ ] **Step 2: Fix dashed critical lines helper in drawCircle**
+
+The color conversion in `drawCircle` of `MainEngine` is overly complex. Simplify:
+```js
+// Replace the complex color conversion for critical lines with:
+MiniEngine.drawSegment(ctx,t,{x:xc,y:-20},{x:xc,y:20},'rgba(230,57,70,0.25)',0.8,[4,4]);
+MiniEngine.drawSegment(ctx,t,{x:-20,y:yc},{x:20,y:yc},'rgba(230,57,70,0.25)',0.8,[4,4]);
+```
+
+- [ ] **Step 3: Add canvas touch support for mobile pan**
+
+In `MainEngine.init()`, add after the mouse listeners:
+```js
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) onMouseDown({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
+  e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  if (e.touches.length === 1) onMouseMove({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
+  e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('touchend', onMouseUp);
+```
+
+- [ ] **Step 4: Full visual QA checklist**
+
+Open in browser and verify:
+
+```
+Hero:
+[ ] Full viewport height, dark background
+[ ] Grid animation visible (subtle)
+[ ] Cursor hover reveals bright grid
+[ ] Amber blob top-right, blue blob bottom-left
+[ ] Title in Playfair Display 800
+[ ] Subtitle in IBM Plex Mono, all caps, spaced
+
+Scroll transition:
+[ ] Body background fades to white as §1 enters
+
+§1 Fondamenti:
+[ ] Spectral body text renders
+[ ] Two definition boxes with left border
+[ ] Comparative table, clean borders
+[ ] SVG shows L2 circle (dashed) + L1 diamond (red)
+
+§2 Circonferenza:
+[ ] Table of 4 regions
+[ ] Theorem box with label
+[ ] Mini-engine: diamond shape in red
+[ ] Sliders R and xc work
+
+§3 Ellisse:
+[ ] Mini-engine: octagon/hexagon in blue
+[ ] 2a slider changes shape
+
+§4 Iperbole:
+[ ] Mini-engine: two amber segments
+[ ] 2a slider changes gap
+
+§5 Parabola:
+[ ] Mini-engine: green V-shape + vertical rays
+[ ] p slider changes height
+
+§7 Esplora:
+[ ] Dark section, Playfair title
+[ ] Circonferenza active + red circle visible
+[ ] Toggling panels activates conics on same canvas
+[ ] Multiple conics visible simultaneously
+[ ] Pan (drag) works
+[ ] Zoom (scroll wheel) works
+[ ] Sliders update in real-time
+
+Responsive (narrow window < 768px):
+[ ] Split sections stack: text above, canvas below
+[ ] Engine layout stacks: canvas above, controls below
+[ ] No horizontal overflow
+```
+
+- [ ] **Step 5: Final commit**
+
+```bash
+git add index.html
+git commit -m "feat: complete Geometria del Taxi site — hero animation, 5 academic sections with mini-engines, multi-conic main engine"
+```
+
+---
+
+## Self-Review
+
+**Spec coverage:**
+- ✅ Hero full-viewport with animated grid + cursor mask (Task 4)
+- ✅ Spectral font throughout academic sections (Task 2)
+- ✅ §1 Fondamenti: definitions, table, static SVG (Task 7)
+- ✅ §2 Circonferenza: theorem 2.1, π₁=4, mini-engine (Task 8)
+- ✅ §3 Ellisse: 9-region method, propositions 3.1 + 3.2, example, mini-engine (Task 9)
+- ✅ §4 Iperbole: proposition 4.1, mini-engine (Task 10)
+- ✅ §5 Parabola: formula master, mini-engine (Task 11)
+- ✅ MainEngine multi-conic with pan/zoom (Tasks 12–13)
+- ✅ IntersectionObserver for hero rAF + body bg transition (Task 4)
+- ✅ Responsive breakpoints (Task 2 CSS + Task 14 QA)
+- ✅ Google Fonts CDN only (Task 1)
+- ✅ Single file output to correct path (Task 1)
+- ✅ Touch support for mobile canvas (Task 14)
+
+**Type consistency check:**
+- `ConicMath.circleVertices` → returns `{VN,VE,VS,VW}` → used correctly in MiniEngine and MainEngine
+- `ConicMath.ellipseVertices` → returns array of `{x,y}` or null → checked before use
+- `ConicMath.hyperbolaVertices` → returns `{branch1, branch2}` or null → checked before use
+- `ConicMath.parabolaSegments` → returns array of `{from:{x,y}, to:{x,y}}` → used in forEach
+- `MiniEngine.makeTransform` → returns object with `toCanvas`, `toWorld`, `scale`, `w`, `h`
+- `MiniEngine.drawPolyline(ctx, t, pts, color, lineWidth, close)` → signature consistent
+- `MiniEngine.drawSegment(ctx, t, from, to, color, lineWidth, dashed)` → signature consistent
+- `MainEngine.togglePanel(conicName)` → called from onclick with string name → matches state keys
+- `MainEngine.setParam(conicName, key, val)` → called from oninput with string conicName matching state.params keys

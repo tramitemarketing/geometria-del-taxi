@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geometria del Taxi</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚕</text></svg>">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1117;
+      color: #e2e8f0;
+      font-family: system-ui, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #topbar {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.5rem 1rem;
+      background: #1a1d2e;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+    #topbar h1 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #a78bfa;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-right: 0.3rem;
+      white-space: nowrap;
+    }
+    .coord-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 0.3rem 0.7rem;
+    }
+    .coord-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .coord-group label { font-size: 0.75rem; font-weight: 700; margin-right: 0.2rem; }
+    .coord-group input {
+      width: 52px;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      color: #e2e8f0;
+      font-size: 0.8rem;
+      text-align: center;
+      outline: none;
+      padding: 0.1rem 0;
+    }
+    .coord-group input:focus { border-bottom-color: rgba(255,255,255,0.6); }
+    .coord-group span { font-size: 0.7rem; opacity: 0.4; }
+    .toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px;
+      color: rgba(255,255,255,0.45);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.28rem 0.65rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      font-family: system-ui, sans-serif;
+    }
+    .toggle-btn:hover { background: rgba(255,255,255,0.09); color: rgba(255,255,255,0.75); }
+    .toggle-btn.active { background: rgba(99,102,241,0.18); border-color: rgba(99,102,241,0.55); color: #a78bfa; }
+    #topbar-right { margin-left: auto; display: flex; gap: 0.5rem; align-items: center; }
+    #main { display: flex; flex: 1; overflow: hidden; }
+    #canvas { flex: 1; display: block; cursor: crosshair; }
+    #sidebar {
+      width: 160px;
+      flex-shrink: 0;
+      background: #13161f;
+      border-left: 1px solid rgba(255,255,255,0.07);
+      padding: 1rem 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+    .sb-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.4; margin-bottom: 0.5rem; }
+    .legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; margin-bottom: 0.35rem; }
+    .legend-line { width: 22px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+    .zoom-row { display: flex; gap: 0.3rem; }
+    .zoom-btn {
+      flex: 1;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 5px;
+      color: #e2e8f0;
+      font-size: 0.85rem;
+      padding: 0.3rem;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s;
+    }
+    .zoom-btn:hover { background: rgba(255,255,255,0.12); }
+    .hint { font-size: 0.68rem; opacity: 0.35; line-height: 1.6; }
+    #status-msg { font-size: 0.7rem; color: #f59e0b; opacity: 0; transition: opacity 0.3s; min-height: 1rem; }
+    #status-msg.visible { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <h1>Geometria del Taxi</h1>
+    <div class="coord-group">
+      <div class="coord-dot" style="background:#60a5fa"></div>
+      <label style="color:#60a5fa">P1</label>
+      <span>x</span><input type="number" id="p1x" step="0.5" placeholder="—">
+      <span>y</span><input type="number" id="p1y" step="0.5" placeholder="—">
+    </div>
+    <div class="coord-group">
+      <div class="coord-dot" style="background:#f87171"></div>
+      <label style="color:#f87171">P2</label>
+      <span>x</span><input type="number" id="p2x" step="0.5" placeholder="—">
+      <span>y</span><input type="number" id="p2y" step="0.5" placeholder="—">
+    </div>
+    <div id="status-msg"></div>
+    <div id="topbar-right">
+      <button class="toggle-btn" id="btn-snap" title="Agganciamento agli interi">🧲 Snap</button>
+      <button class="toggle-btn" id="btn-debug" title="Mostra le 9 regioni con equazioni">📐 Regioni</button>
+    </div>
+  </div>
+  <div id="main">
+    <canvas id="canvas"></canvas>
+    <div id="sidebar">
+      <div class="sb-section">
+        <div class="sb-label">Legenda</div>
+        <div class="legend-item"><div class="legend-line" style="background:#f59e0b;box-shadow:0 0 6px rgba(245,158,11,0.5)"></div><span>Luogo taxi</span></div>
+        <div class="legend-item"><div class="legend-line" style="background:#22c55e;box-shadow:0 0 5px rgba(34,197,94,0.4);height:2px"></div><span style="color:#22c55e;opacity:0.7">Bisettrice eucl.</span></div>
+        <div class="legend-item"><div class="legend-line" style="background:#60a5fa"></div><span style="color:#60a5fa">P1</span></div>
+        <div class="legend-item"><div class="legend-line" style="background:#f87171"></div><span style="color:#f87171">P2</span></div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-label">Zoom</div>
+        <div class="zoom-row">
+          <button class="zoom-btn" id="btn-zoom-in">+</button>
+          <button class="zoom-btn" id="btn-zoom-out">−</button>
+          <button class="zoom-btn" id="btn-reset">⌂</button>
+        </div>
+      </div>
+      <div class="sb-section" style="margin-top:auto">
+        <div class="hint">Click per piazzare<br>P1, poi P2.<br><br>Trascina per spostare.<br><br>Doppio click<br>per rimuovere.<br><br>Trascina la griglia<br>per navigare.</div>
+      </div>
+    </div>
+  </div>
+  <script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const STATE = { p1:null, p2:null, placed:0, offset:{x:0,y:0}, scale:60, dragging:null, panStart:null, pointBirth:{p1:null,p2:null}, snapEnabled:false, debugRegions:false, mouseWorld:null };
+function resetView(){ STATE.offset.x=canvas.width/2; STATE.offset.y=canvas.height/2; STATE.scale=60; }
+function toWorld(px,py){ return {x:(px-STATE.offset.x)/STATE.scale, y:-(py-STATE.offset.y)/STATE.scale}; }
+function toCanvas(wx,wy){ return {x:wx*STATE.scale+STATE.offset.x, y:-wy*STATE.scale+STATE.offset.y}; }
+function resizeCanvas(){ const rect=canvas.parentElement.getBoundingClientRect(); canvas.width=rect.width; canvas.height=rect.height; resetView(); render(); }
+window.addEventListener('resize',resizeCanvas);
+function drawGrid(){
+  const w=canvas.width,h=canvas.height;
+  const rawStep=80/STATE.scale;
+  const magnitude=Math.pow(10,Math.floor(Math.log10(rawStep)));
+  const normalized=rawStep/magnitude;
+  let step;
+  if(normalized<1.5)step=magnitude;
+  else if(normalized<3.5)step=2*magnitude;
+  else if(normalized<7.5)step=5*magnitude;
+  else step=10*magnitude;
+  const topLeft=toWorld(0,0),bottomRight=toWorld(w,h);
+  const xMin=Math.floor(topLeft.x/step)*step,xMax=Math.ceil(bottomRight.x/step)*step;
+  const yMin=Math.floor(bottomRight.y/step)*step,yMax=Math.ceil(topLeft.y/step)*step;
+  ctx.save();
+  ctx.strokeStyle='rgba(255,255,255,0.25)'; ctx.lineWidth=0.5;
+  for(let x=xMin;x<=xMax;x+=step){const cx=toCanvas(x,0).x;ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,h);ctx.stroke();}
+  for(let y=yMin;y<=yMax;y+=step){const cy=toCanvas(0,y).y;ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(w,cy);ctx.stroke();}
+  const ox=toCanvas(0,0).x,oy=toCanvas(0,0).y;
+  ctx.strokeStyle='rgba(255,255,255,0.50)'; ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(ox,0);ctx.lineTo(ox,h);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,oy);ctx.lineTo(w,oy);ctx.stroke();
+  const ARROW=8;
+  ctx.fillStyle='rgba(255,255,255,0.50)';
+  ctx.beginPath();ctx.moveTo(w-2,oy);ctx.lineTo(w-2-ARROW,oy-ARROW/2);ctx.lineTo(w-2-ARROW,oy+ARROW/2);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(ox,2);ctx.lineTo(ox-ARROW/2,2+ARROW);ctx.lineTo(ox+ARROW/2,2+ARROW);ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.45)'; ctx.font='italic 13px system-ui';
+  ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText('x',w-12,oy-12);
+  ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('y',ox+12,6);
+  ctx.fillStyle='rgba(255,255,255,0.3)';
+  ctx.font=`${Math.max(9,Math.min(12,STATE.scale*0.18))}px system-ui`;
+  ctx.textAlign='center';ctx.textBaseline='top';
+  for(let x=xMin;x<=xMax;x+=step){if(Math.abs(x)<step*0.01)continue;const cx=toCanvas(x,0).x;const labelY=Math.min(Math.max(oy+4,4),h-14);ctx.fillText(Number(x.toPrecision(6)),cx,labelY);}
+  ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let y=yMin;y<=yMax;y+=step){if(Math.abs(y)<step*0.01)continue;const cy=toCanvas(0,y).y;const labelX=Math.min(Math.max(ox-6,4),w-4);ctx.fillText(Number(y.toPrecision(6)),labelX,cy);}
+  ctx.restore();
+}
+function clipSegmentToRect(wx1,wy1,wx2,wy2,rxMin,rxMax,ryMin,ryMax){
+  const INSIDE=0,LEFT=1,RIGHT=2,BOTTOM=4,TOP=8;
+  function code(x,y){let c=INSIDE;if(x<rxMin)c|=LEFT;else if(x>rxMax)c|=RIGHT;if(y<ryMin)c|=BOTTOM;else if(y>ryMax)c|=TOP;return c;}
+  let x0=wx1,y0=wy1,x1=wx2,y1=wy2,c0=code(x0,y0),c1=code(x1,y1);
+  while(true){
+    if(!(c0|c1))return[[x0,y0],[x1,y1]];
+    if(c0&c1)return null;
+    const cOut=c0||c1;let x,y;const dx=x1-x0,dy=y1-y0;
+    if(cOut&TOP){x=x0+dx*(ryMax-y0)/dy;y=ryMax;}
+    else if(cOut&BOTTOM){x=x0+dx*(ryMin-y0)/dy;y=ryMin;}
+    else if(cOut&RIGHT){y=y0+dy*(rxMax-x0)/dx;x=rxMax;}
+    else{y=y0+dy*(rxMin-x0)/dx;x=rxMin;}
+    if(cOut===c0){x0=x;y0=y;c0=code(x0,y0);}else{x1=x;y1=y;c1=code(x1,y1);}
+  }
+}
+function regionSegment(col,row,xBounds,yBounds,x1,y1,x2,y2,vMin,vMax){
+  const rxMin=Math.max(xBounds[col],vMin.x-1),rxMax=Math.min(xBounds[col+1],vMax.x+1);
+  const ryMin=Math.max(yBounds[row],vMin.y-1),ryMax=Math.min(yBounds[row+1],vMax.y+1);
+  if(rxMin>=rxMax||ryMin>=ryMax)return null;
+  const xRep=(rxMin+rxMax)/2,yRep=(ryMin+ryMax)/2;
+  const sxa=xRep>=x1?1:-1,sxb=xRep>=x2?1:-1,sya=yRep>=y1?1:-1,syb=yRep>=y2?1:-1;
+  const cx=sxa-sxb,cy=sya-syb,cst=sxa*x1+sya*y1-sxb*x2-syb*y2;
+  return{rxMin,rxMax,ryMin,ryMax,sxa,sxb,sya,syb,cx,cy,cst,xRep,yRep};
+}
+function drawBisector(){
+  if(!STATE.p1||!STATE.p2)return;
+  const{x:x1,y:y1}=STATE.p1,{x:x2,y:y2}=STATE.p2;
+  const mx=(x1+x2)/2,my=(y1+y2)/2,dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);
+  if(len<1e-9)return;
+  const px=-dy/len,py=dx/len,ext=(canvas.width+canvas.height)/STATE.scale+10;
+  const ca=toCanvas(mx+px*ext,my+py*ext),cb=toCanvas(mx-px*ext,my-py*ext);
+  ctx.save();ctx.globalAlpha=0.55;ctx.strokeStyle='#22c55e';ctx.lineWidth=1;
+  ctx.shadowColor='rgba(34,197,94,0.55)';ctx.shadowBlur=8;
+  ctx.beginPath();ctx.moveTo(ca.x,ca.y);ctx.lineTo(cb.x,cb.y);ctx.stroke();ctx.restore();
+}
+function drawLocus(){
+  if(!STATE.p1||!STATE.p2)return;
+  const{x:x1,y:y1}=STATE.p1,{x:x2,y:y2}=STATE.p2;
+  const taxiDist=Math.abs(x2-x1)+Math.abs(y2-y1);
+  if(taxiDist<1e-9){showStatus('P1 e P2 sovrapposti',0);return;}
+  document.getElementById('status-msg').classList.remove('visible');
+  const vMin=toWorld(0,canvas.height),vMax=toWorld(canvas.width,0);
+  const[xL,xR]=x1<=x2?[x1,x2]:[x2,x1],[yB,yT]=y1<=y2?[y1,y2]:[y2,y1];
+  const INF=1e9,xBounds=[-INF,xL,xR,INF],yBounds=[-INF,yB,yT,INF];
+  ctx.save();ctx.strokeStyle='#f59e0b';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.lineCap='round';
+  ctx.shadowColor='rgba(245,158,11,0.6)';ctx.shadowBlur=6;ctx.beginPath();
+  for(let col=0;col<3;col++){for(let row=0;row<3;row++){
+    const r=regionSegment(col,row,xBounds,yBounds,x1,y1,x2,y2,vMin,vMax);
+    if(!r)continue;
+    const{rxMin,rxMax,ryMin,ryMax,cx,cy,cst}=r;
+    if(cx===0&&cy===0){if(Math.abs(cst)<1e-9){const ca=toCanvas(rxMin,ryMax),cb=toCanvas(rxMax,ryMin);ctx.save();ctx.fillStyle='rgba(245,158,11,0.18)';ctx.shadowBlur=0;ctx.fillRect(ca.x,ca.y,cb.x-ca.x,cb.y-ca.y);ctx.restore();}continue;}
+    let seg;
+    if(cy===0){const wx=cst/cx;seg=clipSegmentToRect(wx,ryMin,wx,ryMax,rxMin,rxMax,ryMin,ryMax);}
+    else if(cx===0){const wy=cst/cy;seg=clipSegmentToRect(rxMin,wy,rxMax,wy,rxMin,rxMax,ryMin,ryMax);}
+    else{seg=clipSegmentToRect(rxMin,(cst-cx*rxMin)/cy,rxMax,(cst-cx*rxMax)/cy,rxMin,rxMax,ryMin,ryMax);}
+    if(!seg)continue;
+    const p0=toCanvas(seg[0][0],seg[0][1]),p1e=toCanvas(seg[1][0],seg[1][1]);
+    ctx.moveTo(p0.x,p0.y);ctx.lineTo(p1e.x,p1e.y);
+  }}
+  ctx.stroke();ctx.restore();
+}
+function buildEquationLines(sxa,sxb,sya,syb,x1,y1,x2,y2,cx,cy,cst){
+  function f(n){const r=Math.round(n*1000)/1000;if(r===0)return'0';if(r===Math.round(r))return String(r);return String(r);}
+  function absStr(v,val){if(Math.abs(val)<1e-9)return`|${v}|`;if(val>0)return`|${v} − ${f(val)}|`;return`|${v} + ${f(-val)}|`;}
+  function expandedTerm(sign,v,val){const vp=sign>0?v:`−${v}`;if(Math.abs(val)<1e-9)return vp;const c=-sign*val;return c>0?`${vp} + ${f(c)}`:`${vp} − ${f(-c)}`;}
+  function join(t1,t2){return t2.startsWith('−')?`${t1} − ${t2.substring(1)}`:`${t1} + ${t2}`;}
+  const l1=`${absStr('x',x1)} + ${absStr('y',y1)} = ${absStr('x',x2)} + ${absStr('y',y2)}`;
+  const lhs=join(expandedTerm(sxa,'x',x1),expandedTerm(sya,'y',y1));
+  const rhs=join(expandedTerm(sxb,'x',x2),expandedTerm(syb,'y',y2));
+  const l2=`${lhs} = ${rhs}`;
+  if(cx===0&&cy===0){const l3=`0 = ${f(cst)}`;const l4=Math.abs(cst)<1e-9?'→ tutto il piano':'→ nessuna soluzione';return[l1,l2,l3,l4];}
+  let lhsStr='';
+  if(cx!==0)lhsStr=cx===2?'2x':cx===-2?'−2x':`${cx}x`;
+  if(cy!==0){const cyStr=Math.abs(cy)===2?'2y':`${Math.abs(cy)}y`;if(lhsStr)lhsStr+=cy>0?` + ${cyStr}`:` − ${cyStr}`;else lhsStr=cy>0?cyStr:`−${cyStr}`;}
+  const l3=`${lhsStr} = ${f(cst)}`;
+  let l4;
+  if(cy===0)l4=`→  x = ${f(cst/cx)}`;
+  else if(cx===0)l4=`→  y = ${f(cst/cy)}`;
+  else{const b=cst/cy,slope=-cx/cy;if(slope>0)l4=b===0?'→  y = x':b>0?`→  y = x + ${f(b)}`:`→  y = x − ${f(-b)}`;else l4=b===0?'→  y = −x':b>0?`→  y = −x + ${f(b)}`:`→  y = −x − ${f(-b)}`;}
+  return[l1,l2,l3,l4];
+}
+function drawDebugRegions(){
+  if(!STATE.debugRegions||!STATE.p1||!STATE.p2)return;
+  const{x:x1,y:y1}=STATE.p1,{x:x2,y:y2}=STATE.p2;
+  if(Math.abs(x2-x1)+Math.abs(y2-y1)<1e-9)return;
+  const[xL,xR]=x1<=x2?[x1,x2]:[x2,x1],[yB,yT]=y1<=y2?[y1,y2]:[y2,y1];
+  const INF=1e9,xBounds=[-INF,xL,xR,INF],yBounds=[-INF,yB,yT,INF];
+  const vMin=toWorld(0,canvas.height),vMax=toWorld(canvas.width,0);
+  ctx.save();ctx.strokeStyle='rgba(160,160,255,0.35)';ctx.lineWidth=1;ctx.setLineDash([5,4]);
+  for(const xv of[xL,xR]){if(Math.abs(xv)>INF/2)continue;const cx=toCanvas(xv,0).x;ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,canvas.height);ctx.stroke();}
+  for(const yv of[yB,yT]){if(Math.abs(yv)>INF/2)continue;const cy=toCanvas(0,yv).y;ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(canvas.width,cy);ctx.stroke();}
+  ctx.setLineDash([]);ctx.restore();
+  if(!STATE.mouseWorld)return;
+  const{x:mx,y:my}=STATE.mouseWorld;
+  const col=mx<xL?0:mx<xR?1:2,row=my<yB?0:my<yT?1:2;
+  const r=regionSegment(col,row,xBounds,yBounds,x1,y1,x2,y2,vMin,vMax);
+  if(!r)return;
+  const{rxMin,rxMax,ryMin,ryMax,sxa,sxb,sya,syb,cx,cy,cst}=r;
+  const ca=toCanvas(rxMin,ryMax),cb=toCanvas(rxMax,ryMin);
+  const rw=cb.x-ca.x,rh=cb.y-ca.y;
+  ctx.save();ctx.fillStyle='rgba(12,14,35,0.72)';ctx.fillRect(ca.x,ca.y,rw,rh);ctx.restore();
+  if(!(cx===0&&cy===0)){
+    let seg;
+    if(cy===0){const wx=cst/cx;seg=clipSegmentToRect(wx,ryMin,wx,ryMax,rxMin,rxMax,ryMin,ryMax);}
+    else if(cx===0){const wy=cst/cy;seg=clipSegmentToRect(rxMin,wy,rxMax,wy,rxMin,rxMax,ryMin,ryMax);}
+    else{seg=clipSegmentToRect(rxMin,(cst-cx*rxMin)/cy,rxMax,(cst-cx*rxMax)/cy,rxMin,rxMax,ryMin,ryMax);}
+    if(seg){
+      const p0=toCanvas(seg[0][0],seg[0][1]),p1e=toCanvas(seg[1][0],seg[1][1]);
+      ctx.save();ctx.strokeStyle='white';ctx.lineWidth=3.5;ctx.lineCap='round';
+      ctx.shadowColor='rgba(255,255,255,0.8)';ctx.shadowBlur=14;
+      ctx.beginPath();ctx.moveTo(p0.x,p0.y);ctx.lineTo(p1e.x,p1e.y);ctx.stroke();ctx.restore();
+    }
+  }
+  const lines=buildEquationLines(sxa,sxb,sya,syb,x1,y1,x2,y2,cx,cy,cst);
+  ctx.save();ctx.font='12.5px system-ui';
+  const lineH=20,pad=14;
+  const maxW=Math.max(...lines.map(l=>ctx.measureText(l).width));
+  const boxW=maxW+pad*2,boxH=lines.length*lineH+pad*1.5;
+  const centerX=Math.max(boxW/2+8,Math.min(canvas.width-boxW/2-8,(Math.max(ca.x,0)+Math.min(cb.x,canvas.width))/2));
+  const centerY=Math.max(boxH/2+8,Math.min(canvas.height-boxH/2-8,(Math.max(ca.y,0)+Math.min(cb.y,canvas.height))/2));
+  const bx=centerX-boxW/2,by=centerY-boxH/2;
+  ctx.fillStyle='rgba(10,12,28,0.92)';ctx.strokeStyle='rgba(99,102,241,0.45)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(bx,by,boxW,boxH,7);ctx.fill();ctx.stroke();
+  const lineColors=['rgba(255,255,255,0.42)','rgba(226,232,240,0.9)','rgba(245,158,11,0.95)','#22c55e'];
+  ctx.textAlign='left';ctx.textBaseline='top';
+  lines.forEach((line,i)=>{
+    ctx.fillStyle=lineColors[i];
+    if(i===0)ctx.font='11px system-ui';
+    else if(i===3)ctx.font='bold 13px system-ui';
+    else ctx.font='12.5px system-ui';
+    ctx.fillText(line,bx+pad,by+pad*0.75+i*lineH);
+  });ctx.restore();
+}
+function drawPoints(){
+  const points=[{key:'p1',color:'#60a5fa',label:'P1'},{key:'p2',color:'#f87171',label:'P2'}];
+  for(const{key,color,label}of points){
+    const pt=STATE[key];if(!pt)continue;
+    const{x:cx,y:cy}=toCanvas(pt.x,pt.y);
+    const age=STATE.pointBirth[key]?Date.now()-STATE.pointBirth[key]:1000;
+    const alpha=Math.min(1,age/300);
+    if(alpha<1)requestAnimationFrame(render);
+    ctx.save();ctx.globalAlpha=alpha;
+    ctx.beginPath();ctx.arc(cx,cy,8,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+    ctx.strokeStyle='white';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle=color;ctx.font='bold 12px system-ui';ctx.textAlign='left';ctx.textBaseline='bottom';
+    ctx.fillText(label,cx+12,cy-4);
+    if(STATE.dragging===key){
+      const tt=`(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})`;
+      ctx.save();ctx.font='11px system-ui';
+      const tw=ctx.measureText(tt).width,tx=cx+14,ty=cy+16;
+      ctx.fillStyle='rgba(0,0,0,0.75)';ctx.beginPath();ctx.roundRect(tx-4,ty-12,tw+8,18,4);ctx.fill();
+      ctx.fillStyle=color;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(tt,tx,ty-3);ctx.restore();
+    }
+    ctx.restore();
+  }
+}
+function render(){ctx.clearRect(0,0,canvas.width,canvas.height);drawGrid();drawBisector();drawLocus();drawDebugRegions();drawPoints();}
+const POINT_RADIUS_PX=12;
+function hitTest(mouseX,mouseY){for(const key of['p1','p2']){const pt=STATE[key];if(!pt)continue;const{x:cx,y:cy}=toCanvas(pt.x,pt.y);const dx=mouseX-cx,dy=mouseY-cy;if(Math.sqrt(dx*dx+dy*dy)<=POINT_RADIUS_PX)return key;}return null;}
+function snapCoord(w){if(!STATE.snapEnabled)return w;return{x:Math.round(w.x),y:Math.round(w.y)};}
+function updateInputs(){const fields={p1x:STATE.p1?.x,p1y:STATE.p1?.y,p2x:STATE.p2?.x,p2y:STATE.p2?.y};for(const[id,val]of Object.entries(fields)){const el=document.getElementById(id);el.value=val!=null?Number(val.toFixed(2)):'';} }
+function showStatus(msg,duration=2000){const el=document.getElementById('status-msg');el.textContent=msg;el.classList.add('visible');clearTimeout(el._timeout);if(duration>0)el._timeout=setTimeout(()=>el.classList.remove('visible'),duration);}
+canvas.addEventListener('mousedown',(e)=>{
+  const rect=canvas.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const hit=hitTest(mx,my);
+  if(hit){STATE.dragging=hit;canvas.style.cursor='grabbing';return;}
+  if(STATE.placed<2){
+    const world=snapCoord(toWorld(mx,my));
+    if(STATE.placed===0){STATE.p1=world;STATE.pointBirth.p1=Date.now();STATE.placed=1;showStatus('P1 piazzato — clicca per P2');}
+    else{STATE.p2=world;STATE.pointBirth.p2=Date.now();STATE.placed=2;showStatus('P2 piazzato — trascina per spostare');}
+    updateInputs();render();return;
+  }
+  STATE.dragging='pan';STATE.panStart={mx,my,ox:STATE.offset.x,oy:STATE.offset.y};canvas.style.cursor='grab';
+});
+canvas.addEventListener('mousemove',(e)=>{
+  const rect=canvas.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  STATE.mouseWorld=toWorld(mx,my);
+  if(STATE.dragging){
+    if(STATE.dragging==='p1'||STATE.dragging==='p2'){const world=snapCoord(STATE.mouseWorld);STATE[STATE.dragging]={x:world.x,y:world.y};updateInputs();canvas.style.cursor='grabbing';}
+    else if(STATE.dragging==='pan'){const dx=mx-STATE.panStart.mx,dy=my-STATE.panStart.my;STATE.offset.x=STATE.panStart.ox+dx;STATE.offset.y=STATE.panStart.oy+dy;canvas.style.cursor='grabbing';}
+    render();
+  }else if(STATE.debugRegions&&STATE.p1&&STATE.p2){render();}
+});
+canvas.addEventListener('mouseup',()=>{STATE.dragging=null;canvas.style.cursor=STATE.placed<2?'crosshair':'default';});
+canvas.addEventListener('mouseleave',()=>{STATE.dragging=null;STATE.mouseWorld=null;});
+canvas.addEventListener('dblclick',(e)=>{
+  const rect=canvas.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const hit=hitTest(mx,my);if(!hit)return;
+  STATE[hit]=null;STATE.placed=(STATE.p1?1:0)+(STATE.p2?1:0);
+  document.getElementById(hit+'x').value='';document.getElementById(hit+'y').value='';
+  showStatus(`${hit.toUpperCase()} rimosso — clicca per riposizionarlo`);
+  canvas.style.cursor='crosshair';render();
+});
+function bindInput(id,key,coord){document.getElementById(id).addEventListener('change',(e)=>{const val=parseFloat(e.target.value);if(isNaN(val))return;if(!STATE[key])STATE[key]={x:0,y:0};STATE[key][coord]=val;if(key==='p1'&&STATE.placed<1)STATE.placed=1;if(key==='p2'&&STATE.placed<2)STATE.placed=2;render();});}
+bindInput('p1x','p1','x');bindInput('p1y','p1','y');bindInput('p2x','p2','x');bindInput('p2y','p2','y');
+const ZOOM_FACTOR=1.15,SCALE_MIN=5,SCALE_MAX=600;
+canvas.addEventListener('wheel',(e)=>{e.preventDefault();const rect=canvas.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;const wb=toWorld(mx,my);const factor=e.deltaY<0?ZOOM_FACTOR:1/ZOOM_FACTOR;STATE.scale=Math.max(SCALE_MIN,Math.min(SCALE_MAX,STATE.scale*factor));STATE.offset.x=mx-wb.x*STATE.scale;STATE.offset.y=my+wb.y*STATE.scale;render();},{passive:false});
+document.getElementById('btn-zoom-in').addEventListener('click',()=>{STATE.scale=Math.min(SCALE_MAX,STATE.scale*ZOOM_FACTOR);render();});
+document.getElementById('btn-zoom-out').addEventListener('click',()=>{STATE.scale=Math.max(SCALE_MIN,STATE.scale/ZOOM_FACTOR);render();});
+document.getElementById('btn-reset').addEventListener('click',()=>{resetView();render();});
+document.getElementById('btn-snap').addEventListener('click',()=>{STATE.snapEnabled=!STATE.snapEnabled;document.getElementById('btn-snap').classList.toggle('active',STATE.snapEnabled);});
+document.getElementById('btn-debug').addEventListener('click',()=>{STATE.debugRegions=!STATE.debugRegions;document.getElementById('btn-debug').classList.toggle('active',STATE.debugRegions);render();});
+resizeCanvas();
+  </script>
+</body>
+</html>
