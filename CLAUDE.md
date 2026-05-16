@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Running the project
 
-Open `geometria-del-taxi-master/index.html` directly in a browser — no build step, no server, no dependencies. Everything is self-contained in that single file.
+Open `index.html` directly in a browser — no build step, no server, no dependencies. Everything is self-contained in that single file.
 
 To run the built-in math tests, open the browser console and call:
 ```js
@@ -17,7 +17,7 @@ ConicMath.runTests()
 
 ## Architecture
 
-The entire app lives in `geometria-del-taxi-master/index.html` as inline HTML, CSS, and JS. The JS is organized into four IIFE modules that expose a global object each:
+The entire app lives in `index.html` (root of repo) as inline HTML, CSS, and JS. The JS is organized into four IIFE modules that expose a global object each:
 
 ### `ConicMath`
 Pure math layer — no DOM, no canvas. Returns vertex arrays for each conic type:
