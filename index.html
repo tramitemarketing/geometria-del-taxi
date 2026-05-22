@@ -1002,14 +1002,16 @@ dove p = y_F − k</div>
   //   Left slanted:    from (xF-p, yF) down to (xF+p, k)   [Region C: x = -2y + yF + k + xF]
   //   Right slanted:   from (xF+p, yF) down to (xF-p, k)   [Region B: x =  2y - yF - k + xF]
   function parabolaSegments(xF, yF, k, yExtent) {
-    const p = yF - k;
-    if (p < 1e-9) return [];
-    const yMax = yF + yExtent;
+    const p = Math.abs(yF - k);              // distanza fuoco–direttrice, sempre positiva
+    if (p < 1e-9) return [];                 // fuoco sulla direttrice → degenere
+    const yVertex = (yF + k) / 2;           // vertice = punto medio fuoco–direttrice
+    const dir = yF > k ? 1 : -1;            // +1 aperta su, -1 aperta giù
+    const yArm = yF + dir * yExtent;        // estremo delle semirette (verso il vertice aperto)
     return [
-      { from:{x: xF-p, y:yF}, to:{x: xF-p, y:yMax} },  // left semiray  (vertical, going up)
-      { from:{x: xF+p, y:yF}, to:{x: xF+p, y:yMax} },  // right semiray (vertical, going up)
-      { from:{x: xF-p, y:yF}, to:{x: xF, y:(yF+k)/2} },  // left slanted  → vertice
-      { from:{x: xF+p, y:yF}, to:{x: xF, y:(yF+k)/2} }, // right slanted → vertice
+      { from:{x: xF-p, y:yF}, to:{x: xF-p, y:yArm   } }, // semiray sinistra (verticale)
+      { from:{x: xF+p, y:yF}, to:{x: xF+p, y:yArm   } }, // semiray destra  (verticale)
+      { from:{x: xF-p, y:yF}, to:{x: xF,   y:yVertex } }, // ramo sin. → vertice
+      { from:{x: xF+p, y:yF}, to:{x: xF,   y:yVertex } }, // ramo des. → vertice
     ];
   }
 
@@ -1045,17 +1047,22 @@ dove p = y_F − k</div>
     const hv2 = hyperbolaVertices(-3, 0, 3, 0, 6);
     console.assert(hv2 === null, 'hyperbolaVertices: null when 2a >= d0');
 
-    // Parabola — xF=0, yF=2, k=0, yExtent=5 → p=2
+    // Parabola — fuoco sopra direttrice: xF=0, yF=2, k=0 → p=2, vertice=(0,1), aperta verso l'alto
     const ps = parabolaSegments(0, 2, 0, 5);
-    console.assert(ps.length === 4,   'parabolaSegments: 4 segments');
-    console.assert(ps[0].from.x === -2, 'parabolaSegments: left semiray from.x = xF-p = -2');
-    console.assert(ps[0].from.y === 2,  'parabolaSegments: left semiray from.y = yF = 2');
-    console.assert(ps[0].to.x === -2,   'parabolaSegments: left semiray to.x = xF-p = -2');
-    console.assert(ps[0].to.y === 7,    'parabolaSegments: left semiray to.y = yF+yExtent = 7');
-    // Left slanted: from (xF-p=−2, yF=2) to (xF+p=2, k=0)
-    console.assert(ps[2].from.x === -2, 'parabolaSegments: left slanted from.x = xF-p = -2');
-    console.assert(ps[2].to.x   ===  2, 'parabolaSegments: left slanted to.x = xF+p = 2');
-    console.assert(ps[2].to.y   ===  0, 'parabolaSegments: left slanted to.y = k = 0');
+    console.assert(ps.length === 4,        'parabolaSegments: 4 segments');
+    console.assert(ps[0].from.x === -2,   'semiray sinistra: da xF-p=-2');
+    console.assert(ps[0].from.y === 2,    'semiray sinistra: da yF=2');
+    console.assert(ps[0].to.x   === -2,   'semiray sinistra: x rimane -2 (verticale)');
+    console.assert(ps[0].to.y   === 7,    'semiray sinistra: a yF+yExtent=7 (verso l\'alto)');
+    console.assert(ps[2].from.x === -2,   'ramo sin.: parte da xF-p=-2');
+    console.assert(ps[2].to.x   === 0,    'ramo sin.: arriva al vertice xF=0');
+    console.assert(ps[2].to.y   === 1,    'ramo sin.: vertice (yF+k)/2 = 1');
+
+    // Parabola — fuoco SOTTO direttrice: xF=0, yF=0, k=2 → p=2, vertice=(0,1), aperta verso il basso
+    const ps3 = parabolaSegments(0, 0, 2, 5);
+    console.assert(ps3.length === 4,      'parabola giù: 4 segments');
+    console.assert(ps3[0].to.y === -5,    'parabola giù: semiray scende a yF-yExtent=-5');
+    console.assert(ps3[2].to.y === 1,     'parabola giù: vertice (yF+k)/2=1');
 
     // Parabola p=0 → empty
     const ps2 = parabolaSegments(0, 2, 2, 5);
