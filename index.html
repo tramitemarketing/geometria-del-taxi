@@ -1008,8 +1008,8 @@ dove p = y_F − k</div>
     return [
       { from:{x: xF-p, y:yF}, to:{x: xF-p, y:yMax} },  // left semiray  (vertical, going up)
       { from:{x: xF+p, y:yF}, to:{x: xF+p, y:yMax} },  // right semiray (vertical, going up)
-      { from:{x: xF-p, y:yF}, to:{x: xF+p, y:k   } },  // left slanted  (ramo sinistro, slope -2)
-      { from:{x: xF+p, y:yF}, to:{x: xF-p, y:k   } },  // right slanted (ramo destro, slope +2)
+      { from:{x: xF-p, y:yF}, to:{x: xF, y:(yF+k)/2} },  // left slanted  → vertice
+      { from:{x: xF+p, y:yF}, to:{x: xF, y:(yF+k)/2} }, // right slanted → vertice
     ];
   }
 
@@ -2796,31 +2796,74 @@ const GraphCalc = (() => {
     ctx.restore();
   }
 
-  // ── ELLISSE ──
+  // ── ELLISSE — column scan analitico (nessuna divisione in regioni) ──
+  // Per ogni x: Ax = |x-x1|+|x-x2|, K = 2a-Ax
+  // Se K ≥ |y2-y1|: yTop=(y1+y2+K)/2, yBot=(y1+y2-K)/2
   function _drawEllisse(ctx,t,obj){
     const{x1=0,y1=0,x2=2,y2=0,twoA=6}=obj.params;
-    const sx1=Math.min(x1,x2),sy1=Math.min(y1,y2),sx2=Math.max(x1,x2),sy2=Math.max(y1,y2);
+    const canvas=document.getElementById('calc-canvas');
+    const DPR=window.devicePixelRatio||1;
+    const w=canvas.width/DPR, h=canvas.height/DPR;
+    const vMin=t.toWorld(0,h), vMax=t.toWorld(w,0);
     const rgba=obj.color+'33';
-    [sx1,sx2].forEach(xv=>MiniEngine.drawSegment(ctx,t,{x:xv,y:-100},{x:xv,y:100},rgba,0.8,[3,4]));
-    [sy1,sy2].forEach(yv=>MiniEngine.drawSegment(ctx,t,{x:-100,y:yv},{x:100,y:yv},rgba,0.8,[3,4]));
-    const verts=ConicMath.ellipseVertices(sx1,sy1,sx2,sy2,twoA);
-    if(verts)MiniEngine.drawPolyline(ctx,t,verts,obj.color,2.5,true);
+    [Math.min(x1,x2),Math.max(x1,x2)].forEach(xv=>MiniEngine.drawSegment(ctx,t,{x:xv,y:vMin.y-1},{x:xv,y:vMax.y+1},rgba,0.8,[3,4]));
+    [Math.min(y1,y2),Math.max(y1,y2)].forEach(yv=>MiniEngine.drawSegment(ctx,t,{x:vMin.x-1,y:yv},{x:vMax.x+1,y:yv},rgba,0.8,[3,4]));
+    const yMid=(y1+y2)/2, yRange=Math.abs(y2-y1);
+    const steps=Math.ceil(w*1.5);
+    const dx=(vMax.x-vMin.x)/steps;
+    let prev=null;
+    ctx.save();
+    ctx.strokeStyle=obj.color; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.shadowColor=obj.color+'88'; ctx.shadowBlur=6;
+    ctx.beginPath();
+    for(let i=0;i<=steps;i++){
+      const x=vMin.x+i*dx;
+      const Ax=Math.abs(x-x1)+Math.abs(x-x2);
+      const K=twoA-Ax;
+      if(K<yRange-1e-9){prev=null;continue;}
+      const yT=yMid+K/2, yB=yMid-K/2;
+      const ys=[];
+      if(yT>=vMin.y&&yT<=vMax.y) ys.push(yT);
+      if(Math.abs(yT-yB)>1e-9&&yB>=vMin.y&&yB<=vMax.y) ys.push(yB);
+      if(!ys.length){prev=null;continue;}
+      if(prev){
+        for(const py of prev){
+          const cl=ys.reduce((a,b)=>Math.abs(b-py)<Math.abs(a-py)?b:a,ys[0]);
+          const pf=t.toCanvas(x-dx,py),pt=t.toCanvas(x,cl);
+          ctx.moveTo(pf.x,pf.y); ctx.lineTo(pt.x,pt.y);
+        }
+      }
+      prev=ys;
+    }
+    ctx.stroke(); ctx.restore();
     MiniEngine.drawPoint(ctx,t,x1,y1,obj.color,4);
     MiniEngine.drawPoint(ctx,t,x2,y2,obj.color,4);
   }
 
-  // ── IPERBOLE ──
+  // ── IPERBOLE — sign-change pixel (punto per punto, nessuna divisione in regioni) ──
+  // f(P) = ||d1(P,F1)-d1(P,F2)| - 2a|; se f cambia segno tra celle → curva lì
   function _drawIperbole(ctx,t,obj){
     const{x1=0,y1=0,x2=4,y2=0,twoA=2}=obj.params;
-    const sx1=Math.min(x1,x2),sy1=Math.min(y1,y2),sx2=Math.max(x1,x2),sy2=Math.max(y1,y2);
+    const canvas=document.getElementById('calc-canvas');
+    const DPR=window.devicePixelRatio||1;
+    const w=canvas.width/DPR, h=canvas.height/DPR;
+    const vMin=t.toWorld(0,h), vMax=t.toWorld(w,0);
     const rgba=obj.color+'33';
-    [sx1,sx2].forEach(xv=>MiniEngine.drawSegment(ctx,t,{x:xv,y:-100},{x:xv,y:100},rgba,0.8,[3,4]));
-    [sy1,sy2].forEach(yv=>MiniEngine.drawSegment(ctx,t,{x:-100,y:yv},{x:100,y:yv},rgba,0.8,[3,4]));
-    const result=ConicMath.hyperbolaVertices(sx1,sy1,sx2,sy2,twoA);
-    if(result){
-      MiniEngine.drawPolyline(ctx,t,result.branch1,obj.color,2.5,false);
-      MiniEngine.drawPolyline(ctx,t,result.branch2,obj.color,2.5,false);
+    [Math.min(x1,x2),Math.max(x1,x2)].forEach(xv=>MiniEngine.drawSegment(ctx,t,{x:xv,y:vMin.y-1},{x:xv,y:vMax.y+1},rgba,0.8,[3,4]));
+    [Math.min(y1,y2),Math.max(y1,y2)].forEach(yv=>MiniEngine.drawSegment(ctx,t,{x:vMin.x-1,y:yv},{x:vMax.x+1,y:yv},rgba,0.8,[3,4]));
+    const f=(wx,wy)=>Math.abs((Math.abs(wx-x1)+Math.abs(wy-y1))-(Math.abs(wx-x2)+Math.abs(wy-y2)))-twoA;
+    const res=Math.max(2,Math.round(3/t.scale*10)|0)||2;
+    ctx.save(); ctx.fillStyle=obj.color;
+    ctx.shadowColor=obj.color+'88'; ctx.shadowBlur=4;
+    for(let px=0;px<w-res;px+=res){
+      for(let py=0;py<h-res;py+=res){
+        const wA=t.toWorld(px,py),wB=t.toWorld(px+res,py);
+        const wC=t.toWorld(px,py+res),wD=t.toWorld(px+res,py+res);
+        const fA=f(wA.x,wA.y),fB=f(wB.x,wB.y),fC=f(wC.x,wC.y),fD=f(wD.x,wD.y);
+        if(fA*fB<0||fA*fC<0||fB*fD<0||fC*fD<0) ctx.fillRect(px,py,res,res);
+      }
     }
+    ctx.restore();
     MiniEngine.drawPoint(ctx,t,x1,y1,obj.color,4);
     MiniEngine.drawPoint(ctx,t,x2,y2,obj.color,4);
   }
