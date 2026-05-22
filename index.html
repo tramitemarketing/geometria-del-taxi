@@ -2425,7 +2425,7 @@ const GraphCalc = (() => {
               <!-- Full params accordion -->
               ${expanded?`<div class="csb-obj-params">
                 ${_renderParamsInline(obj)}
-                ${isolated?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid #1e1e1e;">
+                ${isolated&&(obj.type==='asse'||obj.type==='circonferenza')?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid #1e1e1e;">
                   <label class="csb-regions-toggle">
                     <input type="checkbox" ${state.showRegions?'checked':''} onchange="GraphCalc.toggleRegions(this.checked)">
                     Analisi regioni e equazioni
@@ -2805,9 +2805,6 @@ const GraphCalc = (() => {
     const DPR=window.devicePixelRatio||1;
     const w=canvas.width/DPR, h=canvas.height/DPR;
     const vMin=t.toWorld(0,h), vMax=t.toWorld(w,0);
-    const rgba=obj.color+'33';
-    [Math.min(x1,x2),Math.max(x1,x2)].forEach(xv=>MiniEngine.drawSegment(ctx,t,{x:xv,y:vMin.y-1},{x:xv,y:vMax.y+1},rgba,0.8,[3,4]));
-    [Math.min(y1,y2),Math.max(y1,y2)].forEach(yv=>MiniEngine.drawSegment(ctx,t,{x:vMin.x-1,y:yv},{x:vMax.x+1,y:yv},rgba,0.8,[3,4]));
     const yMid=(y1+y2)/2, yRange=Math.abs(y2-y1);
     const steps=Math.ceil(w*1.5);
     const dx=(vMax.x-vMin.x)/steps;
@@ -2841,16 +2838,13 @@ const GraphCalc = (() => {
   }
 
   // ── IPERBOLE — sign-change pixel (punto per punto, nessuna divisione in regioni) ──
-  // f(P) = ||d1(P,F1)-d1(P,F2)| - 2a|; se f cambia segno tra celle → curva lì
+  // f(P) = |d1(P,F1)-d1(P,F2)| - 2a; se f cambia segno tra celle adiacenti → curva lì
   function _drawIperbole(ctx,t,obj){
     const{x1=0,y1=0,x2=4,y2=0,twoA=2}=obj.params;
     const canvas=document.getElementById('calc-canvas');
     const DPR=window.devicePixelRatio||1;
     const w=canvas.width/DPR, h=canvas.height/DPR;
     const vMin=t.toWorld(0,h), vMax=t.toWorld(w,0);
-    const rgba=obj.color+'33';
-    [Math.min(x1,x2),Math.max(x1,x2)].forEach(xv=>MiniEngine.drawSegment(ctx,t,{x:xv,y:vMin.y-1},{x:xv,y:vMax.y+1},rgba,0.8,[3,4]));
-    [Math.min(y1,y2),Math.max(y1,y2)].forEach(yv=>MiniEngine.drawSegment(ctx,t,{x:vMin.x-1,y:yv},{x:vMax.x+1,y:yv},rgba,0.8,[3,4]));
     const f=(wx,wy)=>Math.abs((Math.abs(wx-x1)+Math.abs(wy-y1))-(Math.abs(wx-x2)+Math.abs(wy-y2)))-twoA;
     const res=Math.max(2,Math.round(3/t.scale*10)|0)||2;
     ctx.save(); ctx.fillStyle=obj.color;
