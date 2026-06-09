@@ -1014,19 +1014,23 @@ dove p = y_F − k</div>
     const D = Math.abs(a) + Math.abs(b);
     if (D < 1e-9) return [];
     const segs = [];
-    for (const s1 of [1, -1]) for (const s2 of [1, -1]) for (const s3 of [1, -1]) {
-      const cx  = D * s1 - s3 * a;
-      const cy  = D * s2 - s3 * b;
-      const rhs = D * s1 * xF + D * s2 * yF + s3 * c;
-      if (Math.abs(cx) < 1e-9 && Math.abs(cy) < 1e-9) continue;
-      const seg = _clipLineHalfplanes(cx, cy, rhs, [
-        { nx: s1,    ny: 0,     k: s1 * xF },   // s1*(x-xF) >= 0
-        { nx: 0,     ny: s2,    k: s2 * yF },   // s2*(y-yF) >= 0
-        { nx: s3*a,  ny: s3*b,  k: -s3 * c },   // s3*(a x + b y + c) >= 0
-        { nx: 1, ny: 0, k: bounds.xMin }, { nx:-1, ny: 0, k:-bounds.xMax },
-        { nx: 0, ny: 1, k: bounds.yMin }, { nx: 0, ny:-1, k:-bounds.yMax }
-      ]);
-      if (seg) segs.push(seg);
+    for (const s1 of [1, -1]) {
+      for (const s2 of [1, -1]) {
+        for (const s3 of [1, -1]) {
+          const cx  = D * s1 - s3 * a;
+          const cy  = D * s2 - s3 * b;
+          const rhs = D * s1 * xF + D * s2 * yF + s3 * c;
+          if (Math.abs(cx) < 1e-9 && Math.abs(cy) < 1e-9) continue;
+          const seg = _clipLineHalfplanes(cx, cy, rhs, [
+            { nx: s1,    ny: 0,     k: s1 * xF },   // s1*(x-xF) >= 0
+            { nx: 0,     ny: s2,    k: s2 * yF },   // s2*(y-yF) >= 0
+            { nx: s3*a,  ny: s3*b,  k: -s3 * c },   // s3*(a x + b y + c) >= 0
+            { nx: 1, ny: 0, k: bounds.xMin }, { nx:-1, ny: 0, k:-bounds.xMax },
+            { nx: 0, ny: 1, k: bounds.yMin }, { nx: 0, ny:-1, k:-bounds.yMax }
+          ]);
+          if (seg) segs.push(seg);
+        }
+      }
     }
     return segs;
   }
@@ -1104,8 +1108,8 @@ dove p = y_F − k</div>
     console.assert(Array.isArray(_pr) && _pr.length > 0, 'parabolaRegionSegments: segmenti presenti');
     const _okH = _pr.every(s => {
       const mx=(s.from.x+s.to.x)/2, my=(s.from.y+s.to.y)/2;
-      const lhs=Math.abs(mx-0)+Math.abs(my-2), rhs=Math.abs(0*mx+1*my+0)/1;
-      return Math.abs(lhs-rhs) < 1e-6;
+      const lhs=Math.abs(mx-0)+Math.abs(my-2), _dDir=Math.abs(0*mx+1*my+0)/1;
+      return Math.abs(lhs-_dDir) < 1e-6;
     });
     console.assert(_okH, 'parabola orizzontale: punti sul luogo');
     // Parabola obliqua: direttrice x+y-4=0, F(0,0)
@@ -1113,8 +1117,8 @@ dove p = y_F − k</div>
     console.assert(Array.isArray(_po) && _po.length > 0, 'parabola obliqua: segmenti presenti');
     const _okO = _po.every(s => {
       const mx=(s.from.x+s.to.x)/2, my=(s.from.y+s.to.y)/2;
-      const lhs=Math.abs(mx)+Math.abs(my), rhs=Math.abs(mx+my-4)/2;
-      return Math.abs(lhs-rhs) < 1e-6;
+      const lhs=Math.abs(mx)+Math.abs(my), _dDir=Math.abs(mx+my-4)/2;
+      return Math.abs(lhs-_dDir) < 1e-6;
     });
     console.assert(_okO, 'parabola obliqua: punti sul luogo');
 
