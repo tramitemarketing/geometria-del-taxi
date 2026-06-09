@@ -51,8 +51,8 @@ Clamp di A,B entro margini dell'hero.
 **Interazione (pointer events, mouse+touch):**
 - `pointerdown` entro ~16px da A o da B → inizia drag (snap continuo al reticolo, clamp ai margini); `pointermove` aggiorna il punto e ridisegna; `pointerup/cancel` termina.
 - Durante il drag il **loop del taxi si mette in pausa**; riprende al rilascio.
-- `touchAction:'none'` sul canvas taxi; `preventDefault` solo quando un drag su un handle è iniziato (lo scroll della pagina resta possibile altrove).
-- `.hero-content` titolo/sottotitolo → `pointer-events:none`; `#btn-hero-calc` → `pointer-events:auto`, così il drag di A/B funziona anche "sotto" il testo e il bottone resta cliccabile.
+- **Scroll mobile preservato:** il canvas taxi NON usa `touch-action:none` globale (bloccherebbe lo scroll dell'hero a tutto schermo). Si lascia il `touch-action` di default; su `pointerdown` che cade su un handle si fa `setPointerCapture` + `preventDefault` (e si continua a `preventDefault` durante il drag), così lo scroll resta possibile ovunque tranne mentre si trascina un handle. Drag touch best-effort.
+- `.hero-content` → `pointer-events:none` (titolo/sottotitolo trasparenti al puntatore); `#btn-hero-calc` → `pointer-events:auto`. Il canvas taxi è `pointer-events:auto`, z-index 1 (sopra le griglie/blob, sotto `.hero-content` z-index 2): così il drag di A/B funziona anche nell'area "sotto" il titolo, e il bottone resta cliccabile.
 
 ## 4. Ciclo di vita & performance
 
