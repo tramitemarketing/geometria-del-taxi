@@ -1421,6 +1421,7 @@ const MiniEngine = (() => {
       const { x1=-3,y1=0, x2=3,y2=0, twoA=2 } = params;
       const r = ConicMath.hyperbolaVertices(x1, y1, x2, y2, twoA, {xMin:-8,xMax:8,yMin:-8,yMax:8});
       if (!r) return null;
+      // P scorre su un solo ramo (branch1); l'altro è r.branch2 (vedi spec §3)
       const lines = ConicMath.polylineFromSegments(r.branch1).sort((a,b) => b.length - a.length);
       if (!lines.length) return null;
       return {
@@ -1472,12 +1473,12 @@ const MiniEngine = (() => {
     let params = { ...defaultParams };
     let rafId = null;
     let pT = 0.12;
+    const DPR = window.devicePixelRatio || 1;
     function currentTransform() {
       const size = canvas.width / DPR;
       return makeTransform({ width: size, height: size }, size / 12, 0, 0);
     }
 
-    const DPR = window.devicePixelRatio || 1;
     function resize() {
       const rect = canvas.parentElement.getBoundingClientRect();
       const size = Math.min(rect.width, 280);
