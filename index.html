@@ -2870,27 +2870,24 @@ const GraphCalc = (() => {
     MiniEngine.drawPoint(ctx,t,x2,y2,obj.color,4);
   }
 
-  // ── IPERBOLE — sign-change pixel (punto per punto, nessuna divisione in regioni) ──
-  // f(P) = |d1(P,F1)-d1(P,F2)| - 2a; se f cambia segno tra celle adiacenti → curva lì
+  // ── IPERBOLE — rami esatti (9 regioni via ConicMath), clip al viewport ──
   function _drawIperbole(ctx,t,obj){
-    const{x1=0,y1=0,x2=4,y2=0,twoA=2}=obj.params;
+    const {x1=0,y1=0,x2=4,y2=0,twoA=2}=obj.params;
     const canvas=document.getElementById('calc-canvas');
     const DPR=window.devicePixelRatio||1;
     const w=canvas.width/DPR, h=canvas.height/DPR;
     const vMin=t.toWorld(0,h), vMax=t.toWorld(w,0);
-    const f=(wx,wy)=>Math.abs((Math.abs(wx-x1)+Math.abs(wy-y1))-(Math.abs(wx-x2)+Math.abs(wy-y2)))-twoA;
-    const res=Math.max(2,Math.round(3/t.scale*10)|0)||2;
-    ctx.save(); ctx.fillStyle=obj.color;
-    ctx.shadowColor=obj.color+'88'; ctx.shadowBlur=4;
-    for(let px=0;px<w-res;px+=res){
-      for(let py=0;py<h-res;py+=res){
-        const wA=t.toWorld(px,py),wB=t.toWorld(px+res,py);
-        const wC=t.toWorld(px,py+res),wD=t.toWorld(px+res,py+res);
-        const fA=f(wA.x,wA.y),fB=f(wB.x,wB.y),fC=f(wC.x,wC.y),fD=f(wD.x,wD.y);
-        if(fA*fB<0||fA*fC<0||fB*fD<0||fC*fD<0) ctx.fillRect(px,py,res,res);
-      }
+    // Rette critiche tratteggiate
+    [x1,x2].forEach(xv=>MiniEngine.drawSegment(ctx,t,{x:xv,y:vMin.y},{x:xv,y:vMax.y},obj.color+'40',0.8,[3,4]));
+    [y1,y2].forEach(yv=>MiniEngine.drawSegment(ctx,t,{x:vMin.x,y:yv},{x:vMax.x,y:yv},obj.color+'40',0.8,[3,4]));
+    const result=ConicMath.hyperbolaVertices(x1,y1,x2,y2,twoA,
+      {xMin:vMin.x,xMax:vMax.x,yMin:vMin.y,yMax:vMax.y});
+    if(result){
+      ctx.save(); ctx.shadowColor=obj.color+'88'; ctx.shadowBlur=6;
+      [result.branch1,result.branch2].forEach(br=>
+        br.forEach(seg=>MiniEngine.drawSegment(ctx,t,seg.from,seg.to,obj.color,2.5)));
+      ctx.restore();
     }
-    ctx.restore();
     MiniEngine.drawPoint(ctx,t,x1,y1,obj.color,4);
     MiniEngine.drawPoint(ctx,t,x2,y2,obj.color,4);
   }
