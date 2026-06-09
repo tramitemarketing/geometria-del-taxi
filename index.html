@@ -2853,43 +2853,19 @@ const GraphCalc = (() => {
     ctx.restore();
   }
 
-  // ── ELLISSE — column scan analitico (nessuna divisione in regioni) ──
-  // Per ogni x: Ax = |x-x1|+|x-x2|, K = 2a-Ax
-  // Se K ≥ |y2-y1|: yTop=(y1+y2+K)/2, yBot=(y1+y2-K)/2
+  // ── ELLISSE — poligono esatto (9 regioni via ConicMath) ──
   function _drawEllisse(ctx,t,obj){
-    const{x1=0,y1=0,x2=2,y2=0,twoA=6}=obj.params;
-    const canvas=document.getElementById('calc-canvas');
-    const DPR=window.devicePixelRatio||1;
-    const w=canvas.width/DPR, h=canvas.height/DPR;
-    const vMin=t.toWorld(0,h), vMax=t.toWorld(w,0);
-    const yMid=(y1+y2)/2, yRange=Math.abs(y2-y1);
-    const steps=Math.ceil(w*1.5);
-    const dx=(vMax.x-vMin.x)/steps;
-    let prev=null;
-    ctx.save();
-    ctx.strokeStyle=obj.color; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.lineCap='round';
-    ctx.shadowColor=obj.color+'88'; ctx.shadowBlur=6;
-    ctx.beginPath();
-    for(let i=0;i<=steps;i++){
-      const x=vMin.x+i*dx;
-      const Ax=Math.abs(x-x1)+Math.abs(x-x2);
-      const K=twoA-Ax;
-      if(K<yRange-1e-9){prev=null;continue;}
-      const yT=yMid+K/2, yB=yMid-K/2;
-      const ys=[];
-      if(yT>=vMin.y&&yT<=vMax.y) ys.push(yT);
-      if(Math.abs(yT-yB)>1e-9&&yB>=vMin.y&&yB<=vMax.y) ys.push(yB);
-      if(!ys.length){prev=null;continue;}
-      if(prev){
-        for(const py of prev){
-          const cl=ys.reduce((a,b)=>Math.abs(b-py)<Math.abs(a-py)?b:a,ys[0]);
-          const pf=t.toCanvas(x-dx,py),pt=t.toCanvas(x,cl);
-          ctx.moveTo(pf.x,pf.y); ctx.lineTo(pt.x,pt.y);
-        }
-      }
-      prev=ys;
+    const {x1=0,y1=0,x2=2,y2=0,twoA=6}=obj.params;
+    // Rette critiche tratteggiate
+    [x1,x2].forEach(xv=>MiniEngine.drawSegment(ctx,t,{x:xv,y:-1000},{x:xv,y:1000},obj.color+'40',0.8,[3,4]));
+    [y1,y2].forEach(yv=>MiniEngine.drawSegment(ctx,t,{x:-1000,y:yv},{x:1000,y:yv},obj.color+'40',0.8,[3,4]));
+    const verts=ConicMath.ellipseVertices(x1,y1,x2,y2,twoA);
+    if(verts && verts.length>=3){
+      ctx.save();
+      ctx.shadowColor=obj.color+'88'; ctx.shadowBlur=6;
+      MiniEngine.drawPolyline(ctx,t,verts,obj.color,2.5,true);
+      ctx.restore();
     }
-    ctx.stroke(); ctx.restore();
     MiniEngine.drawPoint(ctx,t,x1,y1,obj.color,4);
     MiniEngine.drawPoint(ctx,t,x2,y2,obj.color,4);
   }
