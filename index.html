@@ -1250,6 +1250,40 @@ dove p = y_F − k</div>
     });
     console.assert(_okO, 'parabola obliqua: punti sul luogo');
 
+    // Invariante costante muovendo P lungo la curva (dimostrazione del luogo)
+    (() => {
+      const verts = ellipseVertices(0, 0, 4, 2, 10);
+      for (let i = 0; i <= 24; i++) {
+        const P = pointAtArcFraction(verts, i/24, true);
+        const s = taxiDist(P, {x:0,y:0}) + taxiDist(P, {x:4,y:2});
+        console.assert(Math.abs(s - 10) < 1e-6, 'ellisse: somma = 2a, val=' + s.toFixed(4));
+      }
+    })();
+    (() => {
+      const r = hyperbolaVertices(-3, 0, 3, 0, 2, {xMin:-8,xMax:8,yMin:-8,yMax:8});
+      const line = polylineFromSegments(r.branch1)[0];
+      for (let i = 0; i <= 24; i++) {
+        const P = pointAtArcFraction(line, i/24, false);
+        const d = Math.abs(taxiDist(P, {x:-3,y:0}) - taxiDist(P, {x:3,y:0}));
+        console.assert(Math.abs(d - 2) < 1e-6, 'iperbole: |diff| = 2a, val=' + d.toFixed(4));
+      }
+    })();
+    (() => {
+      const line = polylineFromSegments(parabolaSegments(0, 2, 0, 5))[0];
+      for (let i = 0; i <= 24; i++) {
+        const P = pointAtArcFraction(line, i/24, false);
+        console.assert(Math.abs(taxiDist(P, {x:0,y:2}) - Math.abs(P.y - 0)) < 1e-6, 'parabola: d(P,F) = |y-k|');
+      }
+    })();
+    (() => {
+      const v = circleVertices(0, 0, 3);
+      const sq = [v.VN, v.VE, v.VS, v.VW];
+      for (let i = 0; i <= 24; i++) {
+        const P = pointAtArcFraction(sq, i/24, true);
+        console.assert(Math.abs(taxiDist(P, {x:0,y:0}) - 3) < 1e-6, 'circonferenza: d(P,C) = R');
+      }
+    })();
+
     console.log('%c✓ ConicMath tests passed', 'color: #22c55e; font-weight: bold');
   }
 
