@@ -13,8 +13,8 @@ Legenda impatto: ⭐⭐⭐ alto · ⭐⭐ medio · ⭐ basso — Sforzo: S/M/L �
 
 | # | Idea | Impatto | Sforzo | Stato |
 |---|------|---------|--------|-------|
-| T1 | **Punto P che "dimostra" la conica in tempo reale** — un punto scorre sulla curva, con i due percorsi Manhattan a scaletta verso i fuochi e la somma/differenza/distanza che resta costante mentre si muove. Vale per mini-canvas e calcolatore. | ⭐⭐⭐ | M | 📋 |
-| T2 | **Mini-canvas manipolabili** — trascinare fuochi/centro direttamente nel disegno, non solo con lo slider. | ⭐⭐⭐ | M | 📋 |
+| T1 | **Punto P che "dimostra" la conica in tempo reale** — un punto scorre sulla curva, con i due percorsi Manhattan a scaletta verso i fuochi e la somma/differenza/distanza che resta costante mentre si muove. Vale per mini-canvas e calcolatore. | ⭐⭐⭐ | M | ✅ (mini-canvas) |
+| T2 | **Mini-canvas manipolabili** — trascinare fuochi/centro direttamente nel disegno, non solo con lo slider. | ⭐⭐⭐ | M | ✅ |
 | T3 | **Overlay "9 regioni" esteso a ellisse/iperbole/parabola** nel calcolatore (oggi solo asse/circonferenza; il motore ora li supporta tutti). | ⭐⭐⭐ | S–M | 📋 |
 
 ---
@@ -33,8 +33,8 @@ Legenda impatto: ⭐⭐⭐ alto · ⭐⭐ medio · ⭐ basso — Sforzo: S/M/L �
 
 | # | Idea | Impatto | Sforzo | Stato |
 |---|------|---------|--------|-------|
-| S1 | **Trascinamento diretto** di fuochi/centro nel canvas. (vedi T2) | ⭐⭐⭐ | M | 📋 |
-| S2 | **Punto P che dimostra la proprietà** (somma/diff/distanza costante) con scalette Manhattan. (vedi T1) | ⭐⭐⭐ | M | 📋 |
+| S1 | **Trascinamento diretto** di fuochi/centro nel canvas. (vedi T2) | ⭐⭐⭐ | M | ✅ |
+| S2 | **Punto P che dimostra la proprietà** (somma/diff/distanza costante) con scalette Manhattan. (vedi T1) | ⭐⭐⭐ | M | ✅ |
 | S3 | **Tasto "▶ anima"**: 2a che cresce → metamorfosi ottagono→esagono→rombo. | ⭐⭐⭐ | M | 📋 |
 | S4 | **Conica euclidea fantasma sovrapposta** ("ecco perché è diversa"). | ⭐⭐ | S | 📋 |
 | S5 | **Hover = evidenzia la regione** (mini versione dell'overlay del calcolatore). | ⭐⭐ | M | 📋 |
