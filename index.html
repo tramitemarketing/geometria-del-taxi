@@ -867,6 +867,12 @@ dove p = y_F − k</div>
 
   <script>
     const ConicMath = (() => {
+  // ── PUNTO P / GEOMETRIA DI PERCORSO (per i mini-canvas interattivi) ──
+  // Distanza taxicab (L1) tra due punti.
+  function taxiDist(a, b) { return Math.abs(a.x - b.x) + Math.abs(a.y - b.y); }
+
+  // Angolo del percorso L1 "a scaletta" da P a F (orizzontale poi verticale).
+  function l1Corner(P, F) { return { x: F.x, y: P.y }; }
 
   // ── MOTORE A REGIONI (metodo dei valori assoluti per cella) ──
   // Clip della retta cx*x + cy*y = rhs contro l'intersezione di semipiani.
@@ -1037,6 +1043,11 @@ dove p = y_F − k</div>
 
   // ── TESTS (console.assert — removed in Task 14) ──
   function runTests() {
+    // taxiDist / l1Corner
+    console.assert(taxiDist({x:0,y:0},{x:3,y:4}) === 7, 'taxiDist = 7');
+    console.assert(taxiDist({x:-2,y:1},{x:1,y:-3}) === 7, 'taxiDist = 7 (b)');
+    const _lc = l1Corner({x:1,y:2}, {x:5,y:9});
+    console.assert(_lc.x === 5 && _lc.y === 2, 'l1Corner = (F.x, P.y)');
     // Clipper: retta x=2 (cx=1,cy=0,rhs=2) dentro rettangolo [0,4]x[0,4] → segmento verticale
     const _c1 = _clipLineHalfplanes(1, 0, 2, [
       {nx:1,ny:0,k:0},{nx:-1,ny:0,k:-4},{nx:0,ny:1,k:0},{nx:0,ny:-1,k:-4}]);
@@ -1125,7 +1136,7 @@ dove p = y_F − k</div>
     console.log('%c✓ ConicMath tests passed', 'color: #22c55e; font-weight: bold');
   }
 
-  return { circleVertices, ellipseVertices, hyperbolaVertices, parabolaSegments, parabolaRegionSegments, runTests };
+  return { circleVertices, ellipseVertices, hyperbolaVertices, parabolaSegments, parabolaRegionSegments, taxiDist, l1Corner, runTests };
 })();
 
 const MiniEngine = (() => {
