@@ -968,39 +968,19 @@ dove p = y_F − k</div>
     return uniq;
   }
 
-  // ── IPERBOLE ──
-  // Returns { branch1: [{x,y},...], branch2: [{x,y},...] } or null if invalid.
-  // x1 <= x2. twoA = 2a, must satisfy 0 < twoA < d0.
-  function hyperbolaVertices(x1, y1, x2, y2, twoA) {
-    const d0 = Math.abs(x2-x1) + Math.abs(y2-y1);
+  // ── IPERBOLE ── { branch1:[{from,to}], branch2:[{from,to}] } o null.
+  // bounds opzionale {xMin,xMax,yMin,yMax} per le semirette infinite (default ampio).
+  function hyperbolaVertices(x1, y1, x2, y2, twoA, bounds) {
+    const d0 = Math.abs(x2 - x1) + Math.abs(y2 - y1);
     if (twoA >= d0 - 1e-9 || twoA <= 1e-9) return null;
-
-    const a  = twoA / 2;
-    const mx = (x1+x2)/2, my = (y1+y2)/2;
-    const hw = (x2-x1)/2, hh = (y2-y1)/2;
-
-    const branch1 = [], branch2 = [];
-
-    if (Math.abs(y2 - y1) < 1e-9) {
-      // Horizontal foci: two vertical segments
-      const xB1 = mx - (hw - a);
-      const xB2 = mx + (hw - a);
-      const yExt = Math.max(hh, 1) + 5;
-      branch1.push({x:xB1, y:my - yExt}, {x:xB1, y:my + yExt});
-      branch2.push({x:xB2, y:my - yExt}, {x:xB2, y:my + yExt});
-    } else {
-      // General oblique foci
-      const xB1 = mx - hw + a;
-      const xB2 = mx + hw - a;
-      const elbowOffset = hh - (hw - a);
-      branch1.push({ x: xB1, y: y1 - 5 });
-      if (elbowOffset > 1e-9) branch1.push({ x: xB1, y: y1 + elbowOffset });
-      branch1.push({ x: x1 - a, y: my });
-      branch2.push({ x: xB2, y: y2 + 5 });
-      if (elbowOffset > 1e-9) branch2.push({ x: xB2, y: y2 - elbowOffset });
-      branch2.push({ x: x2 + a, y: my });
-    }
-    return { branch1, branch2 };
+    const xMin = Math.min(x1,x2), xMax = Math.max(x1,x2);
+    const yMin = Math.min(y1,y2), yMax = Math.max(y1,y2);
+    const R = Math.max(d0 * 20, 1000);
+    const b = bounds || { xMin: xMin-R, xMax: xMax+R, yMin: yMin-R, yMax: yMax+R };
+    return {
+      branch1: _gridLocusSegments(1, -1, +twoA, x1, y1, x2, y2, b),
+      branch2: _gridLocusSegments(1, -1, -twoA, x1, y1, x2, y2, b)
+    };
   }
 
   // ── PARABOLA ──
@@ -1060,15 +1040,19 @@ dove p = y_F − k</div>
     // Ellipse impossibile: 2a < d0
     console.assert(ellipseVertices(0, 0, 3, 4, 5) === null, 'ellipseVertices: null se 2a < d0');
 
-    // Hyperbola — horizontal foci
+    // Hyperbola — fuochi orizzontali: struttura a segmenti
     const hv = hyperbolaVertices(-3, 0, 3, 0, 2);
-    console.assert(hv !== null, 'hyperbolaVertices: should not be null');
-    console.assert(hv.branch1.length === 2, 'hyperbolaVertices: branch1 should have 2 pts');
-    console.assert(hv.branch2.length === 2, 'hyperbolaVertices: branch2 should have 2 pts');
-
-    // Hyperbola invalid: 2a >= d0
-    const hv2 = hyperbolaVertices(-3, 0, 3, 0, 6);
-    console.assert(hv2 === null, 'hyperbolaVertices: null when 2a >= d0');
+    console.assert(hv !== null, 'hyperbolaVertices: non null');
+    console.assert(Array.isArray(hv.branch1) && hv.branch1.length >= 1, 'branch1: almeno un segmento');
+    console.assert(Array.isArray(hv.branch2) && hv.branch2.length >= 1, 'branch2: almeno un segmento');
+    const _s1 = hv.branch1[0], _s2 = hv.branch2[0];
+    console.assert(Math.abs(_s1.from.x - _s1.to.x) < 1e-9, 'branch1: segmento verticale (x costante)');
+    console.assert(Math.abs(_s2.from.x - _s2.to.x) < 1e-9, 'branch2: segmento verticale (x costante)');
+    // Regressione: rami a x=±1 (NON ±2)
+    const _xs = [Math.abs(_s1.from.x), Math.abs(_s2.from.x)];
+    console.assert(_xs.every(x => Math.abs(x - 1) < 1e-6), 'iperbole orizzontale: rami a x=±1');
+    // Hyperbola invalida: 2a >= d0
+    console.assert(hyperbolaVertices(-3, 0, 3, 0, 6) === null, 'hyperbolaVertices: null se 2a >= d0');
 
     // Parabola — fuoco sopra direttrice: xF=0, yF=2, k=0 → p=2, vertice=(0,1), aperta verso l'alto
     const ps = parabolaSegments(0, 2, 0, 5);
