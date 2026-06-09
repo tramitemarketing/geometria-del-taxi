@@ -1660,6 +1660,9 @@ const MiniEngine = (() => {
     function _endDrag(e) {
       if (!dragging) return;
       dragging = null;
+      // su touch un pointercancel (gesture rubata dall'OS) può non essere seguito da
+      // pointerleave: sblocca l'animazione per non restare in pausa per sempre.
+      if (e.type === 'pointercancel') pointerInside = false;
       try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
       canvas.style.cursor = 'grab';
       ensureLoop();
