@@ -939,7 +939,6 @@ dove p = y_F − k</div>
     };
   }
 
-  // ── ELLISSE ──
   // ── ELLISSE ── poligono convesso (4–8 vertici) via metodo delle 9 regioni, o null.
   function ellipseVertices(x1, y1, x2, y2, twoA) {
     const d0 = Math.abs(x2 - x1) + Math.abs(y2 - y1);
@@ -958,13 +957,13 @@ dove p = y_F − k</div>
     for (const p of pts) {
       if (!uniq.some(q => Math.abs(q.x-p.x) < 1e-7 && Math.abs(q.y-p.y) < 1e-7)) uniq.push(p);
     }
-    if (uniq.length < 3) return uniq;
-    const cx = uniq.reduce((a,p)=>a+p.x,0)/uniq.length;
-    const cy = uniq.reduce((a,p)=>a+p.y,0)/uniq.length;
+    if (uniq.length < 3) return null;  // meno di 3 vertici → non è un poligono valido
+    const ox = uniq.reduce((a,p)=>a+p.x,0)/uniq.length;
+    const oy = uniq.reduce((a,p)=>a+p.y,0)/uniq.length;
     uniq.sort((a,b) => {
-      const aa = Math.atan2(a.y-cy, a.x-cx), ab = Math.atan2(b.y-cy, b.x-cx);
+      const aa = Math.atan2(a.y-oy, a.x-ox), ab = Math.atan2(b.y-oy, b.x-ox);
       if (Math.abs(aa-ab) > 1e-12) return aa - ab;
-      return Math.hypot(a.x-cx,a.y-cy) - Math.hypot(b.x-cx,b.y-cy);
+      return Math.hypot(a.x-ox,a.y-oy) - Math.hypot(b.x-ox,b.y-oy);
     });
     return uniq;
   }
