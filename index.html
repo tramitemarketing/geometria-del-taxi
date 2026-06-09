@@ -1165,6 +1165,9 @@ dove p = y_F − k</div>
     console.assert(Math.abs(_qe.x-4) < 1e-9, 'aperto frac 1 → ultimo punto');
     const _nf = nearestArcFraction(_sq, true, {x:1, y:-0.3});
     console.assert(Math.abs(_nf - 0.125) < 1e-6, 'nearestArcFraction ≈ 0.125');
+    // _miniModel si appoggia su un ramo connesso: fuochi obliqui → branch1 = 1 polilinea
+    const _hd = hyperbolaVertices(-2, 3, 4, -1, 3, {xMin:-12,xMax:12,yMin:-12,yMax:12});
+    console.assert(_hd && polylineFromSegments(_hd.branch1).length === 1, 'iperbole obliqua: branch1 connesso (1 polilinea)');
     // Clipper: retta x=2 (cx=1,cy=0,rhs=2) dentro rettangolo [0,4]x[0,4] → segmento verticale
     const _c1 = _clipLineHalfplanes(1, 0, 2, [
       {nx:1,ny:0,k:0},{nx:-1,ny:0,k:-4},{nx:0,ny:1,k:0},{nx:0,ny:-1,k:-4}]);
@@ -1660,9 +1663,9 @@ const MiniEngine = (() => {
     function _endDrag(e) {
       if (!dragging) return;
       dragging = null;
-      // su touch un pointercancel (gesture rubata dall'OS) può non essere seguito da
-      // pointerleave: sblocca l'animazione per non restare in pausa per sempre.
-      if (e.type === 'pointercancel') pointerInside = false;
+      // su touch/pen il pointer viene distrutto al rilascio e pointerleave può non
+      // arrivare: sblocca l'animazione (la pausa-su-hover serve solo al mouse).
+      if (e.type === 'pointercancel' || e.pointerType !== 'mouse') pointerInside = false;
       try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
       canvas.style.cursor = 'grab';
       ensureLoop();
