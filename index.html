@@ -1573,7 +1573,8 @@ const MiniEngine = (() => {
 
     let started = false;
     function start() {
-      if (!started) { started = true; resize(); }
+      started = true;
+      resize();          // ri-adatta a ogni rientro in vista (gestisce resize finestra)
       draw();
       ensureLoop();
     }
