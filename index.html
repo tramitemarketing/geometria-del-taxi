@@ -933,7 +933,7 @@ dove p = y_F − k</div>
       const a = pts[i], b = pts[(i+1) % pts.length];
       const segLen = Math.hypot(b.x - a.x, b.y - a.y);
       if (target <= segLen || i === n - 1) {
-        const tt = segLen < 1e-12 ? 0 : target / segLen;
+        const tt = segLen < 1e-12 ? 0 : Math.min(1, target / segLen);
         return { x: a.x + (b.x - a.x) * tt, y: a.y + (b.y - a.y) * tt };
       }
       target -= segLen;
@@ -950,13 +950,13 @@ dove p = y_F − k</div>
     let acc = 0, best = Infinity, bestArc = 0;
     for (let i = 0; i < n; i++) {
       const a = pts[i], b = pts[(i+1) % pts.length];
-      const dx = b.x - a.x, dy = b.y - a.y, segLen2 = dx*dx + dy*dy;
+      const dx = b.x - a.x, dy = b.y - a.y, segLen2 = dx*dx + dy*dy, segLen = Math.sqrt(segLen2);
       let tt = segLen2 < 1e-12 ? 0 : ((q.x - a.x) * dx + (q.y - a.y) * dy) / segLen2;
       tt = Math.max(0, Math.min(1, tt));
       const cx = a.x + dx * tt, cy = a.y + dy * tt;
       const d = Math.hypot(q.x - cx, q.y - cy);
-      if (d < best) { best = d; bestArc = acc + Math.sqrt(segLen2) * tt; }
-      acc += Math.sqrt(segLen2);
+      if (d < best) { best = d; bestArc = acc + segLen * tt; }
+      acc += segLen;
     }
     return bestArc / total;
   }
