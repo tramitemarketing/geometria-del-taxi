@@ -912,6 +912,55 @@ dove p = y_F − k</div>
     return out;
   }
 
+  // Lunghezza euclidea totale di una polilinea (se closed, include il lato di chiusura).
+  function polylineLength(pts, closed) {
+    let L = 0;
+    for (let i = 0; i < pts.length - 1; i++) L += Math.hypot(pts[i+1].x - pts[i].x, pts[i+1].y - pts[i].y);
+    if (closed && pts.length > 1) { const a = pts[pts.length-1], b = pts[0]; L += Math.hypot(b.x - a.x, b.y - a.y); }
+    return L;
+  }
+
+  // Punto alla frazione f della lunghezza d'arco. closed: wrap; aperto: clamp [0,1].
+  function pointAtArcFraction(pts, f, closed) {
+    if (!pts || pts.length === 0) return null;
+    if (pts.length === 1) return { x: pts[0].x, y: pts[0].y };
+    const total = polylineLength(pts, closed);
+    if (total < 1e-12) return { x: pts[0].x, y: pts[0].y };
+    const ff = closed ? f - Math.floor(f) : Math.max(0, Math.min(1, f));
+    let target = ff * total;
+    const n = closed ? pts.length : pts.length - 1;
+    for (let i = 0; i < n; i++) {
+      const a = pts[i], b = pts[(i+1) % pts.length];
+      const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+      if (target <= segLen || i === n - 1) {
+        const tt = segLen < 1e-12 ? 0 : target / segLen;
+        return { x: a.x + (b.x - a.x) * tt, y: a.y + (b.y - a.y) * tt };
+      }
+      target -= segLen;
+    }
+    return { x: pts[pts.length-1].x, y: pts[pts.length-1].y };
+  }
+
+  // Frazione d'arco del punto della polilinea più vicino a q (proiezione).
+  function nearestArcFraction(pts, closed, q) {
+    if (!pts || pts.length < 2) return 0;
+    const total = polylineLength(pts, closed);
+    if (total < 1e-12) return 0;
+    const n = closed ? pts.length : pts.length - 1;
+    let acc = 0, best = Infinity, bestArc = 0;
+    for (let i = 0; i < n; i++) {
+      const a = pts[i], b = pts[(i+1) % pts.length];
+      const dx = b.x - a.x, dy = b.y - a.y, segLen2 = dx*dx + dy*dy;
+      let tt = segLen2 < 1e-12 ? 0 : ((q.x - a.x) * dx + (q.y - a.y) * dy) / segLen2;
+      tt = Math.max(0, Math.min(1, tt));
+      const cx = a.x + dx * tt, cy = a.y + dy * tt;
+      const d = Math.hypot(q.x - cx, q.y - cy);
+      if (d < best) { best = d; bestArc = acc + Math.sqrt(segLen2) * tt; }
+      acc += Math.sqrt(segLen2);
+    }
+    return bestArc / total;
+  }
+
   // ── MOTORE A REGIONI (metodo dei valori assoluti per cella) ──
   // Clip della retta cx*x + cy*y = rhs contro l'intersezione di semipiani.
   // Ogni vincolo: { nx, ny, k } significa  nx*x + ny*y >= k.
@@ -1102,6 +1151,20 @@ dove p = y_F − k</div>
     const _hl = polylineFromSegments(_hr.branch1);
     console.assert(_hl.length === 1, 'ramo iperbole → 1 polilinea');
     console.assert(_hl[0].length >= 2, 'ramo iperbole: ≥2 punti');
+    // pointAtArcFraction su un quadrato (perimetro 8)
+    const _sq = [{x:0,y:0},{x:2,y:0},{x:2,y:2},{x:0,y:2}];
+    console.assert(Math.abs(polylineLength(_sq, true) - 8) < 1e-9, 'perimetro quadrato = 8');
+    const _q0 = pointAtArcFraction(_sq, 0, true);
+    console.assert(_q0.x === 0 && _q0.y === 0, 'frac 0 → primo punto');
+    const _q1 = pointAtArcFraction(_sq, 0.125, true); // 0.125*8 = 1 → (1,0)
+    console.assert(Math.abs(_q1.x-1) < 1e-9 && Math.abs(_q1.y-0) < 1e-9, 'frac 0.125 → (1,0)');
+    const _q2 = pointAtArcFraction(_sq, 0.5, true); // metà → (2,2)
+    console.assert(Math.abs(_q2.x-2) < 1e-9 && Math.abs(_q2.y-2) < 1e-9, 'frac 0.5 → (2,2)');
+    const _open = [{x:0,y:0},{x:4,y:0}];
+    const _qe = pointAtArcFraction(_open, 1, false);
+    console.assert(Math.abs(_qe.x-4) < 1e-9, 'aperto frac 1 → ultimo punto');
+    const _nf = nearestArcFraction(_sq, true, {x:1, y:-0.3});
+    console.assert(Math.abs(_nf - 0.125) < 1e-6, 'nearestArcFraction ≈ 0.125');
     // Clipper: retta x=2 (cx=1,cy=0,rhs=2) dentro rettangolo [0,4]x[0,4] → segmento verticale
     const _c1 = _clipLineHalfplanes(1, 0, 2, [
       {nx:1,ny:0,k:0},{nx:-1,ny:0,k:-4},{nx:0,ny:1,k:0},{nx:0,ny:-1,k:-4}]);
@@ -1190,7 +1253,7 @@ dove p = y_F − k</div>
     console.log('%c✓ ConicMath tests passed', 'color: #22c55e; font-weight: bold');
   }
 
-  return { circleVertices, ellipseVertices, hyperbolaVertices, parabolaSegments, parabolaRegionSegments, taxiDist, l1Corner, polylineFromSegments, runTests };
+  return { circleVertices, ellipseVertices, hyperbolaVertices, parabolaSegments, parabolaRegionSegments, taxiDist, l1Corner, polylineFromSegments, polylineLength, pointAtArcFraction, nearestArcFraction, runTests };
 })();
 
 const MiniEngine = (() => {
