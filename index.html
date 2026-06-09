@@ -976,10 +976,10 @@ dove p = y_F − k</div>
     const xMin = Math.min(x1,x2), xMax = Math.max(x1,x2);
     const yMin = Math.min(y1,y2), yMax = Math.max(y1,y2);
     const R = Math.max(d0 * 20, 1000);
-    const b = bounds || { xMin: xMin-R, xMax: xMax+R, yMin: yMin-R, yMax: yMax+R };
+    const box = bounds || { xMin: xMin-R, xMax: xMax+R, yMin: yMin-R, yMax: yMax+R };
     return {
-      branch1: _gridLocusSegments(1, -1, +twoA, x1, y1, x2, y2, b),
-      branch2: _gridLocusSegments(1, -1, -twoA, x1, y1, x2, y2, b)
+      branch1: _gridLocusSegments(1, -1, +twoA, x1, y1, x2, y2, box),
+      branch2: _gridLocusSegments(1, -1, -twoA, x1, y1, x2, y2, box)
     };
   }
 
@@ -1289,16 +1289,12 @@ const MiniEngine = (() => {
 
       if (conicType === 'hyperbola') {
         const { x1=-3,y1=0, x2=3,y2=0, twoA=2 } = params;
-        const result = ConicMath.hyperbolaVertices(
-          Math.min(x1,x2), Math.min(y1,y2),
-          Math.max(x1,x2), Math.max(y1,y2),
-          twoA
-        );
+        const result = ConicMath.hyperbolaVertices(x1, y1, x2, y2, twoA);
         [x1,x2].forEach(xv => drawSegment(ctx,t,{x:xv,y:-10},{x:xv,y:10},'rgba(245,158,11,0.25)',0.8,[3,4]));
         [y1,y2].forEach(yv => drawSegment(ctx,t,{x:-10,y:yv},{x:10,y:yv},'rgba(245,158,11,0.25)',0.8,[3,4]));
         if (result) {
-          drawPolyline(ctx, t, result.branch1, color, 2.5, false);
-          drawPolyline(ctx, t, result.branch2, color, 2.5, false);
+          [result.branch1, result.branch2].forEach(branch =>
+            branch.forEach(seg => drawSegment(ctx, t, seg.from, seg.to, color, 2.5)));
         }
         drawPoint(ctx, t, x1, y1, 'rgb(251,191,36)', 4);
         drawPoint(ctx, t, x2, y2, 'rgb(251,191,36)', 4);
