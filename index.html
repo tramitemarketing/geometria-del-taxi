@@ -1393,6 +1393,77 @@ const MiniEngine = (() => {
     ctx.restore();
   }
 
+  // Modello per-conica: handle trascinabili, polilinea su cui scorre P, fuochi misurati, invariante.
+  // Ritorna null se la conica è attualmente invalida.
+  function _miniModel(conicType, params) {
+    if (conicType === 'circle') {
+      const { xc=0, yc=0, R=3 } = params;
+      const v = ConicMath.circleVertices(xc, yc, R);
+      return {
+        handles: [{ x: xc, y: yc, keys: ['xc','yc'] }],
+        path: { pts: [v.VN, v.VE, v.VS, v.VW], closed: true },
+        foci: [{ x: xc, y: yc, color: '#ffffff' }],
+        invariant: P => `d₁(P,C) = ${ConicMath.taxiDist(P, {x:xc,y:yc}).toFixed(2)} = R`
+      };
+    }
+    if (conicType === 'ellipse') {
+      const { x1=-2,y1=0, x2=2,y2=0, twoA=6 } = params;
+      const verts = ConicMath.ellipseVertices(x1, y1, x2, y2, twoA);
+      if (!verts || verts.length < 3) return null;
+      return {
+        handles: [{ x: x1, y: y1, keys: ['x1','y1'] }, { x: x2, y: y2, keys: ['x2','y2'] }],
+        path: { pts: verts, closed: true },
+        foci: [{ x: x1, y: y1, color: '#5eead4' }, { x: x2, y: y2, color: '#f9a8d4' }],
+        invariant: P => `d₁(P,F₁)+d₁(P,F₂) = ${(ConicMath.taxiDist(P,{x:x1,y:y1}) + ConicMath.taxiDist(P,{x:x2,y:y2})).toFixed(2)} = 2a`
+      };
+    }
+    if (conicType === 'hyperbola') {
+      const { x1=-3,y1=0, x2=3,y2=0, twoA=2 } = params;
+      const r = ConicMath.hyperbolaVertices(x1, y1, x2, y2, twoA, {xMin:-8,xMax:8,yMin:-8,yMax:8});
+      if (!r) return null;
+      const lines = ConicMath.polylineFromSegments(r.branch1).sort((a,b) => b.length - a.length);
+      if (!lines.length) return null;
+      return {
+        handles: [{ x: x1, y: y1, keys: ['x1','y1'] }, { x: x2, y: y2, keys: ['x2','y2'] }],
+        path: { pts: lines[0], closed: false },
+        foci: [{ x: x1, y: y1, color: '#5eead4' }, { x: x2, y: y2, color: '#f9a8d4' }],
+        invariant: P => `|d₁(P,F₁)−d₁(P,F₂)| = ${Math.abs(ConicMath.taxiDist(P,{x:x1,y:y1}) - ConicMath.taxiDist(P,{x:x2,y:y2})).toFixed(2)} = 2a`
+      };
+    }
+    if (conicType === 'parabola') {
+      const { xF=0, yF=2, k=0 } = params;
+      const segs = ConicMath.parabolaSegments(xF, yF, k, 5);
+      const lines = ConicMath.polylineFromSegments(segs).sort((a,b) => b.length - a.length);
+      if (!lines.length) return null;
+      return {
+        handles: [{ x: xF, y: yF, keys: ['xF','yF'] }],
+        path: { pts: lines[0], closed: false },
+        foci: [{ x: xF, y: yF, color: '#5eead4' }],
+        directrix: k,
+        invariant: P => `d₁(P,F) = ${ConicMath.taxiDist(P,{x:xF,y:yF}).toFixed(2)} = |y−k|`
+      };
+    }
+    return null;
+  }
+
+  // Disegna le scalette L1 da P ai fuochi, il punto P e l'invariante.
+  function _drawProofPoint(ctx, t, conicType, params, pT, outputEl) {
+    const model = _miniModel(conicType, params);
+    if (!model) return;
+    const P = ConicMath.pointAtArcFraction(model.path.pts, pT, model.path.closed);
+    if (!P) return;
+    model.foci.forEach(f => {
+      const corner = ConicMath.l1Corner(P, f);
+      drawSegment(ctx, t, P, corner, f.color + 'cc', 1.6);
+      drawSegment(ctx, t, corner, f, f.color + 'cc', 1.6);
+    });
+    if (typeof model.directrix === 'number') {
+      drawSegment(ctx, t, P, { x: P.x, y: model.directrix }, '#5eead4cc', 1.6, [3,3]);
+    }
+    drawPoint(ctx, t, P.x, P.y, 'rgb(255,255,255)', 4);
+    if (outputEl) outputEl.textContent = model.invariant(P);
+  }
+
   // Creates a mini-engine instance bound to a canvas element
   function create(canvasId, conicType, defaultParams, outputEl) {
     const canvas = document.getElementById(canvasId);
@@ -1400,6 +1471,11 @@ const MiniEngine = (() => {
     const ctx = canvas.getContext('2d');
     let params = { ...defaultParams };
     let rafId = null;
+    let pT = 0.12;
+    function currentTransform() {
+      const size = canvas.width / DPR;
+      return makeTransform({ width: size, height: size }, size / 12, 0, 0);
+    }
 
     const DPR = window.devicePixelRatio || 1;
     function resize() {
@@ -1425,8 +1501,7 @@ const MiniEngine = (() => {
       ctx.fillStyle = '#0a0a0a';
       ctx.fillRect(0, 0, size, size);
 
-      const scale = size / 12; // show ±6 units
-      const t = makeTransform({ width: size, height: size }, scale, 0, 0);
+      const t = currentTransform();
       const color = COLORS[conicType] || '#e63946';
 
       drawGrid(ctx, t);
@@ -1484,6 +1559,8 @@ const MiniEngine = (() => {
         drawPoint(ctx, t, xF, yF, 'rgb(74,222,128)', 4);
         if (outputEl) outputEl.textContent = `p = ${(yF-k).toFixed(2)} | F(${xF}, ${yF}) | y = ${k}`;
       }
+
+      _drawProofPoint(ctx, t, conicType, params, pT, outputEl);
     }
 
     function updateParam(key, val) {
