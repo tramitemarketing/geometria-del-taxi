@@ -940,80 +940,33 @@ dove p = y_F − k</div>
   }
 
   // ── ELLISSE ──
-  // Returns ordered array of {x,y} vertices for the taxicab ellipse polygon, or null if impossible.
-  // Inputs must be pre-sorted: x1 <= x2, y1 <= y2. twoA = 2a (sum of distances).
+  // ── ELLISSE ── poligono convesso (4–8 vertici) via metodo delle 9 regioni, o null.
   function ellipseVertices(x1, y1, x2, y2, twoA) {
-    const d0 = Math.abs(x2-x1) + Math.abs(y2-y1);
+    const d0 = Math.abs(x2 - x1) + Math.abs(y2 - y1);
     if (twoA < d0 - 1e-9) return null;
-
-    const mx = (x1+x2)/2, my = (y1+y2)/2;
-    const hw = (x2-x1)/2, hh = (y2-y1)/2;
-    const k  = twoA/2 - d0/2;
-
     if (twoA <= d0 + 1e-9) {
-      // Degenerate: the bounding rectangle
+      // Degenere: perimetro del rettangolo con F1,F2 vertici opposti
       return [{x:x1,y:y1},{x:x2,y:y1},{x:x2,y:y2},{x:x1,y:y2}];
     }
-
-    const hasH = k < hh - 1e-9;  // top/bottom horizontal segments exist
-    const hasV = k < hw - 1e-9;  // left/right vertical segments exist
-
-    const yTop  = my + hh + k;
-    const yBot  = my - hh - k;
-    const xLeft  = mx - hw - k;
-    const xRight = mx + hw + k;
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-
-    let verts;
-
-    if (hasH && hasV) {
-      // Full octagon: 8 points
-      verts = [
-        { x: x1 - k + dy, y: yTop   },
-        { x: x2 + k - dy, y: yTop   },
-        { x: xRight,       y: y2 + k - dx },
-        { x: xRight,       y: y1 - k + dx },
-        { x: x2 + k - dy, y: yBot   },
-        { x: x1 - k + dy, y: yBot   },
-        { x: xLeft,        y: y1 - k + dx },
-        { x: xLeft,        y: y2 + k - dx },
-      ];
-    } else if (!hasH && hasV) {
-      // k >= hh: hexagon with top/bottom single points
-      verts = [
-        { x: mx,     y: yTop  },
-        { x: xRight, y: y2 + k - dx },
-        { x: xRight, y: y1 - k + dx },
-        { x: mx,     y: yBot  },
-        { x: xLeft,  y: y1 - k + dx },
-        { x: xLeft,  y: y2 + k - dx },
-      ];
-    } else if (hasH && !hasV) {
-      // k >= hw: hexagon with left/right single points
-      verts = [
-        { x: x1 - k + dy, y: yTop  },
-        { x: x2 + k - dy, y: yTop  },
-        { x: xRight,       y: my   },
-        { x: x2 + k - dy, y: yBot  },
-        { x: x1 - k + dy, y: yBot  },
-        { x: xLeft,        y: my   },
-      ];
-    } else {
-      // k >= hw and k >= hh: rhombus
-      verts = [
-        { x: mx,     y: yTop  },
-        { x: xRight, y: my    },
-        { x: mx,     y: yBot  },
-        { x: xLeft,  y: my    },
-      ];
+    const xMin = Math.min(x1,x2), xMax = Math.max(x1,x2);
+    const yMin = Math.min(y1,y2), yMax = Math.max(y1,y2);
+    const bounds = { xMin: xMin-twoA, xMax: xMax+twoA, yMin: yMin-twoA, yMax: yMax+twoA };
+    const segs = _gridLocusSegments(1, 1, twoA, x1, y1, x2, y2, bounds);
+    const pts = [];
+    for (const s of segs) { pts.push(s.from, s.to); }
+    const uniq = [];
+    for (const p of pts) {
+      if (!uniq.some(q => Math.abs(q.x-p.x) < 1e-7 && Math.abs(q.y-p.y) < 1e-7)) uniq.push(p);
     }
-
-    // Remove consecutive duplicate vertices
-    return verts.filter((v, i, arr) => {
-      const next = arr[(i+1) % arr.length];
-      return !(Math.abs(v.x - next.x) < 1e-9 && Math.abs(v.y - next.y) < 1e-9);
+    if (uniq.length < 3) return uniq;
+    const cx = uniq.reduce((a,p)=>a+p.x,0)/uniq.length;
+    const cy = uniq.reduce((a,p)=>a+p.y,0)/uniq.length;
+    uniq.sort((a,b) => {
+      const aa = Math.atan2(a.y-cy, a.x-cx), ab = Math.atan2(b.y-cy, b.x-cx);
+      if (Math.abs(aa-ab) > 1e-12) return aa - ab;
+      return Math.hypot(a.x-cx,a.y-cy) - Math.hypot(b.x-cx,b.y-cy);
     });
+    return uniq;
   }
 
   // ── IPERBOLE ──
@@ -1094,18 +1047,19 @@ dove p = y_F − k</div>
     console.assert(cv.VS.y === -3, 'circleVertices: VS.y should be -3');
     console.assert(cv.VW.x === -3, 'circleVertices: VW.x should be -3');
 
-    // Ellipse — F1(0,0), F2(4,2), 2a=10 → k=2
+    // Ellipse — non null e poligono
     const ev = ellipseVertices(0, 0, 4, 2, 10);
-    console.assert(ev !== null, 'ellipseVertices: should not be null');
-    console.assert(ev.length >= 4, 'ellipseVertices: should have at least 4 vertices');
-
-    // Ellipse degenerate: 2a = d0
+    console.assert(ev !== null && ev.length >= 4, 'ellipseVertices: poligono valido');
+    // Regressione fuochi obliqui: lato superiore PIATTO (0,4)–(4,4), non vertice a punta (2,4)
+    const hasPt = (arr, x, y) => arr.some(p => Math.abs(p.x-x)<1e-6 && Math.abs(p.y-y)<1e-6);
+    console.assert(hasPt(ev, 0, 4), 'ellisse obliqua: vertice (0,4) presente');
+    console.assert(hasPt(ev, 4, 4), 'ellisse obliqua: vertice (4,4) presente');
+    console.assert(!hasPt(ev, 2, 4) || (hasPt(ev,0,4)&&hasPt(ev,4,4)), 'ellisse obliqua: niente punta a (2,4)');
+    // Ellipse degenere: 2a = d0 → rettangolo
     const ev2 = ellipseVertices(0, 0, 3, 4, 7);
-    console.assert(Array.isArray(ev2) && ev2.length === 4, 'ellipseVertices degenerate: 4-vertex rectangle');
-
-    // Ellipse impossible: 2a < d0
-    const ev3 = ellipseVertices(0, 0, 3, 4, 5);
-    console.assert(ev3 === null, 'ellipseVertices: null when 2a < d0');
+    console.assert(Array.isArray(ev2) && ev2.length === 4, 'ellipseVertices degenere: rettangolo 4 vertici');
+    // Ellipse impossibile: 2a < d0
+    console.assert(ellipseVertices(0, 0, 3, 4, 5) === null, 'ellipseVertices: null se 2a < d0');
 
     // Hyperbola — horizontal foci
     const hv = hyperbolaVertices(-3, 0, 3, 0, 2);
