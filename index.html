@@ -1612,6 +1612,63 @@ const MiniEngine = (() => {
     }, { threshold: 0.1 });
     obs.observe(canvas);
 
+    canvas.style.touchAction = 'none';
+    function _ptr(e) { const r = canvas.getBoundingClientRect(); return { px: e.clientX - r.left, py: e.clientY - r.top }; }
+    function _hitHandle(model, t, px, py) {
+      for (const h of model.handles) { const c = t.toCanvas(h.x, h.y); if (Math.hypot(c.x - px, c.y - py) < 12) return h; }
+      return null;
+    }
+    function _hitP(model, t, px, py) {
+      const P = ConicMath.pointAtArcFraction(model.path.pts, pT, model.path.closed);
+      if (!P) return false;
+      const c = t.toCanvas(P.x, P.y);
+      return Math.hypot(c.x - px, c.y - py) < 12;
+    }
+    canvas.addEventListener('pointerdown', e => {
+      const model = _miniModel(conicType, params);
+      if (!model) return;
+      const t = currentTransform(), { px, py } = _ptr(e);
+      const h = _hitHandle(model, t, px, py);
+      if (h) dragging = { kind: 'handle', h };
+      else if (_hitP(model, t, px, py)) dragging = { kind: 'P' };
+      else return;
+      try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+      canvas.style.cursor = 'grabbing';
+      e.preventDefault();
+      stop(); draw();
+    });
+    canvas.addEventListener('pointermove', e => {
+      const t = currentTransform(), { px, py } = _ptr(e);
+      if (dragging) {
+        const w = t.toWorld(px, py);
+        if (dragging.kind === 'handle') {
+          const keys = dragging.h.keys;
+          const prev = { [keys[0]]: params[keys[0]], [keys[1]]: params[keys[1]] };
+          params[keys[0]] = w.x; params[keys[1]] = w.y;
+          if (!_miniModel(conicType, params)) Object.assign(params, prev);
+        } else {
+          const model = _miniModel(conicType, params);
+          if (model) pT = ConicMath.nearestArcFraction(model.path.pts, model.path.closed, w);
+        }
+        draw();
+        return;
+      }
+      const model = _miniModel(conicType, params);
+      const over = !!model && (!!_hitHandle(model, t, px, py) || _hitP(model, t, px, py));
+      canvas.style.cursor = over ? 'grab' : 'default';
+    });
+    function _endDrag(e) {
+      if (!dragging) return;
+      dragging = null;
+      try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+      canvas.style.cursor = 'grab';
+      ensureLoop();
+    }
+    canvas.addEventListener('pointerup', _endDrag);
+    canvas.addEventListener('pointercancel', _endDrag);
+    canvas.addEventListener('pointerenter', () => { pointerInside = true; stop(); draw(); });
+    canvas.addEventListener('pointerleave', () => { pointerInside = false; ensureLoop(); });
+
     return { draw, updateParam, start, stop };
   }
 
