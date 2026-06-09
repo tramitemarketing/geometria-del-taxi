@@ -1472,7 +1472,8 @@ const MiniEngine = (() => {
     const ctx = canvas.getContext('2d');
     let params = { ...defaultParams };
     let rafId = null;
-    let pT = 0.12;
+    let pT = 0.12, pDir = 1, lastTs = 0, visible = false, pointerInside = false, dragging = null;
+    const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     const DPR = window.devicePixelRatio || 1;
     function currentTransform() {
       const size = canvas.width / DPR;
@@ -1567,18 +1568,46 @@ const MiniEngine = (() => {
     function updateParam(key, val) {
       params[key] = parseFloat(val);
       draw();
+      ensureLoop();
     }
 
+    let started = false;
     function start() {
-      if (!rafId) { resize(); draw(); }
+      if (!started) { started = true; resize(); }
+      draw();
+      ensureLoop();
     }
     function stop() {
       if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
     }
+    function animating() {
+      return started && visible && !reduced && !pointerInside && !dragging;
+    }
+    function ensureLoop() {
+      if (animating() && rafId == null) { lastTs = 0; rafId = requestAnimationFrame(loop); }
+    }
+    function loop(ts) {
+      if (!animating()) { rafId = null; draw(); return; }
+      const dt = lastTs ? Math.min(0.05, (ts - lastTs) / 1000) : 0;
+      lastTs = ts;
+      const model = _miniModel(conicType, params);
+      if (model) {
+        const speed = 0.16; // ~6 s per giro/passata
+        if (model.path.closed) {
+          pT = (pT + speed * dt) % 1;
+        } else {
+          pT += pDir * speed * dt;
+          if (pT >= 1) { pT = 1; pDir = -1; }
+          else if (pT <= 0) { pT = 0; pDir = 1; }
+        }
+      }
+      draw();
+      rafId = requestAnimationFrame(loop);
+    }
 
-    // IntersectionObserver for lazy start
+    // IntersectionObserver: avvio lazy + pausa fuori schermo
     const obs = new IntersectionObserver(entries => {
-      entries.forEach(e => { if (e.isIntersecting) { start(); obs.disconnect(); } });
+      entries.forEach(e => { visible = e.isIntersecting; if (visible) start(); else stop(); });
     }, { threshold: 0.1 });
     obs.observe(canvas);
 
