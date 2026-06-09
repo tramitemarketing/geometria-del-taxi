@@ -1125,42 +1125,7 @@ dove p = y_F − k</div>
     console.log('%c✓ ConicMath tests passed', 'color: #22c55e; font-weight: bold');
   }
 
-  // Oblique directrix parabola: ax + by + c = 0, L1 distance = |ax+by+c|/(|a|+|b|)
-  function parabolaSegmentsOblique(xF, yF, a, b, c, worldBounds) {
-    const denom = Math.abs(a) + Math.abs(b);
-    if (denom < 1e-9) return [];
-    const { xMin, xMax, yMin, yMax } = worldBounds;
-    const segments = [];
-    const steps = 300;
-    const dx = (xMax - xMin) / steps;
-    let prevPoints = null;
-    for (let i = 0; i <= steps; i++) {
-      const x = xMin + i * dx;
-      const solutions = [];
-      for (const s1 of [1,-1]) {
-        for (const s2 of [1,-1]) {
-          const coeff = s2 - s1 * (b / denom);
-          if (Math.abs(coeff) < 1e-9) continue;
-          const rhs = s1 * (a * x + c) / denom - Math.abs(x - xF) + s2 * yF;
-          const y = rhs / coeff;
-          if (s2 * (y - yF) < -1e-9) continue;
-          if (s1 * (a * x + b * y + c) < -1e-9) continue;
-          if (y >= yMin && y <= yMax) solutions.push(Math.round(y * 1e6) / 1e6);
-        }
-      }
-      const unique = [...new Set(solutions)];
-      if (prevPoints && unique.length > 0 && prevPoints.length > 0) {
-        for (const py of prevPoints) {
-          const closest = unique.reduce((a2, b2) => Math.abs(b2-py) < Math.abs(a2-py) ? b2 : a2, unique[0]);
-          segments.push({ from:{ x: x-dx, y: py }, to:{ x, y: closest } });
-        }
-      }
-      prevPoints = unique;
-    }
-    return segments;
-  }
-
-  return { circleVertices, ellipseVertices, hyperbolaVertices, parabolaSegments, parabolaRegionSegments, parabolaSegmentsOblique, runTests };
+  return { circleVertices, ellipseVertices, hyperbolaVertices, parabolaSegments, parabolaRegionSegments, runTests };
 })();
 
 const MiniEngine = (() => {
@@ -2892,27 +2857,25 @@ const GraphCalc = (() => {
     MiniEngine.drawPoint(ctx,t,x2,y2,obj.color,4);
   }
 
-  // ── PARABOLA (con direttrice obliqua) ──
+  // ── PARABOLA — esatta per direttrice orizzontale/verticale/obliqua (regioni) ──
   function _drawParabola(ctx,t,obj,w,h){
     const{xF=0,yF=2,m=0,q=0,vertical=false}=obj.params;
     const vMin=t.toWorld(0,h),vMax=t.toWorld(w,0);
-    // Directrix line
+    // Direttrice (tratteggiata) come retta a*x + b*y + c = 0
+    const a = vertical ? 1 : m;
+    const b = vertical ? 0 : -1;
+    const c = vertical ? -q : q;
     if(vertical){
       MiniEngine.drawSegment(ctx,t,{x:q,y:vMin.y},{x:q,y:vMax.y},obj.color+'59',1,[5,4]);
     } else {
       MiniEngine.drawSegment(ctx,t,{x:vMin.x,y:m*vMin.x+q},{x:vMax.x,y:m*vMax.x+q},obj.color+'59',1,[5,4]);
     }
+    const segs=ConicMath.parabolaRegionSegments(xF,yF,a,b,c,
+      {xMin:vMin.x,xMax:vMax.x,yMin:vMin.y,yMax:vMax.y});
+    ctx.save(); ctx.shadowColor=obj.color+'88'; ctx.shadowBlur=6;
+    segs.forEach(s=>MiniEngine.drawSegment(ctx,t,s.from,s.to,obj.color,2.5));
+    ctx.restore();
     MiniEngine.drawPoint(ctx,t,xF,yF,obj.color,5);
-    if(!vertical&&m===0){
-      // Fast exact algorithm for horizontal directrix
-      const segs=ConicMath.parabolaSegments(xF,yF,q,Math.abs(vMax.y-yF)+2);
-      segs.forEach(s=>MiniEngine.drawSegment(ctx,t,s.from,s.to,obj.color,2.5));
-    } else {
-      // Sampled segments for oblique/vertical directrix
-      const a=vertical?1:m, b=vertical?0:-1, c=vertical?-q:q;
-      const segs=ConicMath.parabolaSegmentsOblique(xF,yF,a,b,c,{xMin:vMin.x,xMax:vMax.x,yMin:vMin.y,yMax:vMax.y});
-      segs.forEach(s=>MiniEngine.drawSegment(ctx,t,s.from,s.to,obj.color,1.5));
-    }
   }
 
   // ── LUOGO LIBERO ──
