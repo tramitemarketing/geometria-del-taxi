@@ -868,6 +868,66 @@ dove p = y_F − k</div>
   <script>
     const ConicMath = (() => {
 
+  // ── MOTORE A REGIONI (metodo dei valori assoluti per cella) ──
+  // Clip della retta cx*x + cy*y = rhs contro l'intersezione di semipiani.
+  // Ogni vincolo: { nx, ny, k } significa  nx*x + ny*y >= k.
+  // Ritorna { from:{x,y}, to:{x,y} } oppure null.
+  function _clipLineHalfplanes(cx, cy, rhs, constraints) {
+    const eps = 1e-9;
+    if (Math.abs(cx) < eps && Math.abs(cy) < eps) return null;
+    let p0x, p0y;
+    if (Math.abs(cx) >= Math.abs(cy)) { p0x = rhs / cx; p0y = 0; }
+    else { p0x = 0; p0y = rhs / cy; }
+    const ux = -cy, uy = cx;            // direzione lungo la retta
+    let tmin = -Infinity, tmax = Infinity;
+    for (const c of constraints) {
+      const A = c.nx * ux + c.ny * uy;
+      const B = c.k - (c.nx * p0x + c.ny * p0y);
+      if (Math.abs(A) < eps) { if (B > eps) return null; }
+      else if (A > 0) { if (B / A > tmin) tmin = B / A; }
+      else { if (B / A < tmax) tmax = B / A; }
+    }
+    if (tmin > tmax + eps || !isFinite(tmin) || !isFinite(tmax)) return null;
+    return {
+      from: { x: p0x + tmin * ux, y: p0y + tmin * uy },
+      to:   { x: p0x + tmax * ux, y: p0y + tmax * uy }
+    };
+  }
+
+  // Clip a un rettangolo allineato agli assi.
+  function _clipLineToRect(cx, cy, rhs, rxMin, rxMax, ryMin, ryMax) {
+    return _clipLineHalfplanes(cx, cy, rhs, [
+      { nx: 1, ny: 0, k: rxMin }, { nx:-1, ny: 0, k:-rxMax },
+      { nx: 0, ny: 1, k: ryMin }, { nx: 0, ny:-1, k:-ryMax }
+    ]);
+  }
+
+  // Sweep 9 regioni per il luogo  s1*d1(P,F1) + s2*d1(P,F2) = C.
+  // Fuochi passati come coppie reali (qualsiasi ordine). Ritorna [{from,to}].
+  function _gridLocusSegments(s1, s2, C, x1, y1, x2, y2, bounds) {
+    const eps = 1e-9;
+    const xB = [bounds.xMin, Math.min(x1, x2), Math.max(x1, x2), bounds.xMax];
+    const yB = [bounds.yMin, Math.min(y1, y2), Math.max(y1, y2), bounds.yMax];
+    const segs = [];
+    for (let col = 0; col < 3; col++) {
+      for (let row = 0; row < 3; row++) {
+        const rxMin = xB[col], rxMax = xB[col + 1];
+        const ryMin = yB[row], ryMax = yB[row + 1];
+        if (rxMin >= rxMax - eps || ryMin >= ryMax - eps) continue;
+        const xRep = (rxMin + rxMax) / 2, yRep = (ryMin + ryMax) / 2;
+        const sxa = xRep >= x1 ? 1 : -1, sxb = xRep >= x2 ? 1 : -1;
+        const sya = yRep >= y1 ? 1 : -1, syb = yRep >= y2 ? 1 : -1;
+        const cx  = s1 * sxa + s2 * sxb;
+        const cy  = s1 * sya + s2 * syb;
+        const rhs = C + s1 * (sxa * x1 + sya * y1) + s2 * (sxb * x2 + syb * y2);
+        if (cx === 0 && cy === 0) continue;
+        const seg = _clipLineToRect(cx, cy, rhs, rxMin, rxMax, ryMin, ryMax);
+        if (seg) segs.push(seg);
+      }
+    }
+    return segs;
+  }
+
   // ── CIRCONFERENZA ──
   // Returns the 4 vertices of a taxicab circle
   function circleVertices(xc, yc, R) {
@@ -1017,6 +1077,16 @@ dove p = y_F − k</div>
 
   // ── TESTS (console.assert — removed in Task 14) ──
   function runTests() {
+    // Clipper: retta x=2 (cx=1,cy=0,rhs=2) dentro rettangolo [0,4]x[0,4] → segmento verticale
+    const _c1 = _clipLineHalfplanes(1, 0, 2, [
+      {nx:1,ny:0,k:0},{nx:-1,ny:0,k:-4},{nx:0,ny:1,k:0},{nx:0,ny:-1,k:-4}]);
+    console.assert(_c1 !== null, 'clip: segmento atteso non null');
+    console.assert(Math.abs(_c1.from.x-2)<1e-9 && Math.abs(_c1.to.x-2)<1e-9, 'clip: x costante = 2');
+    console.assert(Math.abs(Math.min(_c1.from.y,_c1.to.y)-0)<1e-9 && Math.abs(Math.max(_c1.from.y,_c1.to.y)-4)<1e-9, 'clip: y da 0 a 4');
+    // Clipper: retta fuori dal rettangolo → null
+    const _c2 = _clipLineHalfplanes(1, 0, 99, [
+      {nx:1,ny:0,k:0},{nx:-1,ny:0,k:-4},{nx:0,ny:1,k:0},{nx:0,ny:-1,k:-4}]);
+    console.assert(_c2 === null, 'clip: retta fuori dal rettangolo → null');
     // Circle
     const cv = circleVertices(0, 0, 3);
     console.assert(cv.VN.y === 3,  'circleVertices: VN.y should be 3');
