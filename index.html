@@ -874,6 +874,44 @@ dove p = y_F − k</div>
   // Angolo del percorso L1 "a scaletta" da P a F (orizzontale poi verticale).
   function l1Corner(P, F) { return { x: F.x, y: P.y }; }
 
+  // Concatena segmenti {from,to} in una o più polilinee connesse e ordinate.
+  function polylineFromSegments(segments) {
+    const eps = 1e-6;
+    const qk = p => Math.round(p.x / eps) + ',' + Math.round(p.y / eps);
+    const adj = new Map();    // key -> [{ to, seg }]
+    const nodePt = new Map(); // key -> {x,y}
+    const node = p => { const k = qk(p); if (!nodePt.has(k)) nodePt.set(k, {x:p.x,y:p.y}); if (!adj.has(k)) adj.set(k, []); return k; };
+    segments.forEach((s, i) => {
+      const a = node(s.from), b = node(s.to);
+      if (a === b) return;
+      adj.get(a).push({ to: b, seg: i });
+      adj.get(b).push({ to: a, seg: i });
+    });
+    const used = new Set();
+    const out = [];
+    function walk(startKey) {
+      const line = [ nodePt.get(startKey) ];
+      let cur = startKey;
+      while (true) {
+        const next = adj.get(cur).find(e => !used.has(e.seg));
+        if (!next) break;
+        used.add(next.seg);
+        line.push(nodePt.get(next.to));
+        cur = next.to;
+      }
+      return line;
+    }
+    const keys = [...adj.keys()];
+    const order = keys.filter(k => adj.get(k).length % 2 === 1).concat(keys);
+    for (const k of order) {
+      if (adj.get(k).some(e => !used.has(e.seg))) {
+        const line = walk(k);
+        if (line.length >= 2) out.push(line);
+      }
+    }
+    return out;
+  }
+
   // ── MOTORE A REGIONI (metodo dei valori assoluti per cella) ──
   // Clip della retta cx*x + cy*y = rhs contro l'intersezione di semipiani.
   // Ogni vincolo: { nx, ny, k } significa  nx*x + ny*y >= k.
@@ -1048,6 +1086,22 @@ dove p = y_F − k</div>
     console.assert(taxiDist({x:-2,y:1},{x:1,y:-3}) === 7, 'taxiDist = 7 (b)');
     const _lc = l1Corner({x:1,y:2}, {x:5,y:9});
     console.assert(_lc.x === 5 && _lc.y === 2, 'l1Corner = (F.x, P.y)');
+    // polylineFromSegments: parabola → 1 polilinea connessa di 5 punti
+    const _pseg = parabolaSegments(0, 2, 0, 5);
+    const _plines = polylineFromSegments(_pseg);
+    console.assert(_plines.length === 1, 'parabola → 1 polilinea');
+    console.assert(_plines[0].length === 5, 'parabola polilinea 5 punti');
+    const _pl = _plines[0];
+    let _ok = true;
+    for (let i = 0; i < _pl.length - 1; i++) {
+      if (taxiDist(_pl[i], _pl[i+1]) < 1e-9) _ok = false;
+    }
+    console.assert(_ok, 'parabola polilinea: punti distinti e ordinati');
+    // iperbole: un ramo → 1 polilinea
+    const _hr = hyperbolaVertices(-3, 0, 3, 0, 2, {xMin:-8,xMax:8,yMin:-8,yMax:8});
+    const _hl = polylineFromSegments(_hr.branch1);
+    console.assert(_hl.length === 1, 'ramo iperbole → 1 polilinea');
+    console.assert(_hl[0].length >= 2, 'ramo iperbole: ≥2 punti');
     // Clipper: retta x=2 (cx=1,cy=0,rhs=2) dentro rettangolo [0,4]x[0,4] → segmento verticale
     const _c1 = _clipLineHalfplanes(1, 0, 2, [
       {nx:1,ny:0,k:0},{nx:-1,ny:0,k:-4},{nx:0,ny:1,k:0},{nx:0,ny:-1,k:-4}]);
@@ -1136,7 +1190,7 @@ dove p = y_F − k</div>
     console.log('%c✓ ConicMath tests passed', 'color: #22c55e; font-weight: bold');
   }
 
-  return { circleVertices, ellipseVertices, hyperbolaVertices, parabolaSegments, parabolaRegionSegments, taxiDist, l1Corner, runTests };
+  return { circleVertices, ellipseVertices, hyperbolaVertices, parabolaSegments, parabolaRegionSegments, taxiDist, l1Corner, polylineFromSegments, runTests };
 })();
 
 const MiniEngine = (() => {
