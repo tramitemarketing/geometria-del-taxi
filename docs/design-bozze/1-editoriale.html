@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Geometria del Taxi — Quando la retta più breve non è la diagonale</title>
+
+<!-- Fonts: Fraunces (display ottico), Spectral (corpo), IBM Plex Mono (kicker/label) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,500&family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<style>
+  /* ============================================================
+     GEOMETRIA DEL TAXI · Bozza 1 — Editoriale scientifico / Rivista
+     Palette tassativa: carta crema, inchiostro, cinabro, neutro caldo
+     ============================================================ */
+  :root {
+    --paper:      #F2ECDF;   /* carta crema — dominante */
+    --paper-deep: #EAE2D0;   /* crema in ombra */
+    --paper-tint: #E4DAC4;   /* crema più carica (incisione) */
+    --ink:        #17130D;   /* inchiostro — testo */
+    --ink-soft:   #2B2419;   /* inchiostro morbido */
+    --cinabro:    #C7361E;   /* accento, con parsimonia */
+    --cinabro-dk: #A12A16;
+    --neutro:     #7C7468;   /* neutro caldo */
+    --neutro-lt:  #9A9180;
+    --line:       #C9BFA9;   /* regole 1px */
+    --line-soft:  #D8CFBA;
+
+    --grid:       42px;      /* passo della griglia di Manhattan */
+
+    --serif:  "Fraunces", Georgia, "Times New Roman", serif;
+    --body:   "Spectral", Georgia, serif;
+    --mono:   "IBM Plex Mono", "Courier New", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 18px;
+    line-height: 1.6;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+
+    /* INCISIONE TENUE della griglia di Manhattan su tutta la pagina */
+    background-image:
+      linear-gradient(to right,  var(--line-soft) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--line-soft) 1px, transparent 1px);
+    background-size: var(--grid) var(--grid);
+    background-position: -1px -1px;
+  }
+
+  /* velatura crema sopra la griglia: la rende un fantasma nei margini,
+     più nitida solo sul fondo. Tono caldo, mai freddo. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(120% 90% at 50% 0%, rgba(242,236,223,0.0) 0%, rgba(242,236,223,0.55) 55%, rgba(242,236,223,0.82) 100%),
+      linear-gradient(to right,  rgba(242,236,223,0.92) 0%, rgba(242,236,223,0) 14%, rgba(242,236,223,0) 86%, rgba(242,236,223,0.92) 100%);
+  }
+
+  /* grana cartacea finissima per togliere la piattezza digitale */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.05;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .stage { position: relative; z-index: 1; }
+
+  /* ----- selezione testo ----- */
+  ::selection { background: var(--cinabro); color: var(--paper); }
+
+  /* ============================================================
+     TESTATA / MASTHEAD
+     ============================================================ */
+  .masthead {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 22px 40px 16px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  .masthead__brand {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+  .masthead__brand .glyph { color: var(--cinabro); }
+  .masthead__meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--neutro);
+    display: flex;
+    gap: 26px;
+  }
+  .masthead__meta span:last-child { color: var(--ink-soft); }
+
+  /* ============================================================
+     HERO — composizione asimmetrica
+     ============================================================ */
+  .hero {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 64px 40px 30px;
+    position: relative;
+  }
+
+  /* numero/segnatura enorme nel margine */
+  .hero__folio {
+    position: absolute;
+    top: 34px;
+    right: 40px;
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(90px, 16vw, 220px);
+    line-height: 0.8;
+    color: var(--paper-tint);
+    letter-spacing: -0.03em;
+    user-select: none;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .hero__folio b {
+    font-weight: 300;
+    font-style: italic;
+    color: var(--paper-deep);
+  }
+
+  .hero__inner {
+    position: relative;
+    z-index: 2;
+    max-width: 920px;
+  }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--neutro);
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 30px;
+  }
+  .kicker::before {
+    content: "";
+    width: 30px;
+    height: 1px;
+    background: var(--cinabro);
+    display: inline-block;
+  }
+  .kicker .dot { color: var(--cinabro); }
+
+  h1.hero__title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(40px, 6.6vw, 88px);
+    line-height: 0.98;
+    letter-spacing: -0.022em;
+    margin: 0 0 0;
+    color: var(--ink);
+    max-width: 14ch;
+    font-optical-sizing: auto;
+  }
+  h1.hero__title em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--cinabro);
+  }
+
+  .hero__lede {
+    margin: 30px 0 0;
+    max-width: 50ch;
+    font-size: 20px;
+    line-height: 1.58;
+    color: var(--ink-soft);
+    font-weight: 400;
+  }
+
+  .hero__cta {
+    margin-top: 38px;
+    display: flex;
+    align-items: center;
+    gap: 26px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color .25s ease, color .25s ease, border-color .25s ease, transform .25s ease;
+  }
+  .btn--primary {
+    background: var(--cinabro);
+    color: var(--paper);
+    padding: 15px 26px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--cinabro);
+  }
+  .btn--primary .glyph { transition: transform .25s ease; }
+  .btn--primary:hover {
+    background: var(--cinabro-dk);
+    border-color: var(--cinabro-dk);
+  }
+  .btn--primary:hover .glyph { transform: translateX(3px); }
+
+  .btn--ghost {
+    color: var(--ink);
+    padding: 15px 4px;
+    border-bottom: 1px solid var(--ink);
+    background: none;
+  }
+  .btn--ghost:hover { color: var(--cinabro); border-color: var(--cinabro); }
+
+  /* fregio a scaletta L1 — separatore a gradini, 1px */
+  .stairs {
+    max-width: 1180px;
+    margin: 50px auto 0;
+    padding: 0 40px;
+  }
+  .stairs svg { display: block; width: 100%; height: 26px; }
+
+  /* ============================================================
+     CORPO — griglia editoriale asimmetrica a 12 colonne
+     ============================================================ */
+  .sheet {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: 32px;
+  }
+
+  /* ---- INDICE (colonna stretta a sinistra) ---- */
+  .toc {
+    grid-column: 1 / 4;
+    padding-top: 56px;
+    border-right: 1px solid var(--line);
+    padding-right: 28px;
+  }
+  .toc__head {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--neutro);
+    margin-bottom: 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .toc__head .rule { flex: 1; height: 1px; background: var(--line); margin-left: 14px; }
+
+  .toc ol { list-style: none; margin: 0; padding: 0; }
+  .toc li { border-bottom: 1px solid var(--line-soft); }
+  .toc li:first-child { border-top: 1px solid var(--line-soft); }
+  .toc a {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 13px 2px;
+    text-decoration: none;
+    color: var(--ink);
+    transition: color .2s ease, padding-left .25s ease;
+  }
+  .toc a .num {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--neutro);
+    letter-spacing: 0.04em;
+    transition: color .2s ease;
+    min-width: 22px;
+  }
+  .toc a .name {
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .toc a:hover { color: var(--cinabro); padding-left: 8px; }
+  .toc a:hover .num { color: var(--cinabro); }
+  .toc li.is-current a { color: var(--cinabro); }
+  .toc li.is-current .num { color: var(--cinabro); font-weight: 600; }
+  .toc li.is-current .name { font-style: italic; }
+
+  .toc__foot {
+    margin-top: 26px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    line-height: 1.7;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--neutro-lt);
+  }
+
+  /* ---- ESTRATTO (colonna larga a destra) ---- */
+  .extract {
+    grid-column: 4 / 13;
+    padding: 56px 0 40px 56px;
+    position: relative;
+  }
+
+  /* numero di sezione ENORME nel margine, a cavallo della regola */
+  .extract__folio {
+    position: absolute;
+    top: 40px;
+    left: -10px;
+    transform: translateX(-100%);
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 132px;
+    line-height: 0.8;
+    color: var(--cinabro);
+    opacity: 0.92;
+    letter-spacing: -0.04em;
+    user-select: none;
+  }
+
+  .section-kicker {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--neutro);
+    margin-bottom: 16px;
+  }
+  .section-kicker b { color: var(--ink); font-weight: 600; }
+
+  h2.extract__title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(30px, 4.4vw, 50px);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    margin: 0 0 28px;
+    color: var(--ink);
+    max-width: 16ch;
+  }
+
+  /* layout interno: testo + figura che sconfina */
+  .extract__cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.15fr);
+    gap: 44px;
+    align-items: start;
+  }
+
+  .prose { position: relative; }
+
+  /* CAPOLETTERA (drop cap) */
+  .prose p.lead {
+    margin: 0 0 22px;
+    font-size: 19px;
+    line-height: 1.62;
+    color: var(--ink-soft);
+  }
+  .prose p.lead::first-letter {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 4.4em;
+    line-height: 0.78;
+    float: left;
+    padding: 8px 14px 0 0;
+    color: var(--cinabro);
+    font-optical-sizing: auto;
+  }
+
+  /* formula come reperto, incorniciata da regole orizzontali */
+  .formula {
+    margin: 30px 0 6px;
+    padding: 22px 0 20px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    position: relative;
+    text-align: center;
+  }
+  .formula__label {
+    position: absolute;
+    top: 8px;
+    right: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--neutro-lt);
+  }
+  .formula .eq {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(22px, 3vw, 31px);
+    color: var(--ink);
+    letter-spacing: 0.01em;
+  }
+  .formula .eq .op { color: var(--cinabro); font-style: normal; padding: 0 2px; }
+  .formula .eq sub {
+    font-size: 0.58em;
+    font-style: normal;
+    color: var(--neutro);
+  }
+
+  /* ---- FIGURA (SVG) che sconfina oltre la colonna ---- */
+  .figure {
+    position: relative;
+    margin-right: -56px;          /* sconfinamento oltre il bordo destro */
+    align-self: start;
+  }
+  .figure__frame {
+    position: relative;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    box-shadow: 18px 18px 0 -1px var(--paper-deep);  /* ombra "stampata", piatta e calda */
+  }
+  .figure svg { display: block; width: 100%; height: auto; }
+
+  .figure__cap {
+    margin-top: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--neutro);
+  }
+  .figure__cap .fig-no { color: var(--cinabro); font-weight: 600; }
+  .figure__cap .legend {
+    font-family: var(--body);
+    font-style: italic;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 13.5px;
+    color: var(--neutro);
+    text-align: right;
+    line-height: 1.4;
+  }
+
+  /* MARGINALIA — label minuscola maiuscoletta, angolo opposto */
+  .marginalia {
+    position: absolute;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--neutro-lt);
+    line-height: 1.5;
+    max-width: 18ch;
+  }
+  .marginalia--a {
+    top: 6px;
+    left: -34px;
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    white-space: nowrap;
+  }
+
+  /* legenda simboli geometrici sotto la figura */
+  .keys {
+    margin-top: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 22px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .keys .k { display: inline-flex; align-items: center; gap: 9px; }
+  .keys .k svg { display: block; }
+
+  /* ============================================================
+     COLOPHON / FOOTER
+     ============================================================ */
+  .colophon {
+    max-width: 1180px;
+    margin: 30px auto 0;
+    padding: 22px 40px 40px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--neutro);
+  }
+  .colophon .glyph { color: var(--cinabro); margin-right: 9px; vertical-align: middle; }
+  .colophon .right { color: var(--neutro-lt); }
+
+  /* ============================================================
+     ANIMAZIONE D'INGRESSO — un solo reveal staggered
+     ============================================================ */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes inkLine {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+  @keyframes drawStroke {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .reveal {
+    opacity: 0;
+    animation: rise .9s cubic-bezier(.2,.7,.2,1) forwards;
+    animation-delay: var(--d, 0s);
+  }
+  .reveal-line {
+    transform-origin: left center;
+    animation: inkLine 1s cubic-bezier(.2,.7,.2,1) forwards;
+    animation-delay: var(--d, 0s);
+  }
+
+  /* la figura si "disegna" all'ingresso */
+  .fig-draw {
+    stroke-dasharray: var(--len, 1000);
+    stroke-dashoffset: var(--len, 1000);
+    animation: drawStroke 1.5s cubic-bezier(.4,.6,.2,1) forwards;
+    animation-delay: var(--d, 0s);
+  }
+  .fig-fade {
+    opacity: 0;
+    animation: fadeIn .8s ease forwards;
+    animation-delay: var(--d, 0s);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .reveal-line, .fig-draw, .fig-fade {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+      stroke-dashoffset: 0 !important;
+    }
+  }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width: 880px) {
+    body { font-size: 17px; }
+    .masthead, .hero, .sheet, .stairs, .colophon { padding-left: 22px; padding-right: 22px; }
+    .masthead__meta { display: none; }
+    .sheet { display: block; }
+    .toc { border-right: none; padding-right: 0; border-bottom: 1px solid var(--line); padding-bottom: 36px; }
+    .extract { padding: 44px 0 30px; }
+    .extract__folio { font-size: 84px; position: static; transform: none; display: block; margin-bottom: -10px; }
+    .extract__cols { display: block; }
+    .figure { margin-right: 0; margin-top: 36px; }
+    .figure__frame { box-shadow: 12px 12px 0 -1px var(--paper-deep); }
+    .marginalia--a { display: none; }
+    .hero__folio { opacity: 0.6; }
+  }
+</style>
+</head>
+
+<body>
+<div class="stage">
+
+  <!-- ===================== MASTHEAD ===================== -->
+  <header class="masthead reveal" style="--d:0s">
+    <div class="masthead__brand">
+      <!-- glyph: quadrato ruotato 45° (rombo pieno) -->
+      <svg class="glyph" width="13" height="13" viewBox="0 0 13 13" aria-hidden="true">
+        <path d="M6.5 0.7 L12.3 6.5 L6.5 12.3 L0.7 6.5 Z" fill="currentColor"/>
+      </svg>
+      Geometria del Taxi
+    </div>
+    <div class="masthead__meta">
+      <span>Metrica L₁ · Manhattan</span>
+      <span>Fascicolo n. 01</span>
+    </div>
+  </header>
+
+  <!-- ===================== HERO ===================== -->
+  <section class="hero">
+    <div class="hero__folio reveal" style="--d:.05s" aria-hidden="true">L<b>₁</b></div>
+    <div class="hero__inner">
+
+      <div class="kicker reveal" style="--d:.12s">
+        Geometria del Taxi <span class="dot">·</span> Metrica L₁
+      </div>
+
+      <h1 class="hero__title reveal" style="--d:.22s">
+        Quando la retta più breve <em>non&nbsp;è</em> la diagonale
+      </h1>
+
+      <p class="hero__lede reveal" style="--d:.34s">
+        Nella distanza di Manhattan i cerchi diventano rombi e le coniche
+        cambiano forma. Esplora la geometria del taxi, con visualizzazioni
+        e un calcolatore interattivo.
+      </p>
+
+      <div class="hero__cta reveal" style="--d:.46s">
+        <a class="btn btn--primary" href="#">
+          Apri il calcolatore
+          <!-- glyph: croce 1px dentro freccia minimale -->
+          <svg class="glyph" width="14" height="12" viewBox="0 0 14 12" aria-hidden="true">
+            <path d="M0 6 H12 M7 1 L12 6 L7 11" fill="none" stroke="currentColor" stroke-width="1.4"/>
+          </svg>
+        </a>
+        <a class="btn btn--ghost" href="#">Leggi la teoria</a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== fregio a scaletta L1 (separatore 1px a gradini) ===== -->
+  <div class="stairs" aria-hidden="true">
+    <svg viewBox="0 0 1100 26" preserveAspectRatio="none">
+      <!-- linea a gradini: l'unità della metrica taxicab -->
+      <path class="reveal-line" style="--d:.6s"
+        d="M0 25 H40 V13 H80 V25 H120 V13 H160 V25 H200 V13 H240 V25 H280 V13 H320 V25
+           H360 V13 H400 V25 H440 V13 H480 V25 H520 V13 H560 V25 H600 V13 H640 V25
+           H680 V13 H720 V25 H760 V13 H800 V25 H840 V13 H880 V25 H920 V13 H960 V25
+           H1000 V13 H1040 V25 H1100"
+        fill="none" stroke="var(--line)" stroke-width="1"/>
+      <!-- un solo gradino in cinabro: il dettaglio d'accento -->
+      <path class="reveal-line" style="--d:.78s"
+        d="M520 25 H560 V13 H600"
+        fill="none" stroke="var(--cinabro)" stroke-width="1.4"/>
+    </svg>
+  </div>
+
+  <!-- ===================== CORPO ===================== -->
+  <main class="sheet">
+
+    <!-- ---------- INDICE ---------- -->
+    <nav class="toc reveal" style="--d:.5s" aria-label="Indice delle sezioni">
+      <div class="toc__head">Indice <span class="rule"></span></div>
+      <ol>
+        <li><a href="#"><span class="num">01</span><span class="name">Fondamenti</span></a></li>
+        <li class="is-current"><a href="#"><span class="num">02</span><span class="name">Circonferenza</span></a></li>
+        <li><a href="#"><span class="num">03</span><span class="name">Ellisse</span></a></li>
+        <li><a href="#"><span class="num">04</span><span class="name">Iperbole</span></a></li>
+        <li><a href="#"><span class="num">05</span><span class="name">Parabola</span></a></li>
+        <li><a href="#"><span class="num">06</span><span class="name">Calcolatore</span></a></li>
+      </ol>
+      <div class="toc__foot">
+        Sei sezioni · una metrica<br/>d(P,Q) = |Δx| + |Δy|
+      </div>
+    </nav>
+
+    <!-- ---------- ESTRATTO ---------- -->
+    <article class="extract">
+      <div class="extract__folio reveal" style="--d:.55s" aria-hidden="true">02</div>
+
+      <div class="reveal" style="--d:.62s">
+        <div class="section-kicker">Estratto <b>·</b> Sezione 02 <b>·</b> Le coniche del taxi</div>
+        <h2 class="extract__title">La circonferenza taxicab</h2>
+      </div>
+
+      <div class="extract__cols">
+
+        <!-- TESTO con capolettera + formula -->
+        <div class="prose reveal" style="--d:.72s">
+          <p class="lead">
+            Il luogo dei punti a distanza R dal centro, nella metrica L₁,
+            non è un cerchio ma un quadrato ruotato di 45°: un rombo.
+            I quattro vertici stanno sui semiassi a distanza R.
+          </p>
+
+          <div class="formula">
+            <span class="formula__label">Eq. taxicab</span>
+            <span class="eq">
+              |x <span class="op">−</span> x<sub>c</sub>| <span class="op">+</span> |y <span class="op">−</span> y<sub>c</sub>| <span class="op">=</span> R
+            </span>
+          </div>
+        </div>
+
+        <!-- FIGURA SVG che sconfina -->
+        <figure class="figure">
+          <div class="marginalia marginalia--a reveal" style="--d:1s" aria-hidden="true">Fig. — sfera unitaria L₁</div>
+
+          <div class="figure__frame">
+            <!-- griglia 0..10 mappata su 0..300; centro (5,5)=(150,150); R=3 → 90px -->
+            <svg viewBox="0 0 300 300" role="img"
+                 aria-label="Rombo della circonferenza taxicab di raggio R con i quattro vertici e il cerchio euclideo tratteggiato circoscritto">
+              <defs>
+                <pattern id="taxigrid" width="30" height="30" patternUnits="userSpaceOnUse">
+                  <path d="M30 0 H0 V30" fill="none" stroke="#D8CFBA" stroke-width="1"/>
+                </pattern>
+              </defs>
+
+              <!-- griglia tenue di Manhattan -->
+              <rect class="fig-fade" style="--d:.7s" x="0" y="0" width="300" height="300" fill="url(#taxigrid)"/>
+
+              <!-- assi cartesiani 1px attraverso il centro -->
+              <g class="fig-fade" style="--d:.8s" stroke="#C9BFA9" stroke-width="1">
+                <line x1="150" y1="12" x2="150" y2="288"/>
+                <line x1="12" y1="150" x2="288" y2="150"/>
+              </g>
+
+              <!-- CERCHIO EUCLIDEO "fantasma" tratteggiato, circoscritto (r = R = 90) -->
+              <circle class="fig-fade" style="--d:1.25s"
+                cx="150" cy="150" r="90"
+                fill="none" stroke="#7C7468" stroke-width="1"
+                stroke-dasharray="3 5" opacity="0.7"/>
+
+              <!-- ROMBO = circonferenza taxicab, R=3 (90px) -->
+              <!-- vertici N(150,60) E(240,150) S(150,240) W(60,150) -->
+              <polygon class="fig-draw" style="--len:720; --d:.95s"
+                points="150,60 240,150 150,240 60,150"
+                fill="rgba(199,54,30,0.05)"
+                stroke="#C7361E" stroke-width="2"
+                stroke-linejoin="miter"/>
+
+              <!-- raggio campione lungo la "scaletta" L1 dal centro al vertice E -->
+              <path class="fig-fade" style="--d:1.4s"
+                d="M150 150 H210 V150 M210 150 H240"
+                fill="none" stroke="#A12A16" stroke-width="1.4" stroke-dasharray="2 3"/>
+
+              <!-- 4 VERTICI sui semiassi: punto pieno cinabro con alone crema -->
+              <g class="fig-fade" style="--d:1.5s">
+                <circle cx="150" cy="60"  r="4.6" fill="#C7361E" stroke="#F2ECDF" stroke-width="1.6"/>
+                <circle cx="240" cy="150" r="4.6" fill="#C7361E" stroke="#F2ECDF" stroke-width="1.6"/>
+                <circle cx="150" cy="240" r="4.6" fill="#C7361E" stroke="#F2ECDF" stroke-width="1.6"/>
+                <circle cx="60"  cy="150" r="4.6" fill="#C7361E" stroke="#F2ECDF" stroke-width="1.6"/>
+              </g>
+
+              <!-- centro: croce 1px -->
+              <g class="fig-fade" style="--d:1.55s" stroke="#17130D" stroke-width="1.2">
+                <line x1="143" y1="150" x2="157" y2="150"/>
+                <line x1="150" y1="143" x2="150" y2="157"/>
+              </g>
+
+              <!-- etichetta R lungo il semiasse -->
+              <text class="fig-fade" style="--d:1.6s" x="196" y="166"
+                font-family="IBM Plex Mono, monospace" font-size="12"
+                fill="#A12A16" letter-spacing="1">R</text>
+              <text class="fig-fade" style="--d:1.6s" x="150" y="150"
+                font-family="IBM Plex Mono, monospace" font-size="9.5"
+                fill="#7C7468" dx="6" dy="-5">c</text>
+            </svg>
+          </div>
+
+          <figcaption class="figure__cap">
+            <span><span class="fig-no">Fig. 02</span> — Rombo taxicab</span>
+            <span class="legend">Il rombo è la “circonferenza”;<br/>il cerchio euclideo lo circoscrive.</span>
+          </figcaption>
+
+          <!-- legenda con simboli geometrici custom -->
+          <div class="keys">
+            <span class="k" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 1 L13 7 L7 13 L1 7 Z" fill="none" stroke="#C7361E" stroke-width="1.6"/></svg>
+              Taxi · L₁
+            </span>
+            <span class="k" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="none" stroke="#7C7468" stroke-width="1.4" stroke-dasharray="2.5 3"/></svg>
+              Euclide · L₂
+            </span>
+            <span class="k" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="3.4" fill="#C7361E" stroke="#F2ECDF" stroke-width="1.4"/></svg>
+              Vertice
+            </span>
+          </div>
+        </figure>
+
+      </div>
+    </article>
+  </main>
+
+  <!-- ===================== COLOPHON ===================== -->
+  <footer class="colophon reveal" style="--d:.7s">
+    <span>
+      <svg class="glyph" width="11" height="11" viewBox="0 0 13 13" aria-hidden="true"><path d="M6.5 0.7 L12.3 6.5 L6.5 12.3 L0.7 6.5 Z" fill="currentColor"/></svg>
+      Un'esplorazione della metrica L₁
+    </span>
+    <span class="right">Carta · Inchiostro · Cinabro</span>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geometria del Taxi — Quando la retta più breve non è la diagonale</title>
+<meta name="description" content="Nella metrica L₁ di Manhattan i cerchi diventano rombi e le coniche cambiano forma. Un'esplorazione visuale della geometria del taxi.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&display=swap" rel="stylesheet">
+
+<style>
+  /* ============================================================
+     GEOMETRIA DEL TAXI · bozza "minimalismo organico caldo"
+     carta & inchiostro — osso/avena, espresso, terracotta
+     ============================================================ */
+
+  :root{
+    --osso:        #EAE3D5;   /* dominante: carta osso/avena */
+    --osso-chiaro: #F2ECE0;   /* incavo luminoso */
+    --osso-velo:   #E1D8C7;   /* griglie tenui, hairline */
+    --espresso:    #221A11;   /* testo / inchiostro */
+    --terracotta:  #C75B39;   /* UNICO accento, parsimonioso */
+    --terra-velo:  #C75B3922; /* alone terracotta */
+    --neutro:      #8C8270;   /* label, secondario */
+    --neutro-velo: #8C827033;
+
+    --linea:       #221A1120; /* hairline su carta */
+    --linea-forte: #221A1138;
+
+    --misura: clamp(20px, 4.4vw, 64px); /* gronda laterale */
+    --serif: "Fraunces", Georgia, serif;
+    --display: "Syne", sans-serif;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html{ -webkit-text-size-adjust:100%; }
+
+  body{
+    margin:0;
+    background:var(--osso);
+    color:var(--espresso);
+    font-family:var(--serif);
+    font-weight:400;
+    font-optical-sizing:auto;
+    line-height:1.5;
+    /* grana di carta finissima, generata in CSS — niente immagini esterne */
+    background-image:
+      radial-gradient(var(--osso-chiaro) 0.6px, transparent 0.7px),
+      radial-gradient(var(--osso-velo)  0.6px, transparent 0.7px);
+    background-size: 7px 7px, 11px 11px;
+    background-position: 0 0, 3px 4px;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+
+  ::selection{ background:var(--terracotta); color:var(--osso-chiaro); }
+
+  a{ color:inherit; text-decoration:none; }
+
+  /* ---------- micro-iconografia: rombo L₁ disegnato ------------- */
+  .glyph{ display:inline-block; vertical-align:middle; overflow:visible; }
+  .glyph path, .glyph line, .glyph circle, .glyph polyline{
+    vector-effect:non-scaling-stroke;
+  }
+
+  /* ============================================================
+     IMPALCATURA
+     ============================================================ */
+  .wrap{
+    max-width:1180px;
+    margin-inline:auto;
+    padding-inline:var(--misura);
+  }
+
+  /* hairline ricorrente — separatore, mai card */
+  .rule{
+    height:1px;
+    background:var(--linea);
+    border:0;
+    margin:0;
+  }
+
+  /* ---------- TOPBAR ---------- */
+  .topbar{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:24px;
+    padding-block:22px 18px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    font-family:var(--display);
+    font-weight:700;
+    letter-spacing:0.01em;
+    font-size:15px;
+  }
+  .brand .glyph{ color:var(--terracotta); }
+  .topnav{
+    display:flex;
+    gap:30px;
+    font-family:var(--display);
+    font-weight:500;
+    font-size:12.5px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--neutro);
+  }
+  .topnav a{ position:relative; transition:color .25s ease; }
+  .topnav a::after{
+    content:""; position:absolute; left:0; right:100%; bottom:-5px;
+    height:1px; background:var(--terracotta); transition:right .3s ease;
+  }
+  .topnav a:hover{ color:var(--espresso); }
+  .topnav a:hover::after{ right:0; }
+  @media (max-width:720px){ .topnav{ display:none; } }
+
+  /* label angolari minuscole, lettera di stampa */
+  .tag{
+    font-family:var(--display);
+    font-weight:600;
+    font-size:11px;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--neutro);
+  }
+  .tag-terra{ color:var(--terracotta); }
+
+  /* ============================================================
+     HERO — composizione asimmetrica/editoriale
+     ============================================================ */
+  .hero{
+    position:relative;
+    display:grid;
+    grid-template-columns: minmax(0, 1.18fr) minmax(0, 0.82fr);
+    gap: clamp(28px, 5vw, 76px);
+    align-items:end;
+    padding-block: clamp(46px, 9vh, 104px) clamp(40px, 7vh, 78px);
+  }
+  @media (max-width:860px){
+    .hero{ grid-template-columns:1fr; gap:36px; align-items:start; }
+  }
+
+  .hero-kicker{
+    display:flex; align-items:center; gap:12px;
+    margin-bottom: clamp(26px, 5vh, 52px);
+  }
+  .hero-kicker .bar{ width:34px; height:1px; background:var(--terracotta); }
+
+  .hero h1{
+    font-family:var(--display);
+    font-weight:800;
+    font-size: clamp(40px, 7.4vw, 92px);
+    line-height:0.98;
+    letter-spacing:-0.018em;
+    margin:0;
+    max-width:14ch;
+    text-wrap:balance;
+  }
+  /* contrasto di PESO, non di colore: "non" alleggerito, accento sottile */
+  .hero h1 em{
+    font-style:normal;
+    font-weight:500;
+    color:var(--neutro);
+  }
+  .hero h1 .ink{
+    position:relative;
+    white-space:nowrap;
+  }
+  /* segno-inchiostro sotto "diagonale": breve scaletta a gradini terracotta */
+  .hero h1 .ink .underink{
+    position:absolute; left:0; right:0; bottom:-0.12em; height:0.5em;
+    color:var(--terracotta);
+    opacity:.85;
+  }
+
+  .lede{
+    margin-top: clamp(26px, 4vh, 40px);
+    max-width:46ch;
+    font-size: clamp(16px, 1.55vw, 19px);
+    line-height:1.62;
+    color:#3a2f22;
+    font-weight:400;
+  }
+
+  .cta-row{
+    margin-top: clamp(30px, 4.5vh, 46px);
+    display:flex; align-items:center; gap:26px; flex-wrap:wrap;
+  }
+  .btn{
+    --pad:16px 26px;
+    display:inline-flex; align-items:center; gap:12px;
+    font-family:var(--display); font-weight:600;
+    font-size:14px; letter-spacing:0.02em;
+    padding:var(--pad);
+    border:1px solid transparent;
+    border-radius:2px; /* quasi spigolo — niente pillole */
+    transition: background .28s ease, color .28s ease, transform .28s ease, border-color .28s ease;
+    cursor:pointer;
+  }
+  .btn-primary{
+    background:var(--terracotta); color:var(--osso-chiaro);
+  }
+  .btn-primary .glyph{ color:var(--osso-chiaro); }
+  .btn-primary:hover{ transform:translateY(-2px); background:#b54e2f; }
+  .btn-ghost{
+    color:var(--espresso);
+    border-color:var(--linea-forte);
+    background:transparent;
+  }
+  .btn-ghost:hover{ border-color:var(--espresso); transform:translateY(-2px); }
+  .btn-ghost .arrow{ transition:transform .28s ease; }
+  .btn-ghost:hover .arrow{ transform:translatex(4px); }
+
+  /* ---- figura hero: rombo grande, calmo, asimmetrico ---- */
+  .hero-figure{
+    position:relative;
+    align-self:end;
+    justify-self:end;
+    width:100%;
+    max-width:420px;
+  }
+  .hero-figure .corner-tag{
+    position:absolute; top:-26px; right:2px;
+    text-align:right;
+  }
+  .hero-figure .base-tag{
+    position:absolute; bottom:-8px; left:2px;
+  }
+  .hero-figure svg{ width:100%; height:auto; display:block; overflow:visible; }
+  @media (max-width:860px){
+    .hero-figure{ justify-self:start; max-width:300px; margin-top:8px; }
+    .hero-figure .corner-tag{ right:auto; left:2px; text-align:left; }
+  }
+
+  /* ============================================================
+     INDICE — fila editoriale di numeri, separata da hairline
+     ============================================================ */
+  .indice{
+    padding-block: clamp(30px, 5vh, 54px);
+  }
+  .indice-head{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom:26px;
+  }
+  .toc{
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap:0;
+  }
+  @media (max-width:860px){ .toc{ grid-template-columns:repeat(3,1fr); } }
+  @media (max-width:480px){ .toc{ grid-template-columns:repeat(2,1fr); } }
+
+  .toc-item{
+    position:relative;
+    padding: 18px 18px 22px 0;
+    border-top:1px solid var(--linea);
+    margin-top:-1px;
+    transition: color .25s ease;
+  }
+  .toc-item .num{
+    font-family:var(--display); font-weight:700;
+    font-size:13px; letter-spacing:0.04em;
+    color:var(--terracotta);
+    display:block; margin-bottom:10px;
+  }
+  .toc-item .name{
+    font-family:var(--serif);
+    font-size: clamp(15px, 1.7vw, 19px);
+    font-weight:500;
+    line-height:1.2;
+    color:var(--espresso);
+  }
+  .toc-item::after{
+    content:""; position:absolute; left:0; top:-1px; height:1px; width:0;
+    background:var(--terracotta); transition:width .35s ease;
+  }
+  .toc-item:hover::after{ width:100%; }
+  .toc-item:hover .name{ color:var(--terracotta); }
+
+  /* ============================================================
+     ESTRATTO 02 — circonferenza taxicab (figura + testo)
+     ============================================================ */
+  .estratto{
+    position:relative;
+    display:grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    gap: clamp(34px, 6vw, 88px);
+    align-items:center;
+    padding-block: clamp(54px, 9vh, 112px);
+  }
+  @media (max-width:860px){
+    .estratto{ grid-template-columns:1fr; gap:40px; }
+  }
+
+  .estratto-fig{ position:relative; }
+  .estratto-fig svg{ width:100%; height:auto; display:block; overflow:visible; }
+  .estratto-fig .fig-label{
+    position:absolute; bottom:-4px; right:6px;
+  }
+  .estratto-fig .fig-label-top{
+    position:absolute; top:-6px; left:6px;
+  }
+
+  .estratto-body .eyebrow{
+    display:flex; align-items:center; gap:12px;
+    margin-bottom:22px;
+  }
+  .estratto-body .eyebrow .bar{ width:28px; height:1px; background:var(--terracotta); }
+
+  .estratto-body h2{
+    font-family:var(--display);
+    font-weight:700;
+    font-size: clamp(27px, 3.6vw, 44px);
+    line-height:1.04;
+    letter-spacing:-0.01em;
+    margin:0 0 24px;
+    max-width:16ch;
+    text-wrap:balance;
+  }
+  .estratto-body p{
+    font-size: clamp(15.5px, 1.4vw, 18px);
+    line-height:1.66;
+    color:#3a2f22;
+    max-width:50ch;
+    margin:0 0 28px;
+  }
+  .estratto-body p .lift{ font-style:italic; color:var(--espresso); }
+
+  /* formula: composta su carta, hairline sopra e sotto */
+  .formula{
+    display:flex; align-items:center; gap:18px;
+    padding:20px 0;
+    border-top:1px solid var(--linea);
+    border-bottom:1px solid var(--linea);
+    max-width:50ch;
+  }
+  .formula .eq{
+    font-family:var(--serif);
+    font-size: clamp(20px, 2.3vw, 27px);
+    font-weight:400;
+    letter-spacing:0.01em;
+  }
+  .formula .eq .sub{ font-size:0.66em; vertical-align:-0.18em; color:var(--neutro); }
+  .formula .eq .op{ color:var(--terracotta); padding:0 0.12em; }
+  .formula .glyph{ color:var(--terracotta); flex:0 0 auto; }
+
+  /* ============================================================
+     FOOTER
+     ============================================================ */
+  footer{
+    padding-block: 40px 56px;
+  }
+  .footer-row{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:20px; flex-wrap:wrap;
+    padding-top:24px;
+    border-top:1px solid var(--linea);
+  }
+  .footer-row .sig{
+    font-family:var(--serif); font-style:italic;
+    font-size:16px; color:#3a2f22;
+  }
+  .footer-row .meta{
+    font-family:var(--display); font-weight:600;
+    font-size:11px; letter-spacing:0.2em; text-transform:uppercase;
+    color:var(--neutro);
+    display:flex; align-items:center; gap:12px;
+  }
+
+  /* ============================================================
+     ANIMAZIONE D'INGRESSO — reveal staggered, soffice
+     ============================================================ */
+  .reveal{
+    opacity:0;
+    transform:translateY(16px);
+    transition: opacity .9s cubic-bezier(.2,.6,.15,1),
+                transform .9s cubic-bezier(.2,.6,.15,1);
+    transition-delay: var(--d, 0ms);
+  }
+  .reveal.is-in{ opacity:1; transform:none; }
+
+  /* tracciamento della figura: i path si "disegnano" */
+  .draw{
+    stroke-dasharray: var(--len, 600);
+    stroke-dashoffset: var(--len, 600);
+    transition: stroke-dashoffset 1.5s cubic-bezier(.45,.05,.2,1);
+    transition-delay: var(--d, 300ms);
+  }
+  .draw.is-in{ stroke-dashoffset:0; }
+  .pop{
+    opacity:0; transform:scale(.4); transform-origin:center;
+    transition: opacity .5s ease, transform .55s cubic-bezier(.2,1.4,.3,1);
+    transition-delay: var(--d, 800ms);
+  }
+  .pop.is-in{ opacity:1; transform:scale(1); }
+
+  @media (prefers-reduced-motion: reduce){
+    .reveal, .draw, .pop{
+      transition:none !important;
+      opacity:1 !important;
+      transform:none !important;
+      stroke-dashoffset:0 !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================ TOPBAR ============================ -->
+<div class="wrap">
+  <header class="topbar reveal" style="--d:0ms">
+    <a class="brand" href="#" aria-label="Geometria del Taxi">
+      <!-- rombo L₁ — marchio -->
+      <svg class="glyph" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M10 1.5 L18.5 10 L10 18.5 L1.5 10 Z" stroke="currentColor" stroke-width="1.5"/>
+        <circle cx="10" cy="10" r="1.4" fill="currentColor"/>
+      </svg>
+      <span>Geometria del Taxi</span>
+    </a>
+    <nav class="topnav" aria-label="Sezioni">
+      <a href="#fondamenti">Teoria</a>
+      <a href="#circonferenza">Coniche</a>
+      <a href="#calcolatore">Calcolatore</a>
+    </nav>
+  </header>
+</div>
+
+<hr class="rule reveal" style="--d:60ms">
+
+<!-- ============================ HERO ============================ -->
+<main>
+<section class="wrap hero" aria-labelledby="h1">
+
+  <div class="hero-text">
+    <div class="hero-kicker reveal" style="--d:120ms">
+      <span class="bar"></span>
+      <span class="tag tag-terra">Geometria del Taxi</span>
+      <span class="tag">· Metrica L₁</span>
+    </div>
+
+    <h1 id="h1" class="reveal" style="--d:200ms">
+      Quando la <em>retta più breve</em> non è la
+      <span class="ink">diagonale<!--
+       --><svg class="underink" viewBox="0 0 220 18" preserveAspectRatio="none" fill="none" aria-hidden="true">
+            <!-- scaletta a gradini: percorso taxicab sotto la parola -->
+            <polyline points="2,15 40,15 40,7 95,7 95,14 150,14 150,6 218,6"
+                      stroke="currentColor" stroke-width="2.4"
+                      stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+      </span>
+    </h1>
+
+    <p class="lede reveal" style="--d:300ms">
+      Nella distanza di Manhattan i cerchi diventano rombi e le coniche
+      cambiano forma. Esplora la geometria del taxi, con visualizzazioni
+      e un calcolatore interattivo.
+    </p>
+
+    <div class="cta-row reveal" style="--d:400ms">
+      <a class="btn btn-primary" href="#calcolatore">
+        <svg class="glyph" width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 1 L15 8 L8 15 L1 8 Z" stroke="currentColor" stroke-width="1.4"/>
+          <path d="M8 4.5 L8 11.5 M4.5 8 L11.5 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        Apri il calcolatore
+      </a>
+      <a class="btn btn-ghost" href="#fondamenti">
+        Leggi la teoria
+        <span class="arrow tag" aria-hidden="true">→</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- figura hero: rombo L₁ grande con punto-centro e alone -->
+  <figure class="hero-figure reveal" style="--d:320ms" aria-hidden="true">
+    <span class="corner-tag tag">Sfera unitaria<br>nella metrica L₁</span>
+    <svg viewBox="0 0 360 360" fill="none">
+      <!-- griglia tenue, solo accenni -->
+      <g stroke="var(--osso-velo)" stroke-width="1">
+        <line x1="180" y1="20" x2="180" y2="340"/>
+        <line x1="40" y1="180" x2="320" y2="180"/>
+        <line x1="110" y1="50" x2="110" y2="310"/>
+        <line x1="250" y1="50" x2="250" y2="310"/>
+        <line x1="60" y1="110" x2="300" y2="110"/>
+        <line x1="60" y1="250" x2="300" y2="250"/>
+      </g>
+      <!-- cerchio euclideo fantasma, circoscritto, tratteggiato -->
+      <circle cx="180" cy="180" r="140" stroke="var(--neutro)" stroke-width="1"
+              stroke-dasharray="3 6" opacity="0.5"
+              class="draw" style="--len:880; --d:500ms"/>
+      <!-- rombo L₁ -->
+      <path d="M180 40 L320 180 L180 320 L40 180 Z"
+            stroke="var(--espresso)" stroke-width="2"
+            stroke-linejoin="round"
+            class="draw" style="--len:800; --d:300ms"/>
+      <!-- alone terracotta sul centro -->
+      <circle cx="180" cy="180" r="14" fill="var(--terra-velo)" class="pop" style="--d:1100ms"/>
+      <circle cx="180" cy="180" r="3.4" fill="var(--terracotta)" class="pop" style="--d:1100ms"/>
+      <!-- 4 vertici -->
+      <g class="pop" style="--d:1250ms">
+        <circle cx="180" cy="40"  r="4.2" fill="var(--osso)" stroke="var(--terracotta)" stroke-width="1.8"/>
+        <circle cx="320" cy="180" r="4.2" fill="var(--osso)" stroke="var(--terracotta)" stroke-width="1.8"/>
+        <circle cx="180" cy="320" r="4.2" fill="var(--osso)" stroke="var(--terracotta)" stroke-width="1.8"/>
+        <circle cx="40"  cy="180" r="4.2" fill="var(--osso)" stroke="var(--terracotta)" stroke-width="1.8"/>
+      </g>
+    </svg>
+    <span class="base-tag tag tag-terra">r = 1</span>
+  </figure>
+</section>
+
+<!-- ============================ INDICE ============================ -->
+<section class="wrap indice" id="fondamenti" aria-labelledby="toc-title">
+  <hr class="rule reveal" style="--d:0ms">
+  <div class="indice-head reveal" style="--d:80ms">
+    <span class="tag" id="toc-title">Indice — sei stazioni</span>
+    <span class="tag tag-terra">L₁</span>
+  </div>
+  <nav class="toc" aria-label="Indice delle sezioni">
+    <a class="toc-item reveal" style="--d:120ms" href="#fondamenti">
+      <span class="num">01</span><span class="name">Fondamenti</span>
+    </a>
+    <a class="toc-item reveal" style="--d:170ms" href="#circonferenza">
+      <span class="num">02</span><span class="name">Circonferenza</span>
+    </a>
+    <a class="toc-item reveal" style="--d:220ms" href="#ellisse">
+      <span class="num">03</span><span class="name">Ellisse</span>
+    </a>
+    <a class="toc-item reveal" style="--d:270ms" href="#iperbole">
+      <span class="num">04</span><span class="name">Iperbole</span>
+    </a>
+    <a class="toc-item reveal" style="--d:320ms" href="#parabola">
+      <span class="num">05</span><span class="name">Parabola</span>
+    </a>
+    <a class="toc-item reveal" style="--d:370ms" href="#calcolatore">
+      <span class="num">06</span><span class="name">Calcolatore</span>
+    </a>
+  </nav>
+</section>
+
+<!-- ===================== ESTRATTO 02 ===================== -->
+<section class="wrap estratto" id="circonferenza" aria-labelledby="est-title">
+
+  <!-- FIGURA: rombo su griglia, 4 vertici, cerchio fantasma -->
+  <figure class="estratto-fig reveal" style="--d:120ms" aria-label="Circonferenza taxicab: un rombo con i quattro vertici sui semiassi, circoscritto da un cerchio euclideo tratteggiato.">
+    <span class="fig-label-top tag">Fig. 02</span>
+    <svg viewBox="0 0 400 360" fill="none">
+      <!-- griglia tenue intera -->
+      <g stroke="var(--osso-velo)" stroke-width="1">
+        <line x1="40"  y1="40" x2="40"  y2="320"/>
+        <line x1="100" y1="40" x2="100" y2="320"/>
+        <line x1="160" y1="40" x2="160" y2="320"/>
+        <line x1="220" y1="40" x2="220" y2="320"/>
+        <line x1="280" y1="40" x2="280" y2="320"/>
+        <line x1="340" y1="40" x2="340" y2="320"/>
+        <line x1="40" y1="40"  x2="340" y2="40"/>
+        <line x1="40" y1="100" x2="340" y2="100"/>
+        <line x1="40" y1="160" x2="340" y2="160"/>
+        <line x1="40" y1="220" x2="340" y2="220"/>
+        <line x1="40" y1="280" x2="340" y2="280"/>
+      </g>
+      <!-- assi marcati -->
+      <g stroke="var(--linea-forte)" stroke-width="1.2">
+        <line x1="190" y1="40" x2="190" y2="320"/>
+        <line x1="40" y1="180" x2="340" y2="180"/>
+      </g>
+      <!-- cerchio euclideo fantasma, circoscritto -->
+      <circle cx="190" cy="180" r="120" stroke="var(--neutro)" stroke-width="1"
+              stroke-dasharray="3 6" opacity="0.55"
+              class="draw" style="--len:760; --d:600ms"/>
+      <!-- raggio R indicato (semiasse est) -->
+      <line x1="190" y1="180" x2="310" y2="180" stroke="var(--terracotta)" stroke-width="1.4"
+            stroke-dasharray="2 4" class="draw" style="--len:130; --d:1000ms"/>
+      <!-- rombo L₁ -->
+      <path d="M190 60 L310 180 L190 300 L70 180 Z"
+            stroke="var(--espresso)" stroke-width="2.2"
+            stroke-linejoin="round"
+            class="draw" style="--len:680; --d:350ms"/>
+      <!-- etichetta R -->
+      <text x="248" y="172" font-family="Fraunces, serif" font-style="italic"
+            font-size="16" fill="var(--terracotta)" class="pop" style="--d:1150ms">R</text>
+      <!-- centro -->
+      <circle cx="190" cy="180" r="12" fill="var(--terra-velo)" class="pop" style="--d:1100ms"/>
+      <circle cx="190" cy="180" r="3.2" fill="var(--terracotta)" class="pop" style="--d:1100ms"/>
+      <!-- 4 vertici evidenziati -->
+      <g class="pop" style="--d:1300ms">
+        <circle cx="190" cy="60"  r="4.6" fill="var(--osso)" stroke="var(--terracotta)" stroke-width="2"/>
+        <circle cx="310" cy="180" r="4.6" fill="var(--osso)" stroke="var(--terracotta)" stroke-width="2"/>
+        <circle cx="190" cy="300" r="4.6" fill="var(--osso)" stroke="var(--terracotta)" stroke-width="2"/>
+        <circle cx="70"  cy="180" r="4.6" fill="var(--osso)" stroke="var(--terracotta)" stroke-width="2"/>
+      </g>
+    </svg>
+    <span class="fig-label tag">Rombo L₁ <span class="tag-terra">·</span> cerchio euclideo, fantasma</span>
+  </figure>
+
+  <!-- TESTO -->
+  <div class="estratto-body">
+    <div class="eyebrow reveal" style="--d:160ms">
+      <span class="bar"></span>
+      <span class="tag tag-terra">02 — La circonferenza taxicab</span>
+    </div>
+
+    <h2 id="est-title" class="reveal" style="--d:220ms">
+      Un cerchio che, di fatto, è un rombo
+    </h2>
+
+    <p class="reveal" style="--d:300ms">
+      Il luogo dei punti a distanza <span class="lift">R</span> dal centro, nella
+      metrica L₁, non è un cerchio ma un quadrato ruotato di 45°: un rombo.
+      I quattro vertici stanno sui semiassi a distanza <span class="lift">R</span>.
+    </p>
+
+    <div class="formula reveal" style="--d:380ms" role="math" aria-label="modulo di x meno x con c, più modulo di y meno y con c, uguale R">
+      <svg class="glyph" width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+        <path d="M11 2 L20 11 L11 20 L2 11 Z" stroke="currentColor" stroke-width="1.4"/>
+      </svg>
+      <span class="eq">
+        |x <span class="op">−</span> x<span class="sub">c</span>|
+        <span class="op">+</span>
+        |y <span class="op">−</span> y<span class="sub">c</span>|
+        <span class="op">=</span> R
+      </span>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- ============================ FOOTER ============================ -->
+<footer class="wrap">
+  <div class="footer-row reveal" style="--d:0ms">
+    <span class="sig">Un'esplorazione della metrica L₁.</span>
+    <span class="meta">
+      <svg class="glyph" width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true" style="color:var(--terracotta)">
+        <path d="M7 1 L13 7 L7 13 L1 7 Z" stroke="currentColor" stroke-width="1.3"/>
+      </svg>
+      Geometria del Taxi
+    </span>
+  </div>
+</footer>
+
+<script>
+/* --------------------------------------------------------------
+   reveal su scroll/load — IntersectionObserver, soffice.
+   I path "draw" usano la lunghezza reale del tratto per
+   un'animazione di tracciamento precisa.
+   -------------------------------------------------------------- */
+(function(){
+  var reduce = window.matchMedia &&
+               window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // misura la lunghezza reale di ogni path tracciato
+  document.querySelectorAll('.draw').forEach(function(el){
+    try{
+      var len = el.getTotalLength();
+      if (len && isFinite(len)){
+        el.style.setProperty('--len', Math.ceil(len));
+        el.style.strokeDasharray = Math.ceil(len);
+        el.style.strokeDashoffset = Math.ceil(len);
+      }
+    }catch(e){ /* alcuni elementi non hanno getTotalLength */ }
+  });
+
+  var targets = document.querySelectorAll('.reveal, .draw, .pop');
+
+  if (reduce || !('IntersectionObserver' in window)){
+    targets.forEach(function(el){ el.classList.add('is-in'); });
+    return;
+  }
+
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting){
+        e.target.classList.add('is-in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.18, rootMargin: '0px 0px -8% 0px' });
+
+  targets.forEach(function(el){ io.observe(el); });
+})();
+</script>
+
+</body>
+</html>

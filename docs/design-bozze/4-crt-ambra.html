@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Geometria del Taxi — Terminale CRT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#100B06;
+    --bg-deep:#0A0704;
+    --panel:#1A120A;
+    --panel-2:#221709;
+    --amber:#FFB000;
+    --amber-soft:#C98A2E;
+    --amber-dim:#7A5A24;
+    --amber-ghost:#4A3819;
+    --line:#2E2110;
+    --glow:0 0 2px rgba(255,176,0,.55), 0 0 12px rgba(255,176,0,.22);
+    --glow-strong:0 0 3px rgba(255,176,0,.9), 0 0 18px rgba(255,176,0,.45), 0 0 42px rgba(255,176,0,.18);
+    --mono:'IBM Plex Mono', ui-monospace, monospace;
+    --display:'Syne', sans-serif;
+    --ease:cubic-bezier(.16,.84,.36,1);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  html{scroll-behavior:smooth;}
+
+  body{
+    background:var(--bg);
+    color:var(--amber-soft);
+    font-family:var(--mono);
+    font-size:16px;
+    line-height:1.5;
+    letter-spacing:.01em;
+    min-height:100vh;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+    position:relative;
+  }
+
+  /* ---- CRT global atmosphere: scanlines + vignette + grain ---- */
+  body::before{
+    /* scanlines */
+    content:"";
+    position:fixed; inset:0; z-index:9000;
+    pointer-events:none;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,.28) 3px,
+      rgba(0,0,0,.28) 3px
+    );
+    mix-blend-mode:multiply;
+    opacity:.7;
+    animation:scan 8s linear infinite;
+  }
+  body::after{
+    /* vignette + soft amber bloom from center-top */
+    content:"";
+    position:fixed; inset:0; z-index:8990;
+    pointer-events:none;
+    background:
+      radial-gradient(120% 90% at 50% 0%, rgba(255,176,0,.06), transparent 55%),
+      radial-gradient(140% 120% at 50% 60%, transparent 55%, rgba(0,0,0,.55) 100%);
+  }
+  @keyframes scan{ from{background-position:0 0;} to{background-position:0 6px;} }
+
+  /* grain layer */
+  .grain{
+    position:fixed; inset:-50%; z-index:8995;
+    pointer-events:none; opacity:.045;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* ---- terminal shell frame ---- */
+  .shell{
+    position:relative;
+    max-width:1180px;
+    margin:0 auto;
+    padding:0 clamp(16px,4vw,40px);
+    min-height:100vh;
+  }
+
+  ::selection{ background:rgba(255,176,0,.85); color:#100B06; }
+
+  a{ color:inherit; text-decoration:none; }
+
+  /* blinking cursor block */
+  .cur{
+    display:inline-block;
+    width:.56em; height:1.05em;
+    background:var(--amber);
+    box-shadow:var(--glow);
+    transform:translateY(.14em);
+    margin-left:.12em;
+    animation:blink 1.05s steps(1) infinite;
+  }
+  @keyframes blink{ 0%,49%{opacity:1;} 50%,100%{opacity:0;} }
+
+  /* ============ TOP BAR ============ */
+  .topbar{
+    display:flex; align-items:center; gap:18px;
+    padding:18px 0 14px;
+    border-bottom:1px solid var(--line);
+    font-size:12px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--amber-dim);
+  }
+  .topbar .brand{
+    color:var(--amber); text-shadow:var(--glow);
+    font-weight:600; letter-spacing:.22em;
+    display:flex; align-items:center; gap:9px;
+  }
+  .topbar .sep{ flex:1; height:1px; background:linear-gradient(90deg,var(--line),transparent); }
+  .topbar nav{ display:flex; gap:20px; }
+  .topbar nav a{ position:relative; transition:color .2s var(--ease); }
+  .topbar nav a:hover{ color:var(--amber); text-shadow:var(--glow); }
+  .topbar nav a::before{ content:"["; opacity:0; margin-right:2px; transition:opacity .2s; color:var(--amber); }
+  .topbar nav a::after{ content:"]"; opacity:0; margin-left:2px; transition:opacity .2s; color:var(--amber); }
+  .topbar nav a:hover::before, .topbar nav a:hover::after{ opacity:1; }
+  @media(max-width:760px){ .topbar nav{ display:none; } }
+
+  /* logo mark: oscilloscope rhombus */
+  .mark{ width:22px; height:22px; display:block; }
+  .mark path, .mark line{ stroke:var(--amber); fill:none; filter:drop-shadow(0 0 3px rgba(255,176,0,.6)); }
+
+  /* ============ HERO ============ */
+  .hero{
+    display:grid;
+    grid-template-columns:1.15fr .85fr;
+    gap:clamp(24px,5vw,72px);
+    align-items:center;
+    padding:clamp(48px,9vw,104px) 0 clamp(40px,7vw,80px);
+    position:relative;
+  }
+  @media(max-width:900px){
+    .hero{ grid-template-columns:1fr; gap:38px; }
+  }
+
+  .kicker{
+    font-size:12px; letter-spacing:.34em; text-transform:uppercase;
+    color:var(--amber); text-shadow:var(--glow);
+    display:flex; align-items:center; gap:12px; margin-bottom:26px;
+  }
+  .kicker::before{
+    content:""; width:34px; height:1px; background:var(--amber);
+    box-shadow:var(--glow); display:inline-block;
+  }
+
+  h1{
+    font-family:var(--display);
+    font-weight:800;
+    font-size:clamp(2.5rem,6.4vw,5.1rem);
+    line-height:.98;
+    letter-spacing:-.015em;
+    color:#F6E3C0;
+    text-shadow:0 0 22px rgba(255,176,0,.18), 0 0 2px rgba(255,176,0,.3);
+    margin-bottom:28px;
+  }
+  h1 em{
+    font-style:normal;
+    color:var(--amber);
+    text-shadow:var(--glow-strong);
+  }
+  /* faint chromatic doubling on the headline — CRT misconvergence */
+  h1 .ghost{ position:relative; }
+  h1 .ghost::after{
+    content:attr(data-t);
+    position:absolute; left:1.5px; top:1px;
+    color:rgba(255,120,0,.18);
+    z-index:-1; pointer-events:none;
+  }
+
+  .lede{
+    font-size:clamp(.98rem,1.5vw,1.12rem);
+    line-height:1.7;
+    color:var(--amber-soft);
+    max-width:46ch;
+    margin-bottom:36px;
+  }
+  .lede b{ color:#E6C98C; font-weight:500; }
+
+  .cta-row{ display:flex; gap:16px; flex-wrap:wrap; align-items:center; }
+
+  .btn{
+    font-family:var(--mono);
+    font-size:13px; letter-spacing:.14em; text-transform:uppercase;
+    padding:14px 22px;
+    border:1px solid var(--amber);
+    color:var(--amber);
+    background:transparent;
+    cursor:pointer;
+    position:relative;
+    transition:color .22s var(--ease), background .22s var(--ease), box-shadow .22s var(--ease);
+    display:inline-flex; align-items:center; gap:10px;
+  }
+  .btn .br{ color:var(--amber-dim); transition:color .2s; }
+  .btn-primary{
+    background:rgba(255,176,0,.08);
+    box-shadow:var(--glow);
+  }
+  .btn-primary:hover{
+    background:var(--amber); color:#100B06;
+    box-shadow:var(--glow-strong);
+  }
+  .btn-primary:hover .br{ color:#100B06; }
+  .btn-ghost{ border-color:var(--line); color:var(--amber-soft); }
+  .btn-ghost:hover{ border-color:var(--amber); color:var(--amber); box-shadow:var(--glow); }
+  .btn svg{ width:13px; height:13px; }
+  .btn svg path, .btn svg line, .btn svg polyline{ stroke:currentColor; fill:none; stroke-width:1.6; }
+
+  /* ---- hero scope panel ---- */
+  .scope{
+    position:relative;
+    border:1px solid var(--line);
+    background:
+      linear-gradient(180deg, rgba(255,176,0,.025), transparent 40%),
+      var(--bg-deep);
+    padding:14px;
+    box-shadow:inset 0 0 60px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,176,0,.04);
+  }
+  .scope-head{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:10.5px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--amber-dim); padding-bottom:10px; margin-bottom:10px;
+    border-bottom:1px dashed var(--line);
+  }
+  .scope-head b{ color:var(--amber); font-weight:500; text-shadow:var(--glow); }
+  .scope svg.fig{ display:block; width:100%; height:auto; }
+  .scope-caption{
+    margin-top:10px; font-size:11px; line-height:1.55; color:var(--amber-dim);
+    border-top:1px dashed var(--line); padding-top:10px;
+    display:flex; justify-content:space-between; gap:12px;
+  }
+  .scope-caption .eq{ color:var(--amber-soft); }
+  .scope-caption .eq b{ color:var(--amber); }
+
+  /* radial sweep glow corner on scope */
+  .scope .corner{
+    position:absolute; width:9px; height:9px; border:1px solid var(--amber);
+    box-shadow:var(--glow); opacity:.5;
+  }
+  .scope .corner.tl{ top:-1px; left:-1px; border-right:0; border-bottom:0; }
+  .scope .corner.tr{ top:-1px; right:-1px; border-left:0; border-bottom:0; }
+  .scope .corner.bl{ bottom:-1px; left:-1px; border-right:0; border-top:0; }
+  .scope .corner.br{ bottom:-1px; right:-1px; border-left:0; border-top:0; }
+
+  /* ============ INDEX ============ */
+  .index-wrap{
+    padding:clamp(30px,5vw,52px) 0;
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+  }
+  .index-label{
+    font-size:11px; letter-spacing:.28em; text-transform:uppercase;
+    color:var(--amber-dim); margin-bottom:26px;
+    display:flex; align-items:center; gap:12px;
+  }
+  .index-label .dot{ width:6px; height:6px; background:var(--amber); box-shadow:var(--glow); }
+  .index{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:0;
+  }
+  @media(max-width:860px){ .index{ grid-template-columns:repeat(3,1fr); } }
+  @media(max-width:480px){ .index{ grid-template-columns:repeat(2,1fr); } }
+  .idx{
+    border-left:1px solid var(--line);
+    padding:16px 14px 18px;
+    position:relative;
+    transition:background .25s var(--ease);
+  }
+  .idx:first-child{ border-left:0; }
+  @media(max-width:860px){
+    .idx:nth-child(3n+1){ border-left:0; }
+  }
+  @media(max-width:480px){
+    .idx:nth-child(2n+1){ border-left:0; }
+  }
+  .idx .num{
+    font-family:var(--display); font-weight:700;
+    font-size:1.5rem; color:var(--amber-ghost);
+    transition:color .25s var(--ease), text-shadow .25s var(--ease);
+    line-height:1;
+  }
+  .idx .nm{
+    margin-top:10px; font-size:12.5px; letter-spacing:.06em;
+    color:var(--amber-soft); text-transform:uppercase;
+  }
+  .idx:hover{ background:linear-gradient(180deg, rgba(255,176,0,.06), transparent); }
+  .idx:hover .num{ color:var(--amber); text-shadow:var(--glow-strong); }
+  .idx:hover .nm{ color:var(--amber); }
+  .idx::after{
+    content:""; position:absolute; left:14px; bottom:0; height:2px; width:0;
+    background:var(--amber); box-shadow:var(--glow); transition:width .3s var(--ease);
+  }
+  .idx:hover::after{ width:26px; }
+
+  /* ============ EXCERPT ============ */
+  .excerpt{
+    display:grid;
+    grid-template-columns:1fr 1.05fr;
+    gap:clamp(28px,5vw,64px);
+    align-items:center;
+    padding:clamp(48px,8vw,96px) 0 clamp(40px,6vw,72px);
+  }
+  @media(max-width:900px){ .excerpt{ grid-template-columns:1fr; gap:36px; } }
+  /* asymmetry: figure first on wide screens */
+  .excerpt .fig-col{ order:2; }
+  .excerpt .txt-col{ order:1; }
+  @media(max-width:900px){ .excerpt .fig-col{ order:1; } .excerpt .txt-col{ order:2; } }
+
+  .sec-tag{
+    font-size:12px; letter-spacing:.26em; text-transform:uppercase;
+    color:var(--amber); text-shadow:var(--glow); margin-bottom:18px;
+    display:flex; align-items:baseline; gap:12px;
+  }
+  .sec-tag .n{ font-family:var(--display); font-weight:700; font-size:2.2rem; color:var(--amber); }
+  .excerpt h2{
+    font-family:var(--display); font-weight:700;
+    font-size:clamp(1.7rem,3.2vw,2.5rem); line-height:1.05;
+    color:#F6E3C0; letter-spacing:-.01em; margin-bottom:22px;
+    text-shadow:0 0 18px rgba(255,176,0,.14);
+  }
+  .excerpt p{ font-size:1rem; line-height:1.72; color:var(--amber-soft); max-width:52ch; margin-bottom:24px; }
+  .excerpt p b{ color:#E6C98C; font-weight:500; }
+
+  .formula{
+    border:1px solid var(--line);
+    border-left:2px solid var(--amber);
+    background:linear-gradient(90deg, rgba(255,176,0,.05), transparent);
+    padding:18px 22px;
+    font-size:1.18rem;
+    color:var(--amber);
+    text-shadow:var(--glow);
+    letter-spacing:.02em;
+    display:inline-flex; gap:14px; align-items:center;
+  }
+  .formula .lab{
+    font-size:10px; letter-spacing:.2em; color:var(--amber-dim);
+    text-transform:uppercase; text-shadow:none; white-space:nowrap;
+  }
+  .formula var{ font-style:italic; }
+  .formula sub{ font-size:.62em; }
+
+  /* legend under excerpt figure */
+  .legend{
+    display:flex; gap:22px; flex-wrap:wrap;
+    margin-top:14px; font-size:11px; letter-spacing:.04em; color:var(--amber-dim);
+  }
+  .legend span{ display:inline-flex; align-items:center; gap:8px; }
+  .legend i{ width:18px; height:0; display:inline-block; }
+  .legend i.solid{ border-top:2px solid var(--amber); box-shadow:var(--glow); }
+  .legend i.dash{ border-top:1.5px dashed var(--amber-ghost); }
+  .legend i.node{ width:8px; height:8px; border:0; background:var(--amber); border-radius:50%; box-shadow:var(--glow); }
+
+  /* ============ STATUS BAR (footer) ============ */
+  .statusbar{
+    position:sticky; bottom:0; z-index:50;
+    margin-top:clamp(20px,4vw,40px);
+    border-top:1px solid var(--amber-ghost);
+    background:linear-gradient(180deg, rgba(16,11,6,.6), var(--bg-deep));
+    backdrop-filter:none;
+  }
+  .statusbar .inner{
+    max-width:1180px; margin:0 auto;
+    padding:10px clamp(16px,4vw,40px);
+    display:flex; align-items:center; gap:18px;
+    font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--amber-dim);
+  }
+  .statusbar .live{ color:var(--amber); text-shadow:var(--glow); display:inline-flex; align-items:center; gap:8px; }
+  .statusbar .live .pulse{
+    width:7px; height:7px; border-radius:50%; background:var(--amber);
+    box-shadow:var(--glow); animation:pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.25;} }
+  .statusbar .gap{ flex:1; }
+  .statusbar .path{ color:var(--amber-soft); }
+  @media(max-width:560px){ .statusbar .hideS{ display:none; } }
+
+  /* ===================== ENTRY ANIMATION (boot) ===================== */
+  .boot{
+    position:fixed; inset:0; z-index:9999;
+    background:var(--bg-deep);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono);
+  }
+  .boot-inner{ width:min(540px,84vw); color:var(--amber-soft); font-size:12.5px; line-height:1.9; }
+  .boot-inner .ln{ opacity:0; }
+  .boot-inner .ok{ color:var(--amber); text-shadow:var(--glow); }
+  .boot-bar{
+    margin-top:14px; height:8px; border:1px solid var(--line); position:relative; overflow:hidden;
+  }
+  .boot-bar i{ position:absolute; inset:0; width:0; background:var(--amber); box-shadow:var(--glow); }
+
+  /* reveal targets start hidden, animated by JS-added class on <body> */
+  .reveal{ opacity:0; transform:translateY(14px); }
+
+  body.go .reveal{
+    animation:rise .7s var(--ease) forwards;
+  }
+  @keyframes rise{ to{ opacity:1; transform:none; } }
+
+  /* CRT power-on flash for the whole shell */
+  body.go .shell{ animation:poweron 1.1s var(--ease) both; }
+  @keyframes poweron{
+    0%{ filter:brightness(2.4) blur(2px); opacity:0; transform:scaleY(.002); }
+    14%{ opacity:1; transform:scaleY(.012); }
+    32%{ transform:scaleY(1); filter:brightness(1.5) blur(.6px); }
+    100%{ transform:scaleY(1); filter:none; }
+  }
+
+  /* boot line stagger */
+  body.booting .boot-inner .ln{ animation:typ .12s steps(1) forwards; }
+  body.booting .boot-inner .ln:nth-child(1){ animation-delay:.10s; }
+  body.booting .boot-inner .ln:nth-child(2){ animation-delay:.40s; }
+  body.booting .boot-inner .ln:nth-child(3){ animation-delay:.72s; }
+  body.booting .boot-inner .ln:nth-child(4){ animation-delay:1.05s; }
+  body.booting .boot-inner .ln:nth-child(5){ animation-delay:1.40s; }
+  @keyframes typ{ to{ opacity:1; } }
+
+  /* animated vector trace draw-in for the figures */
+  .trace-anim{
+    stroke-dasharray:var(--len,1000);
+    stroke-dashoffset:var(--len,1000);
+  }
+  body.go .trace-anim{ animation:draw 1.5s var(--ease) forwards; animation-delay:1.05s; }
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+
+  /* node pop */
+  .node-pop{ opacity:0; transform-box:fill-box; transform-origin:center; }
+  body.go .node-pop{ animation:pop .4s var(--ease) forwards; }
+  body.go .node-pop:nth-of-type(1){ animation-delay:2.05s; }
+  body.go .node-pop:nth-of-type(2){ animation-delay:2.18s; }
+  body.go .node-pop:nth-of-type(3){ animation-delay:2.31s; }
+  body.go .node-pop:nth-of-type(4){ animation-delay:2.44s; }
+  @keyframes pop{ from{opacity:0; transform:scale(0);} 70%{opacity:1; transform:scale(1.4);} to{opacity:1; transform:scale(1);} }
+
+  /* set per-element reveal delays inline via style; default cascade */
+  .d1{ animation-delay:.15s !important; }
+  .d2{ animation-delay:.30s !important; }
+  .d3{ animation-delay:.45s !important; }
+  .d4{ animation-delay:.60s !important; }
+  .d5{ animation-delay:.75s !important; }
+  .d6{ animation-delay:.90s !important; }
+
+  /* ===================== REDUCED MOTION ===================== */
+  @media (prefers-reduced-motion: reduce){
+    body::before{ animation:none; }                 /* no scanline scroll */
+    .cur{ animation:none; opacity:1; }
+    .statusbar .live .pulse{ animation:none; }
+    .boot{ display:none !important; }               /* skip boot entirely */
+    .reveal{ opacity:1 !important; transform:none !important; }
+    body.go .reveal, body.go .shell, body.go .trace-anim, body.go .node-pop{ animation:none !important; }
+    .trace-anim{ stroke-dashoffset:0 !important; }
+    .node-pop{ opacity:1 !important; transform:none !important; }
+    h1 .ghost::after{ display:none; }
+    html{ scroll-behavior:auto; }
+  }
+</style>
+</head>
+<body class="booting">
+
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- ============ BOOT OVERLAY ============ -->
+  <div class="boot" id="boot" aria-hidden="true">
+    <div class="boot-inner">
+      <div class="ln">L1-TERM v1.4 · phosphor display online</div>
+      <div class="ln">› mount metrica.L1 ........... <span class="ok">OK</span></div>
+      <div class="ln">› load coniche/{cerchio,ellisse,iperbole,parabola} <span class="ok">OK</span></div>
+      <div class="ln">› calibro display vettoriale .. <span class="ok">OK</span></div>
+      <div class="ln">› avvio interfaccia <span class="cur" style="height:.9em"></span></div>
+      <div class="boot-bar"><i id="bootbar"></i></div>
+    </div>
+  </div>
+
+  <div class="shell">
+
+    <!-- ============ TOP BAR ============ -->
+    <header class="topbar reveal d1">
+      <span class="brand">
+        <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2 L22 12 L12 22 L2 12 Z"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <line x1="12" y1="2" x2="12" y2="22"/>
+        </svg>
+        GEOMETRIA&nbsp;DEL&nbsp;TAXI
+      </span>
+      <span class="sep"></span>
+      <nav aria-label="Sezioni">
+        <a href="#fondamenti">teoria</a>
+        <a href="#circonferenza">coniche</a>
+        <a href="#calcolatore">calcolatore</a>
+      </nav>
+    </header>
+
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <div class="hero-txt">
+        <div class="kicker reveal d1">GEOMETRIA DEL TAXI · METRICA L<sub style="font-size:.7em">1</sub></div>
+        <h1 class="reveal d2">
+          Quando la <span class="ghost" data-t="retta">retta</span> più breve
+          <em>non è</em> la diagonale<span class="cur"></span>
+        </h1>
+        <p class="lede reveal d3">
+          Nella distanza di Manhattan i cerchi diventano <b>rombi</b> e le coniche
+          cambiano forma. Esplora la geometria del taxi, con visualizzazioni e un
+          calcolatore interattivo.
+        </p>
+        <div class="cta-row reveal d4">
+          <a class="btn btn-primary" href="#calcolatore">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><polyline points="2,9 6,5 9,8 14,3"/><line x1="2" y1="14" x2="14" y2="14"/></svg>
+            Apri il calcolatore <span class="br">_</span>
+          </a>
+          <a class="btn btn-ghost" href="#fondamenti">
+            Leggi la teoria <span class="br">↘</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- hero oscilloscope panel -->
+      <div class="scope reveal d5" role="img" aria-label="Display vettoriale: il rombo della circonferenza taxicab sovrapposto alla griglia.">
+        <span class="corner tl"></span><span class="corner tr"></span>
+        <span class="corner bl"></span><span class="corner br"></span>
+        <div class="scope-head">
+          <span>DISPLAY VETTORIALE · <b>L1</b></span>
+          <span>R = 4 · trace 01</span>
+        </div>
+        <svg class="fig" viewBox="0 0 360 300" aria-hidden="true">
+          <defs>
+            <filter id="g1" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="2.4" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <!-- CRT grid -->
+          <g stroke="#3A2A12" stroke-width="1" opacity=".55">
+            <!-- vertical -->
+            <line x1="30" y1="20" x2="30" y2="280"/><line x1="70" y1="20" x2="70" y2="280"/>
+            <line x1="110" y1="20" x2="110" y2="280"/><line x1="150" y1="20" x2="150" y2="280"/>
+            <line x1="190" y1="20" x2="190" y2="280"/><line x1="230" y1="20" x2="230" y2="280"/>
+            <line x1="270" y1="20" x2="270" y2="280"/><line x1="310" y1="20" x2="310" y2="280"/>
+            <!-- horizontal -->
+            <line x1="20" y1="30" x2="340" y2="30"/><line x1="20" y1="70" x2="340" y2="70"/>
+            <line x1="20" y1="110" x2="340" y2="110"/><line x1="20" y1="150" x2="340" y2="150"/>
+            <line x1="20" y1="190" x2="340" y2="190"/><line x1="20" y1="230" x2="340" y2="230"/>
+            <line x1="20" y1="270" x2="340" y2="270"/>
+          </g>
+          <!-- axes -->
+          <g stroke="#7A5A24" stroke-width="1.2">
+            <line x1="20" y1="150" x2="346" y2="150"/>
+            <line x1="190" y1="14" x2="190" y2="286"/>
+          </g>
+          <polygon points="190,150 187,143 193,143" fill="#7A5A24" transform="translate(0,-128)"/>
+          <!-- ghost Euclidean circle (dashed) circumscribed: center (190,150), r=120 svg (=3*40) -->
+          <circle cx="190" cy="150" r="120" fill="none" stroke="#4A3819" stroke-width="1.4" stroke-dasharray="5 6"/>
+          <!-- luminous rhombus: |x|+|y|=R, R=3 -> 120 svg units on each semiaxis -->
+          <polygon class="trace-anim" style="--len:690px"
+            points="190,30 310,150 190,270 70,150"
+            fill="rgba(255,176,0,.05)" stroke="#FFB000" stroke-width="2.2"
+            stroke-linejoin="round" filter="url(#g1)"/>
+          <!-- four vertices on the semiaxes -->
+          <circle class="node-pop" cx="190" cy="30"  r="4.5" fill="#FFB000" filter="url(#g1)"/>
+          <circle class="node-pop" cx="310" cy="150" r="4.5" fill="#FFB000" filter="url(#g1)"/>
+          <circle class="node-pop" cx="190" cy="270" r="4.5" fill="#FFB000" filter="url(#g1)"/>
+          <circle class="node-pop" cx="70"  cy="150" r="4.5" fill="#FFB000" filter="url(#g1)"/>
+          <!-- center -->
+          <circle cx="190" cy="150" r="3" fill="#100B06" stroke="#FFB000" stroke-width="1.4"/>
+        </svg>
+        <div class="scope-caption">
+          <span class="eq">|x−x<sub>c</sub>| + |y−y<sub>c</sub>| = R</span>
+          <span>vertici @ semiassi · d = R</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ INDEX ============ -->
+    <section class="index-wrap reveal" id="fondamenti">
+      <div class="index-label"><span class="dot"></span>INDICE · 06 sezioni</div>
+      <div class="index">
+        <a class="idx" href="#fondamenti"><div class="num">01</div><div class="nm">Fondamenti</div></a>
+        <a class="idx" href="#circonferenza"><div class="num">02</div><div class="nm">Circonferenza</div></a>
+        <a class="idx" href="#ellisse"><div class="num">03</div><div class="nm">Ellisse</div></a>
+        <a class="idx" href="#iperbole"><div class="num">04</div><div class="nm">Iperbole</div></a>
+        <a class="idx" href="#parabola"><div class="num">05</div><div class="nm">Parabola</div></a>
+        <a class="idx" href="#calcolatore"><div class="num">06</div><div class="nm">Calcolatore</div></a>
+      </div>
+    </section>
+
+    <!-- ============ EXCERPT 02 ============ -->
+    <section class="excerpt" id="circonferenza">
+      <div class="txt-col reveal">
+        <div class="sec-tag"><span class="n">02</span> LA CIRCONFERENZA TAXICAB</div>
+        <h2>Un cerchio che è, in verità, un quadrato.</h2>
+        <p>
+          Il luogo dei punti a distanza <b>R</b> dal centro, nella metrica L<sub>1</sub>,
+          non è un cerchio ma un <b>quadrato ruotato di 45°</b>: un rombo. I quattro
+          vertici stanno sui semiassi a distanza R.
+        </p>
+        <div class="formula">
+          <span class="lab">EQ</span>
+          <span>|<var>x</var> − <var>x</var><sub>c</sub>| + |<var>y</var> − <var>y</var><sub>c</sub>| = <var>R</var></span>
+        </div>
+        <div class="legend">
+          <span><i class="node"></i> vertici sui semiassi</span>
+          <span><i class="solid"></i> rombo L<sub>1</sub></span>
+          <span><i class="dash"></i> cerchio euclideo (fantasma)</span>
+        </div>
+      </div>
+
+      <!-- excerpt figure: standalone scope -->
+      <div class="fig-col reveal">
+        <div class="scope" role="img" aria-label="Confronto fra il rombo della circonferenza taxicab e il cerchio euclideo circoscritto tratteggiato.">
+          <span class="corner tl"></span><span class="corner tr"></span>
+          <span class="corner bl"></span><span class="corner br"></span>
+          <div class="scope-head">
+            <span>TRACE · ROMBO vs CERCHIO</span>
+            <span>02</span>
+          </div>
+          <svg class="fig" viewBox="0 0 360 320" aria-hidden="true">
+            <defs>
+              <filter id="g2" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="2.6" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <!-- grid -->
+            <g stroke="#3A2A12" stroke-width="1" opacity=".5">
+              <line x1="40" y1="40" x2="40" y2="280"/><line x1="80" y1="40" x2="80" y2="280"/>
+              <line x1="120" y1="40" x2="120" y2="280"/><line x1="160" y1="40" x2="160" y2="280"/>
+              <line x1="200" y1="40" x2="200" y2="280"/><line x1="240" y1="40" x2="240" y2="280"/>
+              <line x1="280" y1="40" x2="280" y2="280"/><line x1="320" y1="40" x2="320" y2="280"/>
+              <line x1="40" y1="40" x2="320" y2="40"/><line x1="40" y1="80" x2="320" y2="80"/>
+              <line x1="40" y1="120" x2="320" y2="120"/><line x1="40" y1="160" x2="320" y2="160"/>
+              <line x1="40" y1="200" x2="320" y2="200"/><line x1="40" y1="240" x2="320" y2="240"/>
+              <line x1="40" y1="280" x2="320" y2="280"/>
+            </g>
+            <!-- axes through center (180,160) -->
+            <g stroke="#7A5A24" stroke-width="1.2">
+              <line x1="32" y1="160" x2="334" y2="160"/>
+              <line x1="180" y1="34" x2="180" y2="288"/>
+            </g>
+            <!-- tick labels -->
+            <g fill="#7A5A24" font-family="'IBM Plex Mono',monospace" font-size="9">
+              <text x="296" y="174">x</text>
+              <text x="186" y="46">y</text>
+              <text x="186" y="174" fill="#C98A2E">c</text>
+            </g>
+            <!-- ghost euclidean circle, R=120 svg (=3*40) -->
+            <circle cx="180" cy="160" r="120" fill="none" stroke="#4A3819" stroke-width="1.5" stroke-dasharray="5 6"/>
+            <text x="262" y="78" fill="#4A3819" font-family="'IBM Plex Mono',monospace" font-size="9">euclidea</text>
+            <!-- luminous rhombus R=3 -> 120 svg each semiaxis -->
+            <polygon class="trace-anim" style="--len:690px"
+              points="180,40 300,160 180,280 60,160"
+              fill="rgba(255,176,0,.06)" stroke="#FFB000" stroke-width="2.4"
+              stroke-linejoin="round" filter="url(#g2)"/>
+            <!-- R radius marker on +x semiaxis -->
+            <line x1="180" y1="160" x2="300" y2="160" stroke="#FFB000" stroke-width="1.1" stroke-dasharray="3 3" opacity=".8"/>
+            <text x="222" y="152" fill="#FFB000" font-family="'IBM Plex Mono',monospace" font-size="10">R</text>
+            <!-- four vertices -->
+            <circle class="node-pop" cx="180" cy="40" r="5" fill="#FFB000" filter="url(#g2)"/>
+            <circle class="node-pop" cx="300" cy="160" r="5" fill="#FFB000" filter="url(#g2)"/>
+            <circle class="node-pop" cx="180" cy="280" r="5" fill="#FFB000" filter="url(#g2)"/>
+            <circle class="node-pop" cx="60" cy="160" r="5" fill="#FFB000" filter="url(#g2)"/>
+            <!-- center -->
+            <circle cx="180" cy="160" r="3.4" fill="#100B06" stroke="#FFB000" stroke-width="1.6"/>
+          </svg>
+          <div class="scope-caption">
+            <span class="eq">rombo = <b>cerchio L<sub>1</sub></b></span>
+            <span>4 vertici · 45°</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /shell -->
+
+  <!-- ============ STATUS BAR ============ -->
+  <footer class="statusbar reveal">
+    <div class="inner">
+      <span class="live"><span class="pulse"></span>READY</span>
+      <span class="path">L1://geometria-del-taxi</span>
+      <span class="gap"></span>
+      <span class="hideS">metrica L1 · Manhattan</span>
+      <span class="hideS">— 60 Hz —</span>
+      <span>© MMXXVI<span class="cur" style="height:.85em"></span></span>
+    </div>
+  </footer>
+
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var body = document.body;
+  var boot = document.getElementById('boot');
+  var bar  = document.getElementById('bootbar');
+
+  function go(){
+    body.classList.remove('booting');
+    body.classList.add('go');
+    if(boot){ boot.style.display='none'; }
+  }
+
+  if(reduce){
+    // No boot sequence, reveal everything immediately.
+    if(boot){ boot.remove(); }
+    body.classList.remove('booting');
+    body.classList.add('go');
+    // ensure reveals are visible even without animation
+  } else {
+    // animate the boot progress bar, then hand off to the page reveal
+    var start = null, DUR = 1750;
+    function tick(t){
+      if(start===null) start=t;
+      var p = Math.min((t-start)/DUR, 1);
+      if(bar){ bar.style.width = (p*100).toFixed(1)+'%'; }
+      if(p<1){ requestAnimationFrame(tick); }
+      else {
+        // brief hold, then power-on the shell
+        setTimeout(function(){
+          if(boot){
+            boot.style.transition='opacity .25s ease';
+            boot.style.opacity='0';
+          }
+          setTimeout(go, 200);
+        }, 160);
+      }
+    }
+    requestAnimationFrame(tick);
+    // safety fallback
+    setTimeout(function(){ if(!body.classList.contains('go')) go(); }, 4000);
+  }
+})();
+</script>
+</body>
+</html>

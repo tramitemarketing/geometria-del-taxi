@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geometria del Taxi — Metrica L₁ / Manhattan</title>
+<meta name="description" content="Nella distanza di Manhattan i cerchi diventano rombi e le coniche cambiano forma. Esplora la geometria del taxi.">
+
+<!-- Fonts: Bricolage Grotesque (display) + IBM Plex Mono (corpo) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   GEOMETRIA DEL TAXI — Bozza 02 "Brutalismo svizzero / Griglia a vista"
+   Palette: bone #E9E5DC · nero #0A0A0A · pomodoro #FF4A1C
+   ============================================================ */
+
+:root{
+  --bone: #E9E5DC;
+  --ink:  #0A0A0A;
+  --tomato:#FF4A1C;
+  --hair: #0A0A0A;            /* hairline 1px nero */
+  --col: 88px;               /* modulo griglia */
+  --gut: 1px;
+  --ease: cubic-bezier(.16,.84,.36,1);
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; }
+
+html{ -webkit-text-size-adjust:100%; }
+
+body{
+  background:var(--bone);
+  color:var(--ink);
+  font-family:"IBM Plex Mono", monospace;
+  font-size:14px;
+  line-height:1.5;
+  font-feature-settings:"ss01";
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+
+/* ---- griglia di Manhattan STRUTTURALE a vista (reticolo di fondo) ---- */
+.lattice{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background-image:
+    linear-gradient(to right,  rgba(10,10,10,.10) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(10,10,10,.10) 1px, transparent 1px);
+  background-size:var(--col) var(--col);
+  background-position:center top;
+}
+
+/* contorno spesso che incornicia la pagina come un foglio svizzero */
+.frame{
+  position:relative;
+  z-index:1;
+  max-width:1320px;
+  margin:0 auto;
+  border-left:2px solid var(--ink);
+  border-right:2px solid var(--ink);
+  background:
+    /* lascia intravedere il reticolo: niente fondo pieno */
+    transparent;
+  min-height:100vh;
+  overflow:hidden;     /* contiene gli sconfini interni */
+}
+
+/* utilità */
+.mono-label{
+  font-family:"IBM Plex Mono",monospace;
+  text-transform:uppercase;
+  letter-spacing:.22em;
+  font-size:11px;
+  font-weight:500;
+}
+.rule{ border:0; border-top:1px solid var(--ink); }
+.rule-2{ border:0; border-top:2px solid var(--ink); }
+
+/* marcatore: rombo a contorno 1px */
+.diamond{
+  display:inline-block;
+  width:9px; height:9px;
+  border:1px solid var(--ink);
+  transform:rotate(45deg);
+  vertical-align:middle;
+}
+.diamond.fill{ background:var(--tomato); border-color:var(--tomato); }
+
+/* ============================================================
+   TOPBAR
+   ============================================================ */
+.topbar{
+  display:grid;
+  grid-template-columns: 1fr auto;
+  align-items:stretch;
+  border-bottom:2px solid var(--ink);
+}
+.topbar .brand{
+  display:flex; align-items:center; gap:14px;
+  padding:14px 22px;
+  border-right:1px solid var(--ink);
+}
+.topbar .brand b{ font-weight:600; letter-spacing:.16em; }
+.topbar nav{
+  display:flex;
+}
+.topbar nav a{
+  display:flex; align-items:center;
+  padding:0 20px;
+  color:var(--ink);
+  text-decoration:none;
+  border-left:1px solid var(--ink);
+  letter-spacing:.18em;
+  font-size:11px;
+  text-transform:uppercase;
+  transition:background .18s var(--ease), color .18s var(--ease);
+}
+.topbar nav a:hover{ background:var(--ink); color:var(--bone); }
+.topbar nav a.cta{ background:var(--tomato); color:var(--bone); font-weight:600; }
+.topbar nav a.cta:hover{ background:var(--ink); }
+
+/* ============================================================
+   HERO  — asimmetrico, titolo che sconfina dal bordo
+   ============================================================ */
+.hero{
+  display:grid;
+  grid-template-columns: minmax(0,1fr) 360px;
+  align-items:end;
+  border-bottom:2px solid var(--ink);
+}
+.hero .left{
+  padding:46px 22px 40px 22px;
+  position:relative;
+}
+.hero .kicker{
+  display:inline-flex; align-items:center; gap:12px;
+  margin-bottom:30px;
+}
+.hero .kicker .tag{
+  background:var(--ink); color:var(--bone);
+  padding:5px 12px; letter-spacing:.2em; font-size:10px; text-transform:uppercase;
+}
+
+.hero h1{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-weight:800;
+  font-size:clamp(48px, 8.4vw, 118px);
+  line-height:.90;
+  letter-spacing:-.025em;
+  margin-right:-90px;           /* SCONFINA oltre la colonna a destra */
+  text-wrap:balance;
+}
+.hero h1 .em{
+  font-style:italic;
+  font-weight:600;
+  color:var(--tomato);
+}
+/* la parola "diagonale" tagliata da una hairline diagonale richiama la metrica */
+.hero h1 .cut{ position:relative; white-space:nowrap; }
+
+.hero .lede{
+  max-width:40ch;
+  margin-top:34px;
+  font-size:15px;
+  line-height:1.62;
+}
+.hero .ctas{
+  display:flex; flex-wrap:wrap; gap:0;
+  margin-top:34px;
+  border:2px solid var(--ink);
+  width:max-content;
+  max-width:100%;
+}
+.btn{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12px; letter-spacing:.16em; text-transform:uppercase; font-weight:600;
+  padding:16px 26px;
+  text-decoration:none;
+  display:inline-flex; align-items:center; gap:12px;
+  cursor:pointer;
+  transition:background .18s var(--ease), color .18s var(--ease), transform .18s var(--ease);
+}
+.btn-primary{ background:var(--tomato); color:var(--bone); }
+.btn-primary:hover{ background:var(--ink); }
+.btn-ghost{ background:var(--bone); color:var(--ink); border-left:2px solid var(--ink); }
+.btn-ghost:hover{ background:var(--ink); color:var(--bone); }
+.btn .arrow{ font-family:"IBM Plex Mono",monospace; transition:transform .18s var(--ease); }
+.btn:hover .arrow{ transform:translateX(4px); }
+
+/* colonna destra hero: una mini-figura + coordinate */
+.hero .right{
+  border-left:1px solid var(--ink);
+  align-self:stretch;
+  display:flex; flex-direction:column;
+}
+.hero .right .meta{
+  padding:14px 18px;
+  border-bottom:1px solid var(--ink);
+  display:flex; justify-content:space-between; align-items:baseline;
+  font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+}
+.hero .right .figbox{
+  flex:1;
+  display:flex; align-items:center; justify-content:center;
+  padding:18px;
+  background:
+    linear-gradient(to right,  rgba(10,10,10,.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(10,10,10,.08) 1px, transparent 1px);
+  background-size:22px 22px;
+}
+.hero .right svg{ width:100%; height:auto; max-width:280px; }
+
+/* ============================================================
+   INDICE  — riga di sezioni con numeri giganti
+   ============================================================ */
+.index{
+  display:grid;
+  grid-template-columns: repeat(6, 1fr);
+  border-bottom:2px solid var(--ink);
+}
+.index a{
+  text-decoration:none; color:var(--ink);
+  padding:20px 16px 22px;
+  border-left:1px solid var(--ink);
+  position:relative;
+  transition:background .18s var(--ease), color .18s var(--ease);
+  overflow:hidden;
+}
+.index a:first-child{ border-left:0; }
+.index a .num{
+  font-family:"Bricolage Grotesque",sans-serif;
+  font-weight:700;
+  font-size:34px;
+  line-height:1;
+  display:block;
+  letter-spacing:-.03em;
+}
+.index a .nm{
+  display:block; margin-top:12px;
+  font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+}
+.index a:hover{ background:var(--ink); color:var(--bone); }
+.index a:hover .nm{ color:var(--tomato); }
+
+/* ============================================================
+   ESTRATTO — 02 La circonferenza taxicab
+   ============================================================ */
+.excerpt{
+  display:grid;
+  grid-template-columns: 120px minmax(0,1fr) minmax(360px, 560px);
+  border-bottom:2px solid var(--ink);
+}
+
+/* fascia numero gigante verticale a sinistra */
+.excerpt .bignum{
+  border-right:1px solid var(--ink);
+  display:flex; align-items:flex-start; justify-content:center;
+  padding-top:26px;
+  position:relative;
+}
+.excerpt .bignum span{
+  font-family:"Bricolage Grotesque",sans-serif;
+  font-weight:800;
+  font-size:96px;
+  line-height:.8;
+  letter-spacing:-.04em;
+  color:var(--ink);
+}
+
+.excerpt .body{
+  padding:36px 30px 40px;
+  border-right:1px solid var(--ink);
+}
+.excerpt .body .eyebrow{
+  display:flex; align-items:center; gap:12px;
+  margin-bottom:18px;
+}
+.excerpt .body h2{
+  font-family:"Bricolage Grotesque",sans-serif;
+  font-weight:700;
+  font-size:clamp(26px,3.4vw,40px);
+  line-height:1.02;
+  letter-spacing:-.02em;
+  margin-bottom:22px;
+  text-wrap:balance;
+}
+.excerpt .body p{
+  max-width:52ch;
+  font-size:14px; line-height:1.66;
+  margin-bottom:22px;
+}
+.excerpt .body p .hl{
+  background:var(--tomato); color:var(--bone);
+  padding:1px 5px; font-weight:500;
+}
+
+/* formula a vista, incorniciata */
+.formula{
+  margin:6px 0 26px;
+  border:2px solid var(--ink);
+  display:inline-block;
+  background:var(--bone);
+}
+.formula .label{
+  border-bottom:1px solid var(--ink);
+  padding:7px 14px;
+  font-size:10px; letter-spacing:.2em; text-transform:uppercase;
+  background:var(--ink); color:var(--bone);
+}
+.formula .eq{
+  padding:18px 22px;
+  font-family:"Bricolage Grotesque",sans-serif;
+  font-weight:600;
+  font-size:clamp(22px,2.8vw,30px);
+  letter-spacing:.01em;
+}
+.formula .eq sub{ font-size:.62em; }
+.formula .eq .op{ color:var(--tomato); padding:0 .12em; }
+
+.excerpt .body .vtx-list{
+  list-style:none;
+  display:flex; flex-wrap:wrap; gap:0;
+  border:1px solid var(--ink);
+  width:max-content; max-width:100%;
+}
+.excerpt .body .vtx-list li{
+  font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  padding:9px 14px;
+  border-right:1px solid var(--ink);
+  display:flex; align-items:center; gap:8px;
+}
+.excerpt .body .vtx-list li:last-child{ border-right:0; }
+
+/* colonna figura grande del rombo */
+.excerpt .figure{
+  display:flex; flex-direction:column;
+}
+.excerpt .figure .cap{
+  padding:13px 18px;
+  border-bottom:1px solid var(--ink);
+  display:flex; justify-content:space-between; align-items:baseline;
+  font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+}
+.excerpt .figure .stage{
+  flex:1;
+  display:flex; align-items:center; justify-content:center;
+  padding:26px;
+}
+.excerpt .figure svg{ width:100%; height:auto; max-width:460px; }
+
+/* legenda sotto la figura */
+.fig-legend{
+  border-top:1px solid var(--ink);
+  display:flex;
+}
+.fig-legend .item{
+  flex:1;
+  padding:11px 16px;
+  border-right:1px solid var(--ink);
+  font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+  display:flex; align-items:center; gap:9px;
+}
+.fig-legend .item:last-child{ border-right:0; }
+.fig-legend .swatch{ width:18px; height:0; }
+.fig-legend .swatch.solid{ border-top:3px solid var(--tomato); }
+.fig-legend .swatch.dash{ border-top:1.5px dashed var(--ink); }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.foot{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:18px 22px;
+  font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+}
+.foot .right{ display:flex; align-items:center; gap:12px; }
+
+/* ============================================================
+   FIGURA SVG — stili condivisi
+   ============================================================ */
+.svg-grid line{ stroke:rgba(10,10,10,.16); stroke-width:1; }
+.svg-axis{ stroke:var(--ink); stroke-width:1.5; }
+.svg-rhombus{ fill:none; stroke:var(--tomato); stroke-width:3; stroke-linejoin:miter; }
+.svg-rhombus-fill{ fill:var(--tomato); opacity:.10; }
+.svg-ghost{ fill:none; stroke:var(--ink); stroke-width:1.5; stroke-dasharray:5 4; }
+.svg-vertex{ fill:var(--bone); stroke:var(--ink); stroke-width:1.5; }
+.svg-center{ fill:var(--ink); }
+.svg-tick text{ font-family:"IBM Plex Mono",monospace; font-size:10px; fill:var(--ink); }
+.svg-label{ font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.06em; fill:var(--ink); }
+.svg-R{ stroke:var(--ink); stroke-width:1; stroke-dasharray:2 3; }
+
+/* ============================================================
+   ANIMAZIONE D'INGRESSO — reveal staggered
+   ============================================================ */
+@keyframes riseIn{
+  from{ opacity:0; transform:translateY(16px); }
+  to{   opacity:1; transform:translateY(0); }
+}
+@keyframes wipeDown{
+  from{ clip-path:inset(0 0 100% 0); }
+  to{   clip-path:inset(0 0 0 0); }
+}
+@keyframes drawStroke{
+  from{ stroke-dashoffset:var(--len, 900); }
+  to{   stroke-dashoffset:0; }
+}
+@keyframes popVtx{
+  0%{ opacity:0; transform:scale(0); }
+  70%{ opacity:1; transform:scale(1.25); }
+  100%{ opacity:1; transform:scale(1); }
+}
+
+.reveal{ opacity:0; animation:riseIn .7s var(--ease) forwards; }
+.topbar{ animation:wipeDown .55s var(--ease) both; }
+
+.d1{ animation-delay:.10s; }
+.d2{ animation-delay:.22s; }
+.d3{ animation-delay:.34s; }
+.d4{ animation-delay:.46s; }
+.d5{ animation-delay:.58s; }
+.d6{ animation-delay:.70s; }
+.d7{ animation-delay:.82s; }
+.d8{ animation-delay:.94s; }
+
+/* la figura del rombo si "disegna" */
+.draw{
+  stroke-dasharray:var(--len, 900);
+  stroke-dashoffset:var(--len, 900);
+  animation:drawStroke 1.1s var(--ease) .9s forwards;
+}
+.draw.ghost{ animation-delay:1.25s; animation-duration:1s; }
+.vtx-anim{ transform-box:fill-box; transform-origin:center; opacity:0; animation:popVtx .4s var(--ease) forwards; }
+.vtx-anim.v1{ animation-delay:1.7s; }
+.vtx-anim.v2{ animation-delay:1.8s; }
+.vtx-anim.v3{ animation-delay:1.9s; }
+.vtx-anim.v4{ animation-delay:2.0s; }
+
+@media (prefers-reduced-motion: reduce){
+  .reveal,.topbar,.draw,.vtx-anim{ animation:none !important; opacity:1 !important; }
+  .draw{ stroke-dashoffset:0 !important; }
+  .vtx-anim{ transform:none !important; }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width:980px){
+  .hero{ grid-template-columns:1fr; }
+  .hero .right{ border-left:0; border-top:2px solid var(--ink); }
+  .hero h1{ margin-right:0; }
+  .index{ grid-template-columns:repeat(3,1fr); }
+  .index a:nth-child(4){ border-left:0; }
+  .excerpt{ grid-template-columns:64px 1fr; }
+  .excerpt .figure{ grid-column:1 / -1; border-top:2px solid var(--ink); }
+  .excerpt .bignum span{ font-size:60px; }
+  .topbar nav a:not(.cta){ display:none; }
+}
+@media (max-width:560px){
+  :root{ --col:64px; }
+  .index{ grid-template-columns:repeat(2,1fr); }
+  .index a:nth-child(3){ border-left:0; }
+  .index a:nth-child(5){ border-left:0; }
+  .hero .ctas{ width:100%; flex-direction:column; }
+  .btn-ghost{ border-left:0; border-top:2px solid var(--ink); }
+  .excerpt{ grid-template-columns:1fr; }
+  .excerpt .bignum{ border-right:0; border-bottom:1px solid var(--ink); padding:14px; }
+  .excerpt .bignum span{ font-size:54px; }
+  .excerpt .body{ border-right:0; }
+}
+</style>
+</head>
+<body>
+
+<!-- reticolo di Manhattan a vista, fisso dietro a tutto -->
+<div class="lattice" aria-hidden="true"></div>
+
+<div class="frame">
+
+  <!-- ===================== TOPBAR ===================== -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="diamond fill" aria-hidden="true"></span>
+      <b class="mono-label">GEOMETRIA&nbsp;DEL&nbsp;TAXI</b>
+    </div>
+    <nav>
+      <a href="#teoria">Teoria</a>
+      <a href="#indice">Indice</a>
+      <a href="#calcolatore" class="cta">Calcolatore →</a>
+    </nav>
+  </header>
+
+  <!-- ===================== HERO ===================== -->
+  <section class="hero">
+    <div class="left">
+      <span class="kicker reveal d1">
+        <span class="tag">Metrica&nbsp;L₁</span>
+        <span class="mono-label">Geometria del Taxi · Distanza di Manhattan</span>
+      </span>
+
+      <h1 class="reveal d2">
+        Quando la <span class="em">retta</span><br>
+        più breve non è<br>
+        la <span class="cut">diagonale</span>
+      </h1>
+
+      <p class="lede reveal d3">
+        Nella distanza di Manhattan i cerchi diventano rombi e le coniche
+        cambiano forma. Esplora la geometria del taxi, con visualizzazioni
+        e un calcolatore interattivo.
+      </p>
+
+      <div class="ctas reveal d4">
+        <a href="#calcolatore" class="btn btn-primary">
+          Apri il calcolatore <span class="arrow">→</span>
+        </a>
+        <a href="#teoria" class="btn btn-ghost">
+          Leggi la teoria
+        </a>
+      </div>
+    </div>
+
+    <!-- colonna destra: una mini-figura del cammino taxi vs euclideo -->
+    <aside class="right reveal d5">
+      <div class="meta">
+        <span>FIG. 00</span>
+        <span>d₁ = |Δx| + |Δy|</span>
+      </div>
+      <div class="figbox">
+        <!-- percorso a gradini (taxi) vs ipotenusa (euclideo) -->
+        <svg viewBox="0 0 220 220" role="img" aria-label="Confronto fra cammino a gradini (taxi) e segmento diagonale (euclideo) fra due punti.">
+          <!-- diagonale euclidea fantasma -->
+          <line x1="30" y1="190" x2="190" y2="30" class="svg-ghost"/>
+          <!-- cammino taxi a gradini -->
+          <polyline points="30,190 30,150 70,150 70,110 110,110 110,70 150,70 150,30 190,30"
+                    fill="none" stroke="#FF4A1C" stroke-width="3" stroke-linejoin="miter"/>
+          <!-- punti A e B -->
+          <rect x="25" y="185" width="10" height="10" class="svg-center"/>
+          <rect x="185" y="25" width="10" height="10" class="svg-center"/>
+          <text x="14" y="205" class="svg-label">A</text>
+          <text x="198" y="22" class="svg-label">B</text>
+        </svg>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ===================== INDICE ===================== -->
+  <nav class="index" id="indice" aria-label="Indice delle sezioni">
+    <a href="#fondamenti"><span class="num">01</span><span class="nm">Fondamenti</span></a>
+    <a href="#circonferenza"><span class="num">02</span><span class="nm">Circonferenza</span></a>
+    <a href="#ellisse"><span class="num">03</span><span class="nm">Ellisse</span></a>
+    <a href="#iperbole"><span class="num">04</span><span class="nm">Iperbole</span></a>
+    <a href="#parabola"><span class="num">05</span><span class="nm">Parabola</span></a>
+    <a href="#calcolatore"><span class="num">06</span><span class="nm">Calcolatore</span></a>
+  </nav>
+
+  <!-- ===================== ESTRATTO 02 ===================== -->
+  <section class="excerpt" id="circonferenza">
+
+    <div class="bignum reveal d6"><span>02</span></div>
+
+    <div class="body reveal d7">
+      <div class="eyebrow">
+        <span class="diamond" aria-hidden="true"></span>
+        <span class="mono-label">Estratto · Capitolo 02</span>
+      </div>
+
+      <h2>La circonferenza taxicab</h2>
+
+      <p>
+        Il luogo dei punti a distanza R dal centro, nella metrica L₁,
+        non è un cerchio ma <span class="hl">un quadrato ruotato di 45°</span>:
+        un rombo. I quattro vertici stanno sui semiassi a distanza R.
+      </p>
+
+      <div class="formula" role="img" aria-label="Modulo di x meno x con c, più modulo di y meno y con c, uguale R.">
+        <div class="label">Equazione · cerchio L₁</div>
+        <div class="eq">
+          |x <span class="op">−</span> x<sub>c</sub>| <span class="op">+</span> |y <span class="op">−</span> y<sub>c</sub>| <span class="op">=</span> R
+        </div>
+      </div>
+
+      <ul class="vtx-list" aria-label="I quattro vertici sui semiassi">
+        <li><span class="diamond fill" aria-hidden="true"></span> N (x<sub>c</sub>, y<sub>c</sub>+R)</li>
+        <li><span class="diamond fill" aria-hidden="true"></span> E (x<sub>c</sub>+R, y<sub>c</sub>)</li>
+        <li><span class="diamond fill" aria-hidden="true"></span> S (x<sub>c</sub>, y<sub>c</sub>−R)</li>
+        <li><span class="diamond fill" aria-hidden="true"></span> W (x<sub>c</sub>−R, y<sub>c</sub>)</li>
+      </ul>
+    </div>
+
+    <!-- FIGURA: rombo su griglia a vista + cerchio euclideo fantasma -->
+    <figure class="figure reveal d8">
+      <figcaption class="cap">
+        <span>FIG. 02 · ROMBO L₁</span>
+        <span>R = 4</span>
+      </figcaption>
+
+      <div class="stage">
+        <svg viewBox="0 0 360 360" role="img"
+             aria-label="Rombo taxicab di raggio R su griglia: quattro vertici sui semiassi a distanza R, circoscritto da una circonferenza euclidea tratteggiata.">
+          <!-- griglia a vista -->
+          <g class="svg-grid">
+            <!-- verticali -->
+            <line x1="40"  y1="20" x2="40"  y2="340"/>
+            <line x1="80"  y1="20" x2="80"  y2="340"/>
+            <line x1="120" y1="20" x2="120" y2="340"/>
+            <line x1="160" y1="20" x2="160" y2="340"/>
+            <line x1="240" y1="20" x2="240" y2="340"/>
+            <line x1="280" y1="20" x2="280" y2="340"/>
+            <line x1="320" y1="20" x2="320" y2="340"/>
+            <!-- orizzontali -->
+            <line x1="20" y1="40"  x2="340" y2="40"/>
+            <line x1="20" y1="80"  x2="340" y2="80"/>
+            <line x1="20" y1="120" x2="340" y2="120"/>
+            <line x1="20" y1="160" x2="340" y2="160"/>
+            <line x1="20" y1="240" x2="340" y2="240"/>
+            <line x1="20" y1="280" x2="340" y2="280"/>
+            <line x1="20" y1="320" x2="340" y2="320"/>
+          </g>
+
+          <!-- assi -->
+          <line x1="20" y1="200" x2="345" y2="200" class="svg-axis"/>
+          <line x1="200" y1="15" x2="200" y2="345" class="svg-axis"/>
+          <polygon points="345,200 338,196 338,204" class="svg-center"/>
+          <polygon points="200,15 196,22 204,22" class="svg-center"/>
+          <text x="348" y="196" class="svg-label">x</text>
+          <text x="206" y="20" class="svg-label">y</text>
+
+          <!-- cerchio euclideo fantasma (raggio = 4 unità = 160px), circoscritto -->
+          <circle cx="200" cy="200" r="160" class="svg-ghost draw ghost" style="--len:1010"/>
+
+          <!-- riempimento tenue del rombo -->
+          <polygon points="200,40 360,200 200,360 40,200" class="svg-rhombus-fill"/>
+          <!-- contorno rombo (vertici a distanza R=4 → 160px sui semiassi) -->
+          <polygon points="200,40 360,200 200,360 40,200" class="svg-rhombus draw" style="--len:905"/>
+
+          <!-- segmenti R quotati su un semiasse -->
+          <line x1="200" y1="200" x2="360" y2="200" class="svg-R"/>
+          <text x="262" y="192" class="svg-label">R</text>
+
+          <!-- centro -->
+          <circle cx="200" cy="200" r="3.5" class="svg-center"/>
+          <text x="206" y="216" class="svg-label">C</text>
+
+          <!-- 4 vertici evidenziati -->
+          <g class="vtx-anim v1"><rect x="194" y="34"  width="12" height="12" transform="rotate(45 200 40)"  class="svg-vertex"/></g>
+          <g class="vtx-anim v2"><rect x="354" y="194" width="12" height="12" transform="rotate(45 360 200)" class="svg-vertex"/></g>
+          <g class="vtx-anim v3"><rect x="194" y="354" width="12" height="12" transform="rotate(45 200 360)" class="svg-vertex"/></g>
+          <g class="vtx-anim v4"><rect x="34"  y="194" width="12" height="12" transform="rotate(45 40 200)"  class="svg-vertex"/></g>
+
+          <!-- etichette vertici -->
+          <text x="208" y="36"  class="svg-label">N</text>
+          <text x="338" y="224" class="svg-label">E</text>
+          <text x="208" y="356" class="svg-label">S</text>
+          <text x="24"  y="190" class="svg-label">W</text>
+        </svg>
+      </div>
+
+      <div class="fig-legend">
+        <div class="item"><span class="swatch solid" aria-hidden="true"></span> Rombo L₁</div>
+        <div class="item"><span class="swatch dash" aria-hidden="true"></span> Cerchio euclideo</div>
+      </div>
+    </figure>
+  </section>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="foot">
+    <span class="mono-label">Un'esplorazione della metrica L₁</span>
+    <span class="right">
+      <span class="diamond" aria-hidden="true"></span>
+      <span class="mono-label">Bozza 02 · Brutalismo svizzero</span>
+    </span>
+  </footer>
+
+</div><!-- /frame -->
+
+<script>
+/* JS minimo: allinea il passo del reticolo di fondo alla larghezza reale
+   del frame, così la griglia "a vista" combacia con i bordi del layout. */
+(function(){
+  var lattice = document.querySelector('.lattice');
+  var frame   = document.querySelector('.frame');
+  if(!lattice || !frame) return;
+
+  function sync(){
+    /* 8 colonne sulla larghezza del frame → reticolo strutturale coerente */
+    var w = frame.getBoundingClientRect().width;
+    var step = Math.max(48, Math.round(w / 15));
+    lattice.style.backgroundSize = step + 'px ' + step + 'px';
+    /* centra l'origine del reticolo sull'asse del frame */
+    var offset = (window.innerWidth - w) / 2;
+    lattice.style.backgroundPosition = offset + 'px 0';
+  }
+
+  sync();
+  var t;
+  window.addEventListener('resize', function(){
+    clearTimeout(t); t = setTimeout(sync, 120);
+  }, { passive:true });
+})();
+</script>
+
+</body>
+</html>
