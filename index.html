@@ -9,124 +9,173 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Playfair+Display:wght@700;800&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bone: #E9E5DC;
+      --ink: #0A0A0A;
+      --tomato: #FF4A1C;
+      --hair: rgba(10,10,10,0.18);
+      --ease: cubic-bezier(.16,.84,.36,1);
+    }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
     body {
-      background: #050505;
-      color: #1a1a1a;
+      background: var(--bone);
+      color: var(--ink);
+      font-family: 'IBM Plex Mono', monospace;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
       transition: background-color 0.6s ease;
     }
-    body.light-mode { background: #FAFAFA; }
+    body.light-mode { background: var(--bone); }
+
+    /* fixed Manhattan lattice behind everything */
+    .lattice {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(to right,  rgba(10,10,10,.07) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(10,10,10,.07) 1px, transparent 1px);
+      background-size: 88px 88px; background-position: center top;
+    }
+    /* centered sheet with side borders; the lattice shows through the margins */
+    .frame {
+      position: relative; z-index: 1;
+      max-width: 1320px; margin: 0 auto;
+      border-left: 2px solid var(--ink); border-right: 2px solid var(--ink);
+      background: var(--bone);
+      /* no overflow:hidden — would break position:sticky on the section figures */
+    }
+
+    /* shared brutalist helpers */
+    .mono-label { font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.2em; font-size: 0.7rem; font-weight: 500; }
+    .diamond { display:inline-block; width:9px; height:9px; border:1.5px solid var(--ink); transform:rotate(45deg); vertical-align:middle; flex-shrink:0; }
+    .diamond.fill { background: var(--tomato); border-color: var(--tomato); }
 
     /* ─── ACADEMIC SECTIONS ─── */
     .section-academic {
-      background: #FAFAFA;
-      color: #1a1a1a;
-      font-family: 'Spectral', serif;
+      position: relative;
+      background: var(--bone);
+      color: var(--ink);
+      font-family: 'Bricolage Grotesque', sans-serif;
       font-size: clamp(0.95rem, 1.1vw, 1.05rem);
-      line-height: 1.78;
-      text-align: justify;
+      line-height: 1.72;
+      text-align: left;
+      border-bottom: 2px solid var(--ink);
     }
     .section-academic > .section-inner {
-      max-width: 960px;
+      max-width: 980px;
       margin: 0 auto;
-      padding: 5rem 2rem;
+      padding: 4.5rem 2rem;
     }
 
     .section-number {
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.72rem;
-      color: #999;
-      letter-spacing: 0.1em;
+      font-size: 0.66rem;
+      background: var(--ink); color: var(--bone);
+      letter-spacing: 0.2em;
       text-transform: uppercase;
-      margin-bottom: 0.4rem;
+      display: inline-block;
+      padding: 4px 9px;
+      margin-bottom: 1rem;
     }
     .section-title {
-      font-family: 'Spectral', serif;
-      font-size: clamp(1.4rem, 2vw, 1.8rem);
-      font-weight: 600;
-      color: #0a0a0a;
-      border-bottom: 1px solid #e0e0e0;
-      padding-bottom: 0.5rem;
-      margin-bottom: 1.5rem;
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 0.6rem;
+      margin-bottom: 1.6rem;
+      text-wrap: balance;
     }
     .section-split {
       display: flex;
-      gap: 2rem;
+      gap: 2.5rem;
       align-items: flex-start;
     }
-    .section-text { flex: 65%; }
+    .section-text { flex: 62%; min-width: 0; }
     .section-figure {
-      flex: 35%;
+      flex: 38%;
       position: sticky;
       top: 2rem;
     }
+    .section-text p { margin-bottom: 1rem; }
+    .section-text ul { margin: 1rem 0 1rem 1.4rem; line-height: 1.9; }
 
     .definition-box {
-      border-left: 3px solid #1a1a1a;
-      padding: 1rem 1.5rem;
-      margin: 2rem 0;
-      background: #f5f5f5;
-      font-style: italic;
+      border: 2px solid var(--ink);
+      border-left: 6px solid var(--tomato);
+      padding: 1rem 1.4rem;
+      margin: 1.8rem 0;
+      background: var(--bone);
+      font-style: normal;
     }
-    .definition-box strong { font-style: normal; font-weight: 600; }
+    .definition-box strong { font-style: normal; font-weight: 700; }
 
     .formula {
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.88em;
-      background: #f0f0f0;
-      padding: 0.1em 0.4em;
-      border-radius: 2px;
+      font-size: 0.85em;
+      background: var(--bone);
+      border: 1px solid var(--ink);
+      padding: 0.04em 0.35em;
     }
     .formula-display {
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.95rem;
-      text-align: center;
-      margin: 2rem 0;
-      padding: 1.25rem;
-      background: #f5f5f5;
-      border: 1px solid #e8e8e8;
+      font-size: 0.9rem;
+      text-align: left;
+      margin: 1.8rem 0;
+      padding: 1.2rem 1.3rem;
+      background: var(--bone);
+      border: 2px solid var(--ink);
       overflow-x: auto;
       white-space: pre;
-      line-height: 1.9;
+      line-height: 1.85;
     }
     .theorem {
-      border: 1px solid #ccc;
-      padding: 1.25rem 1.5rem;
-      margin: 2rem 0;
+      border: 2px solid var(--ink);
+      padding: 1.1rem 1.4rem;
+      margin: 1.8rem 0;
+      background: var(--bone);
     }
     .theorem-label {
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.72rem;
+      font-size: 0.64rem;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #666;
-      margin-bottom: 0.5rem;
+      letter-spacing: 0.16em;
+      color: var(--bone); background: var(--ink);
+      display: inline-block;
+      padding: 3px 8px;
+      margin-bottom: 0.7rem;
     }
 
     table.paper-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.88rem;
-      margin: 2rem 0;
+      font-size: 0.85rem;
+      margin: 1.8rem 0;
+      border: 2px solid var(--ink);
     }
     table.paper-table th {
-      border-bottom: 2px solid #1a1a1a;
+      border-bottom: 2px solid var(--ink);
+      background: var(--ink); color: var(--bone);
       padding: 0.5rem 0.75rem;
       text-align: left;
       font-weight: 600;
       font-family: 'IBM Plex Mono', monospace;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
     table.paper-table td {
-      border-bottom: 1px solid #e0e0e0;
+      border-bottom: 1px solid var(--hair);
+      border-right: 1px solid var(--hair);
       padding: 0.5rem 0.75rem;
       vertical-align: top;
     }
+    table.paper-table td:last-child { border-right: none; }
     table.paper-table tr:last-child td { border-bottom: none; }
 
     /* ─── RESPONSIVE ─── */
@@ -139,64 +188,66 @@
     /* ─── HERO ─── */
     #hero {
       position: relative;
-      min-height: 100vh;
-      background: #050505;
+      min-height: 92vh;
+      background: var(--bone);
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       overflow: hidden;
-      color: white;
+      color: var(--ink);
+      border-bottom: 2px solid var(--ink);
     }
     .hero-grid-layer {
       position: absolute;
       inset: 0;
       pointer-events: none;
     }
-    .hero-blob {
-      position: absolute;
-      border-radius: 50%;
-      pointer-events: none;
-    }
-    .hero-blob-amber {
-      top: -100px; right: -100px;
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(245,158,11,0.30) 0%, transparent 70%);
-      filter: blur(40px);
-    }
-    .hero-blob-blue {
-      bottom: -120px; left: -100px;
-      width: 520px; height: 520px;
-      background: radial-gradient(circle, rgba(59,130,246,0.28) 0%, transparent 70%);
-      filter: blur(40px);
-    }
+    .hero-blob { display: none; }   /* radial blobs are not brutalist — hidden */
     .hero-content {
       position: relative;
       z-index: 2;
-      text-align: center;
-      padding: 2rem;
-      max-width: 800px;
+      text-align: left;
+      padding: clamp(2rem, 6vw, 5rem) clamp(1.4rem, 5vw, 4.5rem);
+      max-width: 1040px;
     }
+    .hero-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1.8rem;
+      flex-wrap: wrap;
+    }
+    .hero-kicker .tag {
+      background: var(--ink); color: var(--bone);
+      padding: 5px 11px;
+      letter-spacing: 0.2em; font-size: 0.6rem; text-transform: uppercase;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .hero-kicker .mono-label { color: var(--ink); opacity: 0.75; }
     .hero-title {
-      font-family: 'Playfair Display', serif;
+      font-family: 'Bricolage Grotesque', sans-serif;
       font-weight: 800;
-      font-size: clamp(2.5rem, 6vw, 5rem);
-      color: #ffffff;
-      line-height: 1.12;
-      letter-spacing: -0.01em;
-      margin-bottom: 1.5rem;
+      font-size: clamp(2.6rem, 8.4vw, 6.6rem);
+      color: var(--ink);
+      line-height: 0.94;
+      letter-spacing: -0.03em;
+      margin-bottom: 1.6rem;
+      text-wrap: balance;
     }
+    .hero-title .em { color: var(--tomato); font-style: italic; font-weight: 700; }
     .hero-subtitle {
       font-family: 'IBM Plex Mono', monospace;
-      font-size: clamp(0.75rem, 1.5vw, 1rem);
+      font-size: clamp(0.72rem, 1.4vw, 0.95rem);
       letter-spacing: 0.22em;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.50);
+      color: var(--ink);
+      opacity: 0.7;
     }
 
 /* ─── MINI ENGINE ─── */
 .mini-engine-wrap {
-  background: #0d0d0d;
-  border-radius: 8px;
+  background: var(--bone);
+  border: 2px solid var(--ink);
   padding: 12px;
   width: 100%;
 }
@@ -204,7 +255,8 @@
   display: block;
   width: 100%;
   aspect-ratio: 1;
-  border-radius: 4px;
+  border: 1px solid var(--ink);
+  background: var(--bone);
 }
 .mini-engine-controls {
   margin-top: 10px;
@@ -220,7 +272,8 @@
 .mini-ctrl-label {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
-  color: rgba(255,255,255,0.4);
+  color: var(--ink);
+  opacity: 0.6;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   width: 60px;
@@ -228,13 +281,13 @@
 }
 .mini-ctrl-row input[type=range] {
   flex: 1;
-  accent-color: #e63946;
+  accent-color: var(--tomato);
   height: 3px;
 }
 .mini-ctrl-value {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
-  color: rgba(255,255,255,0.6);
+  color: var(--ink);
   width: 36px;
   text-align: right;
   flex-shrink: 0;
@@ -243,7 +296,8 @@
   margin-top: 8px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
-  color: rgba(255,255,255,0.35);
+  color: var(--ink);
+  opacity: 0.6;
   line-height: 1.6;
 }
 
@@ -264,65 +318,66 @@
     pointer-events: auto !important;
     transform: translateY(0) !important;
   }
-  #calc-sidebar::-webkit-scrollbar { width: 4px; }
-  #calc-sidebar::-webkit-scrollbar-track { background: #080808; }
-  #calc-sidebar::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
+  #calc-sidebar::-webkit-scrollbar { width: 10px; }
+  #calc-sidebar::-webkit-scrollbar-track { background: var(--bone); border-left: 1px solid var(--ink); }
+  #calc-sidebar::-webkit-scrollbar-thumb { background: var(--ink); border: 2px solid var(--bone); }
 
   /* ─── TOUCH / MOBILE ─── */
   #calc-canvas { touch-action: none; }
   #calc-overlay { height: 100vh; height: 100dvh; }
 
-  /* Close button (always visible, replaces ESC badge) */
+  /* Close button (always visible, replaces ESC badge) — brutalist square */
   #calc-close-btn {
     position: absolute;
     top: 12px; right: 12px;
     z-index: 20;
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.5);
-    font-size: 1rem;
+    width: 38px; height: 38px;
+    border-radius: 0;
+    border: 2px solid var(--ink);
+    background: var(--bone);
+    color: var(--ink);
+    font-size: 1.1rem; line-height: 1;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s var(--ease), color 0.15s var(--ease), transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
     -webkit-tap-highlight-color: transparent;
   }
-  #calc-close-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  #calc-close-btn:hover { background: var(--tomato); color: var(--bone); transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--ink); }
   #calc-close-esc {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
-    color: rgba(255,255,255,0.2);
+    font-size: 0.56rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink); opacity: 0.5;
     position: absolute;
-    top: 14px; right: 56px;
+    top: 18px; right: 60px;
   }
 
-  /* Drawer toggle (FAB, mobile only) */
+  /* Drawer toggle (FAB, mobile only) — brutalist square */
   #calc-drawer-toggle {
     display: none;
     position: absolute;
     bottom: 20px; right: 16px;
     z-index: 15;
-    width: 48px; height: 48px;
-    border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.2);
-    background: rgba(8,8,8,0.92);
-    color: rgba(255,255,255,0.7);
-    font-size: 1.1rem;
+    width: 50px; height: 50px;
+    border-radius: 0;
+    border: 2px solid var(--ink);
+    background: var(--bone);
+    color: var(--ink);
+    font-size: 1.2rem;
     cursor: pointer;
     align-items: center; justify-content: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    box-shadow: 4px 4px 0 var(--ink);
     -webkit-tap-highlight-color: transparent;
     transition: background 0.15s;
   }
-  #calc-drawer-toggle:active { background: rgba(30,30,30,0.95); }
+  #calc-drawer-toggle:active { background: var(--tomato); color: var(--bone); }
 
   /* Drawer backdrop */
   #calc-drawer-backdrop {
     display: none;
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(10,10,10,0.45);
     z-index: 8;
   }
 
@@ -330,16 +385,16 @@
   @media (pointer: coarse) {
     .csb-param-row input[type=range] { height: 6px; }
     input[type=range]::-webkit-slider-thumb {
-      width: 24px; height: 24px;
+      width: 22px; height: 22px;
       -webkit-appearance: none;
-      background: #fff;
-      border-radius: 50%;
+      background: var(--ink);
+      border-radius: 0;
       cursor: pointer;
     }
     input[type=range]::-moz-range-thumb {
-      width: 24px; height: 24px;
-      background: #fff;
-      border-radius: 50%;
+      width: 22px; height: 22px;
+      background: var(--ink);
+      border-radius: 0;
       cursor: pointer;
       border: none;
     }
@@ -361,11 +416,11 @@
       position: fixed !important;
       bottom: 0 !important; left: 0 !important; right: 0 !important;
       width: 100% !important;
-      height: 65vh;
-      max-height: 65vh;
+      height: 68vh;
+      max-height: 68vh;
       border-right: none !important;
-      border-top: 1px solid #222 !important;
-      border-radius: 16px 16px 0 0;
+      border-top: 2px solid var(--ink) !important;
+      border-radius: 0;
       transform: translateY(100%);
       transition: transform 0.32s cubic-bezier(0.16,1,0.3,1);
       z-index: 12;
@@ -380,9 +435,9 @@
     #calc-sidebar::before {
       content: '';
       display: block;
-      width: 36px; height: 4px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 2px;
+      width: 40px; height: 4px;
+      background: var(--ink);
+      border-radius: 0;
       margin: 10px auto 4px;
       flex-shrink: 0;
     }
@@ -390,7 +445,7 @@
 
   /* ── iPad portrait (769–1024px) ── */
   @media (min-width: 769px) and (max-width: 1024px) and (orientation: portrait) {
-    #calc-sidebar { width: 200px !important; }
+    #calc-sidebar { width: 220px !important; }
   }
 
   /* Safe area for notch/home-bar */
@@ -398,113 +453,125 @@
     #calc-close-btn { top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
   }
 
-  /* ─── CALC SIDEBAR ─── */
-  .csb-section { border-bottom: 1px solid #161616; padding: 12px 14px; }
-  .csb-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.25); margin-bottom: 8px; }
+  /* ─── CALC SIDEBAR (brutalist) ─── */
+  .csb-section { border-bottom: 1px solid var(--ink); padding: 12px 14px; }
+  .csb-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--ink); opacity: 0.55; margin-bottom: 8px; }
   .csb-mode-row { display: flex; gap: 4px; }
-  .csb-mode-btn { flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; letter-spacing: 0.06em; background: #0f0f0f; border: 1px solid #1e1e1e; color: rgba(255,255,255,0.35); padding: 6px 4px; border-radius: 4px; cursor: pointer; text-align: center; transition: background 0.15s, border-color 0.15s, color 0.15s; }
-  .csb-mode-btn:hover { background: #161616; color: rgba(255,255,255,0.6); }
-  .csb-mode-btn.active { background: #1a1a1a; border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.9); }
-  .csb-tool-btn { display: flex; align-items: center; gap: 8px; width: 100%; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; background: transparent; border: none; color: rgba(255,255,255,0.5); padding: 7px 6px; border-radius: 4px; cursor: pointer; text-align: left; transition: background 0.12s, color 0.12s; }
-  .csb-tool-btn:hover { background: #111; color: rgba(255,255,255,0.85); }
-  .csb-tool-btn.active { background: #141414; color: #fff; }
+  .csb-mode-btn { flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; letter-spacing: 0.06em; background: var(--bone); border: 1.5px solid var(--ink); color: var(--ink); padding: 6px 4px; border-radius: 0; cursor: pointer; text-align: center; transition: background 0.15s, color 0.15s; }
+  .csb-mode-btn:hover { background: var(--ink); color: var(--bone); }
+  .csb-mode-btn.active { background: var(--ink); color: var(--bone); }
+  .csb-tool-btn { display: flex; align-items: center; gap: 8px; width: 100%; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; letter-spacing: 0.04em; background: transparent; border: none; border-bottom: 1px solid var(--hair); color: var(--ink); padding: 8px 6px; border-radius: 0; cursor: pointer; text-align: left; transition: background 0.12s, color 0.12s, padding-left 0.12s; }
+  .csb-tool-btn:hover { background: var(--ink); color: var(--bone); padding-left: 11px; }
+  .csb-tool-btn.active { background: var(--tomato); color: var(--bone); }
   .csb-tool-btn.disabled { opacity: 0.3; cursor: not-allowed; }
   .csb-tool-icon { width: 18px; text-align: center; font-size: 0.85rem; flex-shrink: 0; }
   /* Object items */
-  .csb-obj-item { border-radius:5px;margin-bottom:2px;border:1px solid transparent;transition:border-color 0.15s; }
-  .csb-obj-item.selected { border-color:#2a2a2a; }
-  .csb-obj-header { display:flex;align-items:center;gap:5px;padding:6px 6px 6px 5px;cursor:default;border-radius:4px;transition:background 0.12s;min-height:32px; }
-  .csb-obj-header:hover { background:rgba(255,255,255,0.03); }
-  .csb-obj-item.selected > .csb-obj-header { background:rgba(255,255,255,0.05); }
+  .csb-obj-item { border-radius:0;margin-bottom:0;border:1.5px solid var(--ink);transition:box-shadow 0.15s; }
+  .csb-obj-item + .csb-obj-item { margin-top:6px; }
+  .csb-obj-item.selected { box-shadow:3px 3px 0 var(--ink); }
+  .csb-obj-header { display:flex;align-items:center;gap:5px;padding:7px 6px 7px 6px;cursor:default;border-radius:0;transition:background 0.12s;min-height:32px; }
+  .csb-obj-header:hover { background:rgba(10,10,10,0.05); }
+  .csb-obj-item.selected > .csb-obj-header { background:var(--ink);color:var(--bone); }
+  .csb-obj-item.selected > .csb-obj-header .csb-obj-name { color:var(--bone); }
+  .csb-obj-item.selected > .csb-obj-header .csb-eye-btn { color:var(--bone); }
   /* Eye icon */
-  .csb-eye-btn { width:20px;height:20px;flex-shrink:0;background:transparent;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;color:rgba(255,255,255,0.55);transition:color 0.15s,transform 0.15s; }
-  .csb-eye-btn:hover { color:#fff;transform:scale(1.1); }
-  .csb-eye-btn.hidden { color:rgba(255,255,255,0.15); }
+  .csb-eye-btn { width:20px;height:20px;flex-shrink:0;background:transparent;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;color:var(--ink);transition:color 0.15s,transform 0.15s; }
+  .csb-eye-btn:hover { transform:scale(1.1); }
+  .csb-eye-btn.hidden { opacity:0.3; }
   /* Color dot */
   .csb-obj-dot { width:14px;height:14px;border-radius:50%;flex-shrink:0;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s; }
-  .csb-obj-dot:hover { transform:scale(1.3);box-shadow:0 0 0 3px rgba(255,255,255,0.1); }
-  .csb-obj-name { font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:rgba(255,255,255,0.75);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .csb-obj-dot:hover { transform:scale(1.3);box-shadow:0 0 0 3px rgba(10,10,10,0.12); }
+  .csb-obj-name { font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
   .csb-obj-name.hidden-obj { opacity:0.3; }
   /* Info button */
-  .csb-info-btn { width:14px;height:14px;flex-shrink:0;background:transparent;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.2);cursor:help;font-family:'IBM Plex Mono',monospace;font-size:0.5rem;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative; }
-  .csb-info-btn:hover { color:rgba(255,255,255,0.6);border-color:rgba(255,255,255,0.3); }
-  .csb-info-btn:hover::after { content:attr(data-def);position:absolute;left:20px;top:-2px;width:190px;background:#1a1a1a;border:1px solid #333;color:rgba(255,255,255,0.65);font-size:0.62rem;padding:7px 10px;border-radius:5px;z-index:100;line-height:1.6;white-space:normal;pointer-events:none; }
+  .csb-info-btn { width:14px;height:14px;flex-shrink:0;background:transparent;border:1px solid var(--ink);color:var(--ink);cursor:help;font-family:'IBM Plex Mono',monospace;font-size:0.5rem;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;opacity:0.5; }
+  .csb-info-btn:hover { opacity:1; }
+  .csb-info-btn:hover::after { content:attr(data-def);position:absolute;left:20px;top:-2px;width:190px;background:var(--ink);border:1px solid var(--ink);color:var(--bone);font-size:0.62rem;padding:7px 10px;border-radius:0;z-index:100;line-height:1.6;white-space:normal;pointer-events:none; }
   /* Expand button — ALWAYS VISIBLE */
-  .csb-expand-btn { width:20px;height:20px;flex-shrink:0;background:transparent;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);cursor:pointer;border-radius:3px;font-size:0.55rem;display:flex;align-items:center;justify-content:center;padding:0;transition:background 0.12s,color 0.12s; }
-  .csb-expand-btn:hover { background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8); }
+  .csb-expand-btn { width:20px;height:20px;flex-shrink:0;background:var(--bone);border:1px solid var(--ink);color:var(--ink);cursor:pointer;border-radius:0;font-size:0.55rem;display:flex;align-items:center;justify-content:center;padding:0;transition:background 0.12s,color 0.12s; }
+  .csb-expand-btn:hover { background:var(--ink);color:var(--bone); }
   /* Hover-only actions (ISOLA, ×) */
-  .csb-obj-actions { display:flex;gap:2px;opacity:0;transition:opacity 0.15s;flex-shrink:0; }
+  .csb-obj-actions { display:flex;gap:3px;opacity:0;transition:opacity 0.15s;flex-shrink:0; }
   .csb-obj-item:hover .csb-obj-actions,.csb-obj-item.selected .csb-obj-actions { opacity:1; }
-  .csb-obj-act-btn { font-family:'IBM Plex Mono',monospace;font-size:0.55rem;background:#1a1a1a;border:1px solid #2a2a2a;color:rgba(255,255,255,0.4);padding:2px 5px;border-radius:3px;cursor:pointer;transition:color 0.1s,border-color 0.1s; }
-  .csb-obj-act-btn:hover { color:rgba(255,255,255,0.85);border-color:rgba(255,255,255,0.3); }
-  .csb-obj-act-btn.isolate-btn.active { color:#f59e0b;border-color:#f59e0b; }
+  .csb-obj-act-btn { font-family:'IBM Plex Mono',monospace;font-size:0.55rem;letter-spacing:0.08em;background:var(--bone);border:1px solid var(--ink);color:var(--ink);padding:2px 5px;border-radius:0;cursor:pointer;transition:background 0.1s,color 0.1s; }
+  .csb-obj-act-btn:hover { background:var(--ink);color:var(--bone); }
+  .csb-obj-act-btn.isolate-btn.active { color:var(--bone);background:var(--tomato);border-color:var(--tomato); }
   /* Accordion panel */
-  .csb-obj-params { padding:10px 9px 9px;background:#060606;border-top:1px solid #1e1e1e; }
+  .csb-obj-params { padding:10px 9px 9px;background:var(--bone);border-top:1px solid var(--ink); }
   /* Color picker */
-  .csb-color-section { margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #1e1e1e; }
+  .csb-color-section { margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--ink); }
   .csb-palette { display:flex;flex-wrap:wrap;gap:5px;margin:5px 0; }
   .csb-swatch { width:20px;height:20px;border-radius:50%;cursor:pointer;transition:transform 0.12s,box-shadow 0.12s;border:2px solid transparent; }
   .csb-swatch:hover { transform:scale(1.2); }
-  .csb-swatch.active { border-color:rgba(255,255,255,0.75);transform:scale(1.1); }
+  .csb-swatch.active { border-color:var(--ink);transform:scale(1.1);box-shadow:0 0 0 1px var(--ink); }
   /* Pending value box */
-  .csb-pending-value { background:#0d0d1a;border:1px solid rgba(99,102,241,0.45);border-radius:6px;padding:12px 14px;margin:8px 14px 0; }
-  .csb-pv-title { font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:rgba(255,255,255,0.8);margin-bottom:10px;line-height:1.5; }
+  .csb-pending-value { background:var(--bone);border:2px solid var(--ink);border-left:6px solid var(--tomato);border-radius:0;padding:12px 14px;margin:8px 14px 0; }
+  .csb-pv-title { font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink);margin-bottom:10px;line-height:1.5; }
   .csb-pv-btns { display:flex;gap:6px;margin-top:10px; }
-  .csb-btn-confirm { flex:1;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;background:#3b3b8a;border:none;color:#fff;padding:7px;border-radius:4px;cursor:pointer;transition:background 0.15s; }
-  .csb-btn-confirm:hover { background:#5050b8; }
-  .csb-btn-cancel { font-family:'IBM Plex Mono',monospace;font-size:0.72rem;background:transparent;border:1px solid #333;color:rgba(255,255,255,0.35);padding:7px 10px;border-radius:4px;cursor:pointer; }
+  .csb-btn-confirm { flex:1;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;letter-spacing:0.06em;text-transform:uppercase;background:var(--tomato);border:none;color:var(--bone);padding:8px;border-radius:0;cursor:pointer;transition:background 0.15s; }
+  .csb-btn-confirm:hover { background:var(--ink); }
+  .csb-btn-cancel { font-family:'IBM Plex Mono',monospace;font-size:0.72rem;background:var(--bone);border:1.5px solid var(--ink);color:var(--ink);padding:7px 10px;border-radius:0;cursor:pointer;transition:background 0.15s,color 0.15s; }
+  .csb-btn-cancel:hover { background:var(--ink);color:var(--bone); }
   /* Clear all */
-  .csb-clear-btn { font-family:'IBM Plex Mono',monospace;font-size:0.62rem;background:transparent;border:1px solid rgba(255,80,80,0.2);color:rgba(255,100,100,0.4);padding:4px 8px;border-radius:3px;cursor:pointer;transition:all 0.15s; }
-  .csb-clear-btn:hover { border-color:rgba(255,80,80,0.6);color:rgba(255,100,100,0.9); }
+  .csb-clear-btn { font-family:'IBM Plex Mono',monospace;font-size:0.62rem;letter-spacing:0.06em;background:var(--bone);border:1.5px solid var(--ink);color:var(--ink);padding:4px 8px;border-radius:0;cursor:pointer;transition:background 0.15s,color 0.15s; }
+  .csb-clear-btn:hover { background:var(--tomato);color:var(--bone);border-color:var(--tomato); }
 
   /* Inline color picker button in header */
-  .csb-color-btn { width:26px;height:16px;border-radius:3px;border:1px solid rgba(255,255,255,0.15);cursor:pointer;flex-shrink:0;transition:transform 0.12s,box-shadow 0.12s;position:relative; }
-  .csb-color-btn:hover { transform:scale(1.08);box-shadow:0 0 0 2px rgba(255,255,255,0.15); }
-  .csb-color-btn.open { box-shadow:0 0 0 2px rgba(255,255,255,0.35); }
+  .csb-color-btn { width:26px;height:16px;border-radius:0;border:1.5px solid var(--ink);cursor:pointer;flex-shrink:0;transition:transform 0.12s,box-shadow 0.12s;position:relative; }
+  .csb-color-btn:hover { transform:scale(1.08);box-shadow:2px 2px 0 var(--ink); }
+  .csb-color-btn.open { box-shadow:2px 2px 0 var(--ink); }
   /* Inline color panel (below header, above accordion) */
-  .csb-color-panel { padding:10px 9px;background:#080808;border-top:1px solid #1a1a1a;border-bottom:1px solid #1a1a1a; }
+  .csb-color-panel { padding:10px 9px;background:var(--bone);border-top:1px solid var(--ink);border-bottom:1px solid var(--ink); }
   .csb-color-panel-row { display:flex;align-items:center;gap:6px;margin-bottom:6px; }
   .csb-color-panel .csb-palette { gap:6px;margin:0; }
   .csb-color-panel .csb-swatch { width:22px;height:22px; }
   .csb-param-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-  .csb-param-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: rgba(255,255,255,0.3); text-transform: uppercase; width: 30px; flex-shrink: 0; }
-  .csb-param-row input[type=range] { flex: 1; height: 3px; cursor: pointer; }
-  .csb-param-hitbox { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; background: #0f0f0f; border: 1px solid #222; color: rgba(255,255,255,0.7); width: 52px; padding: 3px 5px; border-radius: 3px; text-align: right; }
-  .csb-param-hitbox:focus { outline: none; border-color: rgba(255,255,255,0.3); }
-  .csb-output { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: rgba(255,255,255,0.3); line-height: 1.8; margin-top: 6px; }
+  .csb-param-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: var(--ink); opacity: 0.55; text-transform: uppercase; width: 30px; flex-shrink: 0; }
+  .csb-param-row input[type=range] { flex: 1; height: 3px; cursor: pointer; accent-color: var(--tomato); }
+  .csb-param-hitbox { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; background: var(--bone); border: 1.5px solid var(--ink); color: var(--ink); width: 52px; padding: 3px 5px; border-radius: 0; text-align: right; }
+  .csb-param-hitbox:focus { outline: none; box-shadow: 2px 2px 0 var(--ink); }
+  .csb-output { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: var(--ink); opacity: 0.6; line-height: 1.8; margin-top: 6px; }
   .csb-snap-row { display: flex; align-items: center; gap: 8px; }
-  .csb-snap-toggle { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; background: #0f0f0f; border: 1px solid #1e1e1e; color: rgba(255,255,255,0.4); padding: 4px 10px; border-radius: 3px; cursor: pointer; transition: all 0.15s; }
-  .csb-snap-toggle.active { border-color: rgba(255,255,255,0.3); color: rgba(255,255,255,0.85); }
-  .csb-info-icon { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: rgba(255,255,255,0.2); cursor: help; position: relative; }
-  .csb-info-icon:hover::after { content: attr(data-tip); position: absolute; left: 20px; top: -4px; background: #1a1a1a; border: 1px solid #333; color: rgba(255,255,255,0.65); font-size: 0.6rem; padding: 6px 10px; border-radius: 4px; z-index: 100; line-height: 1.6; width: 180px; white-space: normal; }
-  .csb-status { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: #f59e0b; padding: 8px 14px; min-height: 28px; border-bottom: 1px solid #161616; }
-  .csb-regions-toggle { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: rgba(255,255,255,0.45); cursor: pointer; padding: 4px 0; }
-  .csb-regions-toggle input[type=checkbox] { accent-color: #a78bfa; }
+  .csb-snap-toggle { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; background: var(--bone); border: 1.5px solid var(--ink); color: var(--ink); padding: 4px 10px; border-radius: 0; cursor: pointer; transition: background 0.15s, color 0.15s; }
+  .csb-snap-toggle.active { background: var(--tomato); color: var(--bone); border-color: var(--tomato); }
+  .csb-info-icon { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--ink); opacity: 0.45; cursor: help; position: relative; }
+  .csb-info-icon:hover::after { content: attr(data-tip); position: absolute; left: 20px; top: -4px; background: var(--ink); border: 1px solid var(--ink); color: var(--bone); font-size: 0.6rem; padding: 6px 10px; border-radius: 0; z-index: 100; line-height: 1.6; width: 180px; white-space: normal; }
+  .csb-status { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--tomato); font-weight: 500; padding: 8px 14px; min-height: 28px; border-bottom: 1px solid var(--ink); }
+  .csb-regions-toggle { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: var(--ink); cursor: pointer; padding: 4px 0; }
+  .csb-regions-toggle input[type=checkbox] { accent-color: var(--tomato); }
 
 
   /* XY coord pairs */
   .csb-xy-row { display:flex;gap:6px;margin-bottom:6px; }
   .csb-xy-field { flex:1;display:flex;align-items:center;gap:4px;min-width:0; }
   .csb-xy-field .csb-param-label { width:14px;flex-shrink:0; }
-  .csb-xy-field input[type=number] { flex:1;width:100%;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;background:#0f0f0f;border:1px solid #222;color:rgba(255,255,255,0.7);padding:3px 5px;border-radius:3px;min-width:0; }
-  .csb-xy-field input[type=number]:focus { outline:none;border-color:rgba(255,255,255,0.3); }
-  .csb-sub-label { font-family:'IBM Plex Mono',monospace;font-size:0.58rem;color:rgba(255,255,255,0.2);letter-spacing:0.08em;text-transform:uppercase;margin:6px 0 3px; }
+  .csb-xy-field input[type=number] { flex:1;width:100%;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;background:var(--bone);border:1.5px solid var(--ink);color:var(--ink);padding:3px 5px;border-radius:0;min-width:0; }
+  .csb-xy-field input[type=number]:focus { outline:none;box-shadow:2px 2px 0 var(--ink); }
+  .csb-sub-label { font-family:'IBM Plex Mono',monospace;font-size:0.58rem;color:var(--ink);opacity:0.5;letter-spacing:0.08em;text-transform:uppercase;margin:6px 0 3px; }
 
   #btn-open-calc:hover {
-    border-color: rgba(255,255,255,0.6);
-    color: #ffffff;
+    background: var(--tomato);
+    border-color: var(--tomato);
+    color: var(--bone);
+    transform: translate(-2px,-2px);
+    box-shadow: 5px 5px 0 var(--ink);
   }
   #btn-hero-calc:hover {
-    border-color: rgba(255,255,255,0.4);
-    color: rgba(255,255,255,0.75);
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--bone);
+    transform: translate(-1px,-1px);
+    box-shadow: 4px 4px 0 var(--ink);
   }
-  </style>
+</style>
 </head>
 <body>
+  <div class="lattice" aria-hidden="true"></div>
+  <div class="frame">
   <section id="hero">
     <!-- Animated grid layers (populated by Hero.init()) -->
-    <canvas class="hero-grid-layer" id="hero-grid-bg" style="opacity:0.05"></canvas>
-    <canvas class="hero-grid-layer" id="hero-grid-cursor" style="opacity:0.4"></canvas>
+    <canvas class="hero-grid-layer" id="hero-grid-bg" style="opacity:0.08"></canvas>
+    <canvas class="hero-grid-layer" id="hero-grid-cursor" style="opacity:0.45"></canvas>
 
     <!-- Blob lights -->
     <div class="hero-blob hero-blob-amber"></div>
@@ -512,11 +579,15 @@
 
     <!-- Text content -->
     <div class="hero-content">
-      <h1 class="hero-title">Quando la retta più breve<br>non è la diagonale</h1>
+      <span class="hero-kicker">
+        <span class="tag">Metrica&nbsp;L₁</span>
+        <span class="mono-label">Distanza di Manhattan</span>
+      </span>
+      <h1 class="hero-title">Quando la retta più breve<br>non è la <span class="em">diagonale</span></h1>
       <p class="hero-subtitle">Geometria del Taxi &nbsp;—&nbsp; Metrica L₁</p>
       <button id="btn-hero-calc"
         onclick="GraphCalc.open()"
-        style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;background:transparent;border:1px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.45);padding:0.55rem 1.4rem;border-radius:4px;cursor:pointer;margin-top:2rem;transition:opacity 0.6s ease,border-color 0.2s,color 0.2s;opacity:0;pointer-events:none;">
+        style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:600;background:var(--bone);border:2px solid var(--ink);color:var(--ink);padding:0.7rem 1.6rem;border-radius:0;cursor:pointer;margin-top:2.2rem;transition:opacity 0.6s ease,background 0.2s,color 0.2s,transform 0.2s,box-shadow 0.2s;opacity:0;pointer-events:none;">
         Calcolatore Grafico →
       </button>
     </div>
@@ -589,28 +660,28 @@
 
       <div class="section-figure">
         <!-- Static SVG: L2 circle vs L1 diamond, same center and radius -->
-        <svg viewBox="-90 -90 180 180" width="100%" style="max-width:280px;display:block;margin:0 auto;">
-          <!-- L2 circle -->
-          <circle cx="0" cy="0" r="65" fill="none" stroke="#ccc" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <svg viewBox="-90 -90 180 180" width="100%" style="max-width:280px;display:block;margin:0 auto;border:2px solid #0A0A0A;background:#E9E5DC;">
+          <!-- L2 circle (euclidean ghost) -->
+          <circle cx="0" cy="0" r="65" fill="none" stroke="#0A0A0A" stroke-width="1.4" stroke-dasharray="5,4" opacity="0.55"/>
           <!-- L1 diamond -->
           <polygon points="0,-65 65,0 0,65 -65,0"
-            fill="rgba(230,57,70,0.06)" stroke="#e63946" stroke-width="2.5"/>
+            fill="rgba(255,74,28,0.10)" stroke="#FF4A1C" stroke-width="3" stroke-linejoin="miter"/>
           <!-- Center point -->
-          <circle cx="0" cy="0" r="3" fill="#555"/>
-          <!-- Axes (light) -->
-          <line x1="-85" y1="0" x2="85" y2="0" stroke="#ddd" stroke-width="0.8"/>
-          <line x1="0" y1="-85" x2="0" y2="85" stroke="#ddd" stroke-width="0.8"/>
+          <circle cx="0" cy="0" r="3" fill="#0A0A0A"/>
+          <!-- Axes -->
+          <line x1="-85" y1="0" x2="85" y2="0" stroke="#0A0A0A" stroke-width="1" opacity="0.45"/>
+          <line x1="0" y1="-85" x2="0" y2="85" stroke="#0A0A0A" stroke-width="1" opacity="0.45"/>
           <!-- Labels -->
-          <text x="72" y="-8" font-family="IBM Plex Mono,monospace" font-size="11" fill="#aaa">L₂</text>
-          <text x="6"  y="-69" font-family="IBM Plex Mono,monospace" font-size="11" fill="#e63946">L₁</text>
+          <text x="70" y="-8" font-family="IBM Plex Mono,monospace" font-size="11" fill="#0A0A0A" opacity="0.6">L₂</text>
+          <text x="6"  y="-69" font-family="IBM Plex Mono,monospace" font-size="11" font-weight="600" fill="#FF4A1C">L₁</text>
           <!-- Vertex dots -->
-          <circle cx="0" cy="-65" r="3" fill="#e63946"/>
-          <circle cx="65" cy="0"  r="3" fill="#e63946"/>
-          <circle cx="0" cy="65"  r="3" fill="#e63946"/>
-          <circle cx="-65" cy="0" r="3" fill="#e63946"/>
+          <rect x="-4" y="-69" width="8" height="8" transform="rotate(45 0 -65)" fill="#E9E5DC" stroke="#0A0A0A" stroke-width="1.5"/>
+          <rect x="61" y="-4"  width="8" height="8" transform="rotate(45 65 0)" fill="#E9E5DC" stroke="#0A0A0A" stroke-width="1.5"/>
+          <rect x="-4" y="61"  width="8" height="8" transform="rotate(45 0 65)" fill="#E9E5DC" stroke="#0A0A0A" stroke-width="1.5"/>
+          <rect x="-69" y="-4" width="8" height="8" transform="rotate(45 -65 0)" fill="#E9E5DC" stroke="#0A0A0A" stroke-width="1.5"/>
         </svg>
-        <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#aaa;text-align:center;margin-top:8px;">
-          Cerchio L₂ (tratteggiato) e circonferenza taxicab L₁ (rosso) con stesso centro e raggio unitario.
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#0A0A0A;opacity:0.65;text-align:center;margin-top:8px;letter-spacing:0.04em;">
+          Cerchio L₂ (tratteggiato) e circonferenza taxicab L₁ (rombo) con stesso centro e raggio unitario.
         </p>
       </div>
     </div>
@@ -856,14 +927,15 @@ dove p = y_F − k</div>
   </div>
 </section>
 
-  <section id="calcolatore" style="background:#050505;padding:5rem 2rem;text-align:center;">
-  <div style="max-width:700px;margin:0 auto;">
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:#666;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.8rem;">§ 6</div>
-    <h2 style="font-family:'Playfair Display',serif;font-weight:700;font-size:clamp(2rem,4vw,3rem);color:#ffffff;margin-bottom:1rem;">Calcolatore Grafico</h2>
-    <p style="font-family:'IBM Plex Mono',monospace;font-size:0.85rem;color:rgba(255,255,255,0.35);letter-spacing:0.08em;margin-bottom:2.5rem;">Costruisci e analizza luoghi geometrici nella metrica L₁</p>
-    <button id="btn-open-calc" onclick="GraphCalc.open()" style="font-family:'IBM Plex Mono',monospace;font-size:0.9rem;letter-spacing:0.1em;text-transform:uppercase;background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.8);padding:0.9rem 2.5rem;border-radius:4px;cursor:pointer;transition:border-color 0.2s,color 0.2s;">▶ &nbsp;Apri Calcolatore Grafico</button>
+  <section id="calcolatore" style="background:var(--bone);padding:5rem 2rem;text-align:center;border-bottom:2px solid var(--ink);">
+  <div style="max-width:760px;margin:0 auto;">
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:0.66rem;background:var(--ink);color:var(--bone);letter-spacing:0.2em;text-transform:uppercase;display:inline-block;padding:4px 9px;margin-bottom:1.2rem;">§ 06</div>
+    <h2 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(2.2rem,5vw,3.6rem);letter-spacing:-0.02em;color:var(--ink);margin-bottom:1rem;">Calcolatore Grafico</h2>
+    <p style="font-family:'IBM Plex Mono',monospace;font-size:0.82rem;color:var(--ink);opacity:0.65;letter-spacing:0.08em;margin-bottom:2.5rem;">Costruisci e analizza luoghi geometrici nella metrica L₁</p>
+    <button id="btn-open-calc" onclick="GraphCalc.open()" style="font-family:'IBM Plex Mono',monospace;font-size:0.85rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:600;background:var(--tomato);border:2px solid var(--ink);color:var(--bone);padding:0.9rem 2.4rem;border-radius:0;cursor:pointer;transition:background 0.2s,color 0.2s,transform 0.2s,box-shadow 0.2s;">▶ &nbsp;Apri Calcolatore Grafico</button>
   </div>
 </section>
+  </div><!-- /frame -->
 
   <script>
     const ConicMath = (() => {
@@ -1317,7 +1389,7 @@ const MiniEngine = (() => {
     ctx.save();
     // Minor grid
     const step = scale >= 40 ? 1 : scale >= 20 ? 2 : 5;
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.strokeStyle = 'rgba(10,10,10,0.10)';
     ctx.lineWidth = 0.5;
     const tl = t.toWorld(0, 0), br = t.toWorld(w, h);
     for (let x = Math.floor(tl.x/step)*step; x <= br.x + step; x += step) {
@@ -1329,13 +1401,13 @@ const MiniEngine = (() => {
       ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
     }
     // Axes
-    ctx.strokeStyle = 'rgba(255,255,255,0.20)';
+    ctx.strokeStyle = 'rgba(10,10,10,0.55)';
     ctx.lineWidth = 1;
     const ox = t.toCanvas(0, 0).x, oy = t.toCanvas(0, 0).y;
     ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, h); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(w, oy); ctx.stroke();
     // Axis labels
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillStyle = 'rgba(10,10,10,0.55)';
     ctx.font = `${Math.max(9,Math.min(11, scale*0.22))}px IBM Plex Mono, monospace`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     for (let x = Math.ceil(tl.x/step)*step; x <= br.x; x += step) {
@@ -1405,7 +1477,7 @@ const MiniEngine = (() => {
       return {
         handles: [{ x: xc, y: yc, keys: ['xc','yc'] }],
         path: { pts: [v.VN, v.VE, v.VS, v.VW], closed: true },
-        foci: [{ x: xc, y: yc, color: '#ffffff' }],
+        foci: [{ x: xc, y: yc, color: '#0A0A0A' }],
         invariant: P => `d₁(P,C) = ${ConicMath.taxiDist(P, {x:xc,y:yc}).toFixed(2)} = R`
       };
     }
@@ -1416,7 +1488,7 @@ const MiniEngine = (() => {
       return {
         handles: [{ x: x1, y: y1, keys: ['x1','y1'] }, { x: x2, y: y2, keys: ['x2','y2'] }],
         path: { pts: verts, closed: true },
-        foci: [{ x: x1, y: y1, color: '#5eead4' }, { x: x2, y: y2, color: '#f9a8d4' }],
+        foci: [{ x: x1, y: y1, color: '#0A0A0A' }, { x: x2, y: y2, color: '#FF4A1C' }],
         invariant: P => `d₁(P,F₁)+d₁(P,F₂) = ${(ConicMath.taxiDist(P,{x:x1,y:y1}) + ConicMath.taxiDist(P,{x:x2,y:y2})).toFixed(2)} = 2a`
       };
     }
@@ -1430,7 +1502,7 @@ const MiniEngine = (() => {
       return {
         handles: [{ x: x1, y: y1, keys: ['x1','y1'] }, { x: x2, y: y2, keys: ['x2','y2'] }],
         path: { pts: lines[0], closed: false },
-        foci: [{ x: x1, y: y1, color: '#5eead4' }, { x: x2, y: y2, color: '#f9a8d4' }],
+        foci: [{ x: x1, y: y1, color: '#0A0A0A' }, { x: x2, y: y2, color: '#FF4A1C' }],
         invariant: P => `|d₁(P,F₁)−d₁(P,F₂)| = ${Math.abs(ConicMath.taxiDist(P,{x:x1,y:y1}) - ConicMath.taxiDist(P,{x:x2,y:y2})).toFixed(2)} = 2a`
       };
     }
@@ -1442,7 +1514,7 @@ const MiniEngine = (() => {
       return {
         handles: [{ x: xF, y: yF, keys: ['xF','yF'] }],
         path: { pts: lines[0], closed: false },
-        foci: [{ x: xF, y: yF, color: '#5eead4' }],
+        foci: [{ x: xF, y: yF, color: '#0A0A0A' }],
         directrix: k,
         invariant: P => `d₁(P,F) = ${ConicMath.taxiDist(P,{x:xF,y:yF}).toFixed(2)} = |y−k|`
       };
@@ -1462,9 +1534,9 @@ const MiniEngine = (() => {
       drawSegment(ctx, t, corner, f, f.color + 'cc', 1.6);
     });
     if (typeof model.directrix === 'number') {
-      drawSegment(ctx, t, P, { x: P.x, y: model.directrix }, '#5eead4cc', 1.6, [3,3]);
+      drawSegment(ctx, t, P, { x: P.x, y: model.directrix }, '#0A0A0Acc', 1.6, [3,3]);
     }
-    drawPoint(ctx, t, P.x, P.y, 'rgb(255,255,255)', 4);
+    drawPoint(ctx, t, P.x, P.y, 'rgb(10,10,10)', 4);
     if (outputEl) outputEl.textContent = model.invariant(P);
   }
 
@@ -1494,20 +1566,20 @@ const MiniEngine = (() => {
     }
 
     const COLORS = {
-      circle:    '#e63946',
-      ellipse:   '#3b82f6',
-      hyperbola: '#f59e0b',
-      parabola:  '#22c55e'
+      circle:    '#FF4A1C',
+      ellipse:   '#FF4A1C',
+      hyperbola: '#FF4A1C',
+      parabola:  '#FF4A1C'
     };
 
     function draw() {
       const size = canvas.width / DPR;
       ctx.clearRect(0, 0, size, size);
-      ctx.fillStyle = '#0a0a0a';
+      ctx.fillStyle = '#E9E5DC';
       ctx.fillRect(0, 0, size, size);
 
       const t = currentTransform();
-      const color = COLORS[conicType] || '#e63946';
+      const color = COLORS[conicType] || '#FF4A1C';
 
       drawGrid(ctx, t);
 
@@ -1516,10 +1588,10 @@ const MiniEngine = (() => {
         const v = ConicMath.circleVertices(xc, yc, R);
         const poly = [v.VN, v.VE, v.VS, v.VW];
         // Critical lines (dashed)
-        drawSegment(ctx,t, {x:xc,y:-10},{x:xc,y:10}, 'rgba(29,53,87,0.6)',1,[4,4]);
-        drawSegment(ctx,t, {x:-10,y:yc},{x:10,y:yc}, 'rgba(29,53,87,0.6)',1,[4,4]);
+        drawSegment(ctx,t, {x:xc,y:-10},{x:xc,y:10}, 'rgba(10,10,10,0.35)',1,[4,4]);
+        drawSegment(ctx,t, {x:-10,y:yc},{x:10,y:yc}, 'rgba(10,10,10,0.35)',1,[4,4]);
         drawPolyline(ctx, t, poly, color, 2.5, true);
-        drawPoint(ctx, t, xc, yc, 'rgb(255,255,255)', 4);
+        drawPoint(ctx, t, xc, yc, 'rgb(10,10,10)', 4);
         if (outputEl) outputEl.textContent =
           `Perimetro = ${(4*R*Math.SQRT2).toFixed(2)} | Area = ${(2*R*R).toFixed(2)} | π₁ = 4`;
       }
@@ -1531,11 +1603,11 @@ const MiniEngine = (() => {
           Math.max(x1,x2), Math.max(y1,y2), twoA
         );
         // Region lines
-        [x1,x2].forEach(xv => drawSegment(ctx,t,{x:xv,y:-10},{x:xv,y:10},'rgba(59,130,246,0.25)',0.8,[3,4]));
-        [y1,y2].forEach(yv => drawSegment(ctx,t,{x:-10,y:yv},{x:10,y:yv},'rgba(59,130,246,0.25)',0.8,[3,4]));
+        [x1,x2].forEach(xv => drawSegment(ctx,t,{x:xv,y:-10},{x:xv,y:10},'rgba(10,10,10,0.28)',0.8,[3,4]));
+        [y1,y2].forEach(yv => drawSegment(ctx,t,{x:-10,y:yv},{x:10,y:yv},'rgba(10,10,10,0.28)',0.8,[3,4]));
         if (verts) drawPolyline(ctx, t, verts, color, 2.5, true);
-        drawPoint(ctx, t, x1, y1, 'rgb(96,165,250)', 4);
-        drawPoint(ctx, t, x2, y2, 'rgb(96,165,250)', 4);
+        drawPoint(ctx, t, x1, y1, 'rgb(255,74,28)', 4);
+        drawPoint(ctx, t, x2, y2, 'rgb(255,74,28)', 4);
         const d0 = Math.abs(x2-x1)+Math.abs(y2-y1);
         if (outputEl) outputEl.textContent =
           `d₀ = ${d0.toFixed(2)} | k = ${((twoA/2) - d0/2).toFixed(2)}`;
@@ -1544,14 +1616,14 @@ const MiniEngine = (() => {
       if (conicType === 'hyperbola') {
         const { x1=-3,y1=0, x2=3,y2=0, twoA=2 } = params;
         const result = ConicMath.hyperbolaVertices(x1, y1, x2, y2, twoA);
-        [x1,x2].forEach(xv => drawSegment(ctx,t,{x:xv,y:-10},{x:xv,y:10},'rgba(245,158,11,0.25)',0.8,[3,4]));
-        [y1,y2].forEach(yv => drawSegment(ctx,t,{x:-10,y:yv},{x:10,y:yv},'rgba(245,158,11,0.25)',0.8,[3,4]));
+        [x1,x2].forEach(xv => drawSegment(ctx,t,{x:xv,y:-10},{x:xv,y:10},'rgba(10,10,10,0.28)',0.8,[3,4]));
+        [y1,y2].forEach(yv => drawSegment(ctx,t,{x:-10,y:yv},{x:10,y:yv},'rgba(10,10,10,0.28)',0.8,[3,4]));
         if (result) {
           [result.branch1, result.branch2].forEach(branch =>
             branch.forEach(seg => drawSegment(ctx, t, seg.from, seg.to, color, 2.5)));
         }
-        drawPoint(ctx, t, x1, y1, 'rgb(251,191,36)', 4);
-        drawPoint(ctx, t, x2, y2, 'rgb(251,191,36)', 4);
+        drawPoint(ctx, t, x1, y1, 'rgb(255,74,28)', 4);
+        drawPoint(ctx, t, x2, y2, 'rgb(255,74,28)', 4);
         if (outputEl) outputEl.textContent = `d₀ = ${(Math.abs(x2-x1)+Math.abs(y2-y1)).toFixed(2)} | 2a = ${twoA}`;
       }
 
@@ -1559,9 +1631,9 @@ const MiniEngine = (() => {
         const { xF=0, yF=2, k=0 } = params;
         const segs = ConicMath.parabolaSegments(xF, yF, k, 5);
         // Directrix
-        drawSegment(ctx,t,{x:-10,y:k},{x:10,y:k},'rgba(34,197,94,0.35)',1,[4,4]);
+        drawSegment(ctx,t,{x:-10,y:k},{x:10,y:k},'rgba(10,10,10,0.35)',1,[4,4]);
         segs.forEach(s => drawSegment(ctx, t, s.from, s.to, color, 2.5));
-        drawPoint(ctx, t, xF, yF, 'rgb(74,222,128)', 4);
+        drawPoint(ctx, t, xF, yF, 'rgb(255,74,28)', 4);
         if (outputEl) outputEl.textContent = `p = ${(yF-k).toFixed(2)} | F(${xF}, ${yF}) | y = ${k}`;
       }
 
@@ -1699,7 +1771,7 @@ const MiniEngine = (() => {
 
   function drawGrid(ctx, w, h, ox, oy) {
     ctx.clearRect(0, 0, w, h);
-    ctx.strokeStyle = 'white';
+    ctx.strokeStyle = '#0A0A0A';
     ctx.lineWidth = 1;
     const startX = ((ox % CELL) + CELL) % CELL;
     for (let x = startX - CELL; x < w + CELL; x += CELL) {
@@ -2469,11 +2541,11 @@ const GraphCalc = (() => {
           onclick="GraphCalc.setObjColor(${obj.id},'${c}')"></div>`).join('')}
       </div>
       <div class="csb-color-panel-row" style="margin-top:8px;">
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:rgba(255,255,255,0.3);flex-shrink:0;">Opacità</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:var(--ink);opacity:0.6;flex-shrink:0;">Opacità</span>
         <input type="range" min="0.1" max="1" step="0.05" value="${obj.opacity||1}"
           style="flex:1;accent-color:${obj.color}"
           oninput="GraphCalc.setObjOpacity(${obj.id},this.value)">
-        <span id="csb-opacity-${obj.id}" style="font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:rgba(255,255,255,0.4);width:32px;text-align:right;">${Math.round((obj.opacity||1)*100)}%</span>
+        <span id="csb-opacity-${obj.id}" style="font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:var(--ink);opacity:0.7;width:32px;text-align:right;">${Math.round((obj.opacity||1)*100)}%</span>
       </div>
     </div>`;
   }
@@ -2609,8 +2681,8 @@ const GraphCalc = (() => {
         <div class="csb-sub-label">P₂</div>
         ${_xyPair('x','y',p2.x,p2.y,obj.id,'_p2x','_p2y')}
         <div class="csb-output" id="csb-out-${obj.id}">${_getOutputText(obj)}</div>
-        <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:rgba(255,255,255,0.35);cursor:pointer;">
-          <input type="checkbox" ${obj.params.showBisector?'checked':''} style="accent-color:#22c55e"
+        <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--ink);opacity:0.75;cursor:pointer;">
+          <input type="checkbox" ${obj.params.showBisector?'checked':''} style="accent-color:var(--tomato)"
             onchange="(()=>{const o=GraphCalc._getObj(${obj.id});if(o){o.params.showBisector=this.checked;GraphCalc._redraw();}})()">
           Bisettrice euclidea
         </label>`;
@@ -2656,7 +2728,7 @@ const GraphCalc = (() => {
         ${_xyPair('x','y',xF,yF,obj.id,'xF','yF')}
         <div class="csb-param-row" style="flex-direction:column;align-items:flex-start;gap:3px;margin-bottom:6px;">
           <span class="csb-sub-label" style="margin:0 0 3px;">Direttrice</span>
-          <input type="text" style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;background:#0f0f0f;border:1px solid #222;color:rgba(255,255,255,0.7);padding:4px 8px;border-radius:3px;width:100%;"
+          <input type="text" style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;background:var(--bone);border:1.5px solid var(--ink);color:var(--ink);padding:4px 8px;border-radius:0;width:100%;"
             value="${dirLabel}" placeholder="y = mx + q"
             onchange="GraphCalc._parseDirectrix(${obj.id}, this.value)">
         </div>
@@ -2665,15 +2737,15 @@ const GraphCalc = (() => {
           <input type="range" min="-10" max="10" step="0.5" value="${mDisplay}"
             style="flex:1;accent-color:${obj.color}"
             oninput="(()=>{const v=parseFloat(this.value);const inf=Math.abs(v)>=10;GraphCalc._setParamQuiet(${obj.id},'vertical',inf);if(!inf)GraphCalc._setParamQuiet(${obj.id},'m',v);this.nextElementSibling.textContent=inf?'∞':v;})()">
-          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:rgba(255,255,255,0.55);width:24px;text-align:right;">${vertical?'∞':m}</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink);opacity:0.75;width:24px;text-align:right;">${vertical?'∞':m}</span>
         </div>
         ${_sliderRow('q', q, -10, 10, 0.5, obj.id, 'q', obj.color)}
         <div class="csb-output" id="csb-out-${obj.id}">${_getOutputText(obj)}</div>`;
     }
     if (obj.type === 'luogo') {
       return `
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:rgba(255,255,255,0.2);margin-bottom:6px;">Es: |x-2| + |y-3| = 5</div>
-        <input type="text" style="font-family:'IBM Plex Mono',monospace;font-size:0.75rem;background:#0f0f0f;border:1px solid #222;color:rgba(255,255,255,0.8);padding:6px 8px;border-radius:3px;width:100%;"
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:var(--ink);opacity:0.45;margin-bottom:6px;">Es: |x-2| + |y-3| = 5</div>
+        <input type="text" style="font-family:'IBM Plex Mono',monospace;font-size:0.75rem;background:var(--bone);border:1.5px solid var(--ink);color:var(--ink);padding:6px 8px;border-radius:0;width:100%;"
           value="${obj.params.equation||''}" placeholder="f(x,y) = g(x,y)"
           onchange="GraphCalc._setParam(${obj.id},'equation',this.value)">
         <div class="csb-output" style="margin-top:6px;">Usa |expr| per valore assoluto. Zoom in per attivare.</div>`;
@@ -2725,7 +2797,7 @@ const GraphCalc = (() => {
       const sliderMax = pv.max;
       const sliderVal = Math.min(sliderMax, Math.max(pv.min, pv.val));
       return `<div class="csb-pending-value">
-        <div class="csb-pv-title">🎯 ${pv.label}</div>
+        <div class="csb-pv-title"><span class="diamond fill" style="margin-right:7px;"></span>${pv.label}</div>
         <div class="csb-param-row">
           <input id="pv-slider" type="range" min="${pv.min}" max="${sliderMax}" step="${pv.step}" value="${sliderVal}"
             style="flex:1;accent-color:#a78bfa"
@@ -2743,8 +2815,8 @@ const GraphCalc = (() => {
     sb.innerHTML = `
       <!-- Header -->
       <div class="csb-section" style="padding:11px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-        <span style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:#fff;">Calcolatore Grafico</span>
-        <button onclick="GraphCalc.close()" style="font-family:'IBM Plex Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;color:rgba(255,255,255,0.3);background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:3px;padding:3px 8px;cursor:pointer;">ESC ×</button>
+        <span style="font-family:'Bricolage Grotesque',sans-serif;font-size:1.05rem;font-weight:800;letter-spacing:-0.01em;color:var(--ink);">Calcolatore Grafico</span>
+        <button onclick="GraphCalc.close()" style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--ink);background:var(--bone);border:1.5px solid var(--ink);border-radius:0;padding:4px 9px;cursor:pointer;">ESC ×</button>
       </div>
 
       <!-- Pending value box (shown after placing points) -->
@@ -2756,9 +2828,9 @@ const GraphCalc = (() => {
       <!-- Snap + Clear all -->
       <div class="csb-section" style="flex-shrink:0;">
         <div class="csb-snap-row">
-          <button class="csb-snap-toggle ${state.snap?'active':''}" onclick="GraphCalc.toggleSnap()">🧲 Snap</button>
+          <button class="csb-snap-toggle ${state.snap?'active':''}" onclick="GraphCalc.toggleSnap()">⊞ Snap</button>
           <span class="csb-info-icon" data-tip="Snap alla griglia intera. I punti vengono posizionati su coordinate intere esatte.">ⓘ</span>
-          <button class="csb-clear-btn" onclick="GraphCalc.clearAll()" title="Elimina tutti gli oggetti" style="margin-left:auto;">🗑 Tutti</button>
+          <button class="csb-clear-btn" onclick="GraphCalc.clearAll()" title="Elimina tutti gli oggetti" style="margin-left:auto;">Svuota</button>
         </div>
       </div>
 
@@ -2779,7 +2851,7 @@ const GraphCalc = (() => {
       <div class="csb-section" style="flex:1;overflow-y:auto;min-height:0;">
         <div class="csb-label">Oggetti ${state.objects.length>0?'('+state.objects.length+')':''}</div>
         ${state.objects.length===0
-          ?`<div style="font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:rgba(255,255,255,0.12);padding:4px 0;">Nessun oggetto creato.</div>`
+          ?`<div style="font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:var(--ink);opacity:0.35;padding:4px 0;">Nessun oggetto creato.</div>`
           :state.objects.map(obj => {
             const expanded = state.expandedIds.has(obj.id);
             const isolated = state.isolatedId===obj.id;
@@ -2811,7 +2883,7 @@ const GraphCalc = (() => {
                   <button class="csb-obj-act-btn isolate-btn ${isolated?'active':''}"
                     onclick="event.stopPropagation();GraphCalc.isolateObject(${obj.id})">${isolated?'ESCI':'ISOLA'}</button>
                   <button class="csb-obj-act-btn" onclick="event.stopPropagation();GraphCalc.deleteObject(${obj.id})"
-                    style="color:rgba(255,100,100,0.6);" title="Elimina">×</button>
+                    title="Elimina">×</button>
                 </div>
               </div>
               <!-- Inline color picker (toggled by color button) -->
@@ -2819,7 +2891,7 @@ const GraphCalc = (() => {
               <!-- Full params accordion -->
               ${expanded?`<div class="csb-obj-params">
                 ${_renderParamsInline(obj)}
-                ${isolated&&(obj.type==='asse'||obj.type==='circonferenza')?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid #1e1e1e;">
+                ${isolated&&(obj.type==='asse'||obj.type==='circonferenza')?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--ink);">
                   <label class="csb-regions-toggle">
                     <input type="checkbox" ${state.showRegions?'checked':''} onchange="GraphCalc.toggleRegions(this.checked)">
                     Analisi regioni e equazioni
@@ -2843,7 +2915,7 @@ const GraphCalc = (() => {
     ctx.save();
     ctx.scale(DPR, DPR);
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#0a0a0a';
+    ctx.fillStyle = '#E9E5DC';
     ctx.fillRect(0, 0, w, h);
     const t = _getTransform();
     MiniEngine.drawGrid(ctx, t);
@@ -2882,7 +2954,7 @@ const GraphCalc = (() => {
     if (state.snap && state.mouseWorld && state.mode === 'point') {
       const { x, y } = t.toCanvas(state.mouseWorld.x, state.mouseWorld.y);
       ctx.save();
-      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.strokeStyle = 'rgba(10,10,10,0.5)';
       ctx.lineWidth = 1;
       ctx.setLineDash([3, 3]);
       ctx.beginPath(); ctx.moveTo(x-8,y); ctx.lineTo(x+8,y); ctx.stroke();
@@ -2942,7 +3014,7 @@ const GraphCalc = (() => {
         const { x, y } = t.toCanvas(state.mouseWorld.x, state.mouseWorld.y);
         ctx.save();
         ctx.font = '11px IBM Plex Mono, monospace';
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillStyle = 'rgba(10,10,10,0.8)';
         ctx.textAlign = 'left';
         ctx.fillText(obj.name, x+12, y-6);
         ctx.restore();
@@ -3031,14 +3103,14 @@ const GraphCalc = (() => {
       if(len>1e-9){
         const px=-dy/len,py=dx/len,ext=(w+h)/t.scale+10;
         const ca=t.toCanvas(mx+px*ext,my+py*ext),cb=t.toCanvas(mx-px*ext,my-py*ext);
-        ctx.save();ctx.globalAlpha=0.3;ctx.strokeStyle='#22c55e';ctx.lineWidth=1;
-        ctx.shadowColor='rgba(34,197,94,0.5)';ctx.shadowBlur=6;
+        ctx.save();ctx.globalAlpha=0.35;ctx.strokeStyle='#0A0A0A';ctx.lineWidth=1;ctx.setLineDash([6,4]);
+        ctx.shadowColor='rgba(10,10,10,0.0)';ctx.shadowBlur=0;
         ctx.beginPath();ctx.moveTo(ca.x,ca.y);ctx.lineTo(cb.x,cb.y);ctx.stroke();ctx.restore();
       }
     }
 
-    MiniEngine.drawPoint(ctx,t,x1,y1,'#60a5fa',5);
-    MiniEngine.drawPoint(ctx,t,x2,y2,'#f87171',5);
+    MiniEngine.drawPoint(ctx,t,x1,y1,'#0A0A0A',5);
+    MiniEngine.drawPoint(ctx,t,x2,y2,'#FF4A1C',5);
 
     if(state.showRegions && state.isolatedId===obj.id && state.mouseWorld)
       _drawAsseRegions(ctx,t,obj,xBounds,yBounds,vMin,vMax,w,h);
@@ -3048,7 +3120,7 @@ const GraphCalc = (() => {
     const{p1,p2}=obj.params;
     const{x:x1,y:y1}=p1,{x:x2,y:y2}=p2;
     const[xL,xR]=x1<=x2?[x1,x2]:[x2,x1],[yB,yT]=y1<=y2?[y1,y2]:[y2,y1];
-    ctx.save();ctx.strokeStyle='rgba(160,160,255,0.35)';ctx.lineWidth=1;ctx.setLineDash([5,4]);
+    ctx.save();ctx.strokeStyle='rgba(10,10,10,0.4)';ctx.lineWidth=1;ctx.setLineDash([5,4]);
     for(const xv of[xL,xR]){const cx=t.toCanvas(xv,0).x;ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,h);ctx.stroke();}
     for(const yv of[yB,yT]){const cy=t.toCanvas(0,yv).y;ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(w,cy);ctx.stroke();}
     ctx.setLineDash([]);ctx.restore();
@@ -3059,7 +3131,7 @@ const GraphCalc = (() => {
     if(!r)return;
     const{rxMin,rxMax,ryMin,ryMax,sxa,sxb,sya,syb,cx,cy,cst}=r;
     const ca=t.toCanvas(rxMin,ryMax),cb=t.toCanvas(rxMax,ryMin);
-    ctx.save();ctx.fillStyle='rgba(12,14,35,0.72)';ctx.fillRect(ca.x,ca.y,cb.x-ca.x,cb.y-ca.y);ctx.restore();
+    ctx.save();ctx.fillStyle='rgba(255,74,28,0.14)';ctx.fillRect(ca.x,ca.y,cb.x-ca.x,cb.y-ca.y);ctx.restore();
     if(!(cx===0&&cy===0)){
       let seg;
       if(cy===0){const wx=cst/cx;seg=_clipSegment(wx,ryMin,wx,ryMax,rxMin,rxMax,ryMin,ryMax);}
@@ -3067,8 +3139,8 @@ const GraphCalc = (() => {
       else{seg=_clipSegment(rxMin,(cst-cx*rxMin)/cy,rxMax,(cst-cx*rxMax)/cy,rxMin,rxMax,ryMin,ryMax);}
       if(seg){
         const p0=t.toCanvas(seg[0][0],seg[0][1]),p1e=t.toCanvas(seg[1][0],seg[1][1]);
-        ctx.save();ctx.strokeStyle='white';ctx.lineWidth=3.5;ctx.lineCap='round';
-        ctx.shadowColor='rgba(255,255,255,0.8)';ctx.shadowBlur=14;
+        ctx.save();ctx.strokeStyle='#0A0A0A';ctx.lineWidth=3.5;ctx.lineCap='round';
+        ctx.shadowColor='rgba(10,10,10,0.3)';ctx.shadowBlur=10;
         ctx.beginPath();ctx.moveTo(p0.x,p0.y);ctx.lineTo(p1e.x,p1e.y);ctx.stroke();ctx.restore();
       }
     }
@@ -3079,9 +3151,9 @@ const GraphCalc = (() => {
     const ctrX=Math.max(boxW/2+8,Math.min(w-boxW/2-8,(Math.max(ca.x,0)+Math.min(cb.x,w))/2));
     const ctrY=Math.max(boxH/2+8,Math.min(h-boxH/2-8,(Math.max(ca.y,0)+Math.min(cb.y,h))/2));
     const bx=ctrX-boxW/2,by=ctrY-boxH/2;
-    ctx.fillStyle='rgba(10,12,28,0.92)';ctx.strokeStyle='rgba(99,102,241,0.45)';ctx.lineWidth=1;
+    ctx.fillStyle='rgba(233,229,220,0.97)';ctx.strokeStyle='#0A0A0A';ctx.lineWidth=2;
     ctx.beginPath();ctx.roundRect(bx,by,boxW,boxH,7);ctx.fill();ctx.stroke();
-    const lineColors=['rgba(255,255,255,0.42)','rgba(226,232,240,0.9)','rgba(245,158,11,0.95)','#22c55e'];
+    const lineColors=['rgba(10,10,10,0.5)','rgba(10,10,10,0.9)','#FF4A1C','#0A0A0A'];
     ctx.textAlign='left';ctx.textBaseline='top';
     lines.forEach((line,i)=>{
       ctx.fillStyle=lineColors[i];
@@ -3101,7 +3173,7 @@ const GraphCalc = (() => {
     MiniEngine.drawSegment(ctx,t,{x:-100,y:yc},{x:100,y:yc},rgba,0.8,[4,4]);
     const v=ConicMath.circleVertices(xc,yc,R);
     MiniEngine.drawPolyline(ctx,t,[v.VN,v.VE,v.VS,v.VW],obj.color,2.5,true);
-    MiniEngine.drawPoint(ctx,t,xc,yc,'rgba(255,255,255,0.8)',4);
+    MiniEngine.drawPoint(ctx,t,xc,yc,'rgba(10,10,10,0.85)',4);
     if(state.showRegions && state.isolatedId===obj.id && state.mouseWorld)
       _drawCirconferenzaRegions(ctx,t,obj,w,h);
   }
@@ -3109,7 +3181,7 @@ const GraphCalc = (() => {
   function _drawCirconferenzaRegions(ctx,t,obj,w,h){
     const{xc=0,yc=0,R=3}=obj.params;
     // Critical lines
-    ctx.save();ctx.strokeStyle='rgba(160,160,255,0.35)';ctx.lineWidth=1;ctx.setLineDash([5,4]);
+    ctx.save();ctx.strokeStyle='rgba(10,10,10,0.4)';ctx.lineWidth=1;ctx.setLineDash([5,4]);
     const xcpx=t.toCanvas(xc,0).x, ycpx=t.toCanvas(0,yc).y;
     ctx.beginPath();ctx.moveTo(xcpx,0);ctx.lineTo(xcpx,h);ctx.stroke();
     ctx.beginPath();ctx.moveTo(0,ycpx);ctx.lineTo(w,ycpx);ctx.stroke();
@@ -3123,7 +3195,7 @@ const GraphCalc = (() => {
     const rxMin=isR?xc:vMin.x-1,rxMax=isR?vMax.x+1:xc;
     const ryMin=isT?yc:vMin.y-1,ryMax=isT?vMax.y+1:yc;
     const ca=t.toCanvas(rxMin,ryMax),cb=t.toCanvas(rxMax,ryMin);
-    ctx.save();ctx.fillStyle='rgba(12,14,35,0.72)';
+    ctx.save();ctx.fillStyle='rgba(255,74,28,0.14)';
     ctx.fillRect(Math.min(ca.x,cb.x),Math.min(ca.y,cb.y),Math.abs(cb.x-ca.x),Math.abs(cb.y-ca.y));ctx.restore();
     // sx*(x-xc)+sy*(y-yc)=R → y = (-sx/sy)*x + (R+sx*xc+sy*yc)/sy
     const slope=-sx*sy;
@@ -3133,8 +3205,8 @@ const GraphCalc = (() => {
       Math.max(ryMin,vMin.y-1),Math.min(ryMax,vMax.y+1));
     if(seg){
       const p0=t.toCanvas(seg[0][0],seg[0][1]),p1e=t.toCanvas(seg[1][0],seg[1][1]);
-      ctx.save();ctx.strokeStyle='white';ctx.lineWidth=3.5;ctx.lineCap='round';
-      ctx.shadowColor='rgba(255,255,255,0.8)';ctx.shadowBlur=14;
+      ctx.save();ctx.strokeStyle='#0A0A0A';ctx.lineWidth=3.5;ctx.lineCap='round';
+      ctx.shadowColor='rgba(10,10,10,0.3)';ctx.shadowBlur=10;
       ctx.beginPath();ctx.moveTo(p0.x,p0.y);ctx.lineTo(p1e.x,p1e.y);ctx.stroke();ctx.restore();
     }
     // Equation lines
@@ -3155,9 +3227,9 @@ const GraphCalc = (() => {
     const ctrX=Math.max(boxW/2+8,Math.min(w-boxW/2-8,w/2));
     const ctrY=Math.max(boxH/2+8,Math.min(h-boxH/2-8,h/2));
     const bx=ctrX-boxW/2,by=ctrY-boxH/2;
-    ctx.fillStyle='rgba(10,12,28,0.92)';ctx.strokeStyle='rgba(99,102,241,0.45)';ctx.lineWidth=1;
+    ctx.fillStyle='rgba(233,229,220,0.97)';ctx.strokeStyle='#0A0A0A';ctx.lineWidth=2;
     ctx.beginPath();ctx.roundRect(bx,by,boxW,boxH,7);ctx.fill();ctx.stroke();
-    const lc=['rgba(255,255,255,0.42)','rgba(226,232,240,0.9)','rgba(245,158,11,0.95)','#22c55e'];
+    const lc=['rgba(10,10,10,0.5)','rgba(10,10,10,0.9)','#FF4A1C','#0A0A0A'];
     ctx.textAlign='left';ctx.textBaseline='top';
     lines.forEach((line,i)=>{
       ctx.fillStyle=lc[i];
@@ -3257,7 +3329,7 @@ const GraphCalc = (() => {
     const vMin=t.toWorld(0,h),vMax=t.toWorld(w,0);
     const domainW=vMax.x-vMin.x,domainH=vMax.y-vMin.y;
     if(domainW*domainH>50*50){
-      ctx.save();ctx.font='11px IBM Plex Mono,monospace';ctx.fillStyle='rgba(255,255,255,0.2)';ctx.textAlign='center';
+      ctx.save();ctx.font='11px IBM Plex Mono,monospace';ctx.fillStyle='rgba(10,10,10,0.45)';ctx.textAlign='center';
       ctx.fillText('Zoom in per visualizzare il luogo',w/2,h/2);ctx.restore();return;
     }
     const parts=equation.split('=');
@@ -3339,7 +3411,7 @@ const _fondamentiRevealObs = new IntersectionObserver((entries) => {
 _fondamentiRevealObs.observe(document.getElementById('fondamenti'));
   </script>
 <!-- ─── CALC OVERLAY ─── -->
-<div id="calc-overlay" style="position:fixed;inset:0;z-index:9999;background:#050505;display:none;flex-direction:column;opacity:0;pointer-events:none;transform:translateY(40px);transition:opacity 0.3s cubic-bezier(0.16,1,0.3,1),transform 0.3s cubic-bezier(0.16,1,0.3,1);">
+<div id="calc-overlay" style="position:fixed;inset:0;z-index:9999;background:#E9E5DC;display:none;flex-direction:column;opacity:0;pointer-events:none;transform:translateY(40px);transition:opacity 0.3s cubic-bezier(0.16,1,0.3,1),transform 0.3s cubic-bezier(0.16,1,0.3,1);">
   <!-- Close button (always visible) -->
   <button id="calc-close-btn" onclick="GraphCalc.close()" title="Chiudi (ESC)" aria-label="Chiudi calcolatore">×</button>
   <span id="calc-close-esc">ESC</span>
@@ -3349,7 +3421,7 @@ _fondamentiRevealObs.observe(document.getElementById('fondamenti'));
 
   <!-- Main layout -->
   <div id="calc-layout" style="display:flex;flex:1;overflow:hidden;position:relative;">
-    <div id="calc-sidebar" style="width:260px;flex-shrink:0;background:#080808;border-right:1px solid #161616;display:flex;flex-direction:column;overflow-y:auto;"></div>
+    <div id="calc-sidebar" style="width:280px;flex-shrink:0;background:#E9E5DC;border-right:2px solid #0A0A0A;display:flex;flex-direction:column;overflow-y:auto;"></div>
     <div style="flex:1;position:relative;overflow:hidden;">
       <canvas id="calc-canvas" style="display:block;width:100%;height:100%;cursor:crosshair;"></canvas>
       <!-- Drawer FAB (mobile only) -->
