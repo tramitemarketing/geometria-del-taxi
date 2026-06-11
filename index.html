@@ -31,9 +31,7 @@
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
       overflow-x: hidden;
-      transition: background-color 0.6s ease;
     }
-    body.light-mode { background: var(--bone); }
     :focus-visible { outline: 2px solid var(--tomato); outline-offset: 2px; }
 
     /* fixed Manhattan lattice behind everything */
@@ -315,7 +313,6 @@
       inset: 0;
       pointer-events: none;
     }
-    .hero-blob { display: none; }   /* radial blobs are not brutalist — hidden */
     .hero-content {
       position: relative;
       z-index: 2;
@@ -603,10 +600,6 @@
   /* ─── CALC SIDEBAR (brutalist) ─── */
   .csb-section { border-bottom: 1px solid var(--ink); padding: 12px 14px; }
   .csb-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--ink-dim); margin-bottom: 8px; }
-  .csb-mode-row { display: flex; gap: 4px; }
-  .csb-mode-btn { flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; letter-spacing: 0.06em; background: var(--bone); border: 1.5px solid var(--ink); color: var(--ink); padding: 6px 4px; border-radius: 0; cursor: pointer; text-align: center; transition: background 0.15s, color 0.15s; }
-  .csb-mode-btn:hover { background: var(--ink); color: var(--bone); }
-  .csb-mode-btn.active { background: var(--ink); color: var(--bone); }
   .csb-tool-btn { display: flex; align-items: center; gap: 8px; width: 100%; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; letter-spacing: 0.04em; background: transparent; border: none; border-bottom: 1px solid var(--hair); color: var(--ink); padding: 8px 6px; border-radius: 0; cursor: pointer; text-align: left; transition: background 0.12s, color 0.12s, padding-left 0.12s; }
   .csb-tool-btn:hover { background: var(--ink); color: var(--bone); padding-left: 11px; }
   .csb-tool-btn.active { background: var(--tomato); color: var(--ink); }
@@ -732,10 +725,6 @@
     <!-- Animated grid layers (populated by Hero.init()) -->
     <canvas class="hero-grid-layer" id="hero-grid-bg" style="opacity:0.08"></canvas>
     <canvas class="hero-grid-layer" id="hero-grid-cursor" style="opacity:0.45"></canvas>
-
-    <!-- Blob lights -->
-    <div class="hero-blob hero-blob-amber"></div>
-    <div class="hero-blob hero-blob-blue"></div>
 
     <!-- Text content -->
     <div class="hero-content">
@@ -2507,6 +2496,14 @@ const GraphCalc = (() => {
     canvas.style.cursor = 'grab';
   }
 
+  // Coalesce i ridisegni del path di mousemove in un solo frame (rAF).
+  let _drawPending = false;
+  function _scheduleDraw() {
+    if (_drawPending) return;
+    _drawPending = true;
+    requestAnimationFrame(() => { _drawPending = false; _draw(); });
+  }
+
   function _onMouseMove(e) {
     if (!state.isOpen) return;
     const canvas = document.getElementById('calc-canvas');
@@ -2518,7 +2515,7 @@ const GraphCalc = (() => {
     // Drag pending point
     if (state.pendingDraggingIdx !== null && state.pendingTool) {
       state.pendingTool.pointsPlaced[state.pendingDraggingIdx] = { ...state.mouseWorld };
-      _draw(); return;
+      _scheduleDraw(); return;
     }
 
     // Drag control point
@@ -2533,7 +2530,7 @@ const GraphCalc = (() => {
       const dy = e.clientY - state.dragStart.my;
       state.pan.x = state.dragStart.px - dx / state.scale;
       state.pan.y = state.dragStart.py + dy / state.scale;
-      _draw(); return;
+      _scheduleDraw(); return;
     }
 
     // Hover cursor
@@ -2547,7 +2544,7 @@ const GraphCalc = (() => {
       }
       canvas.style.cursor = hovering ? 'pointer' : state.mode==='point' ? 'crosshair' : 'default';
     }
-    _draw();
+    _scheduleDraw();
   }
 
   function _onMouseUp() {
@@ -2725,13 +2722,6 @@ const GraphCalc = (() => {
   }
 
   // ── PUBLIC ACTIONS ──
-  function setMode(mode) {
-    state.mode = mode;
-    const canvas = document.getElementById('calc-canvas');
-    if (canvas) canvas.style.cursor = mode === 'point' ? 'crosshair' : 'default';
-    renderSidebar();
-  }
-
   function toggleSnap() { state.snap = !state.snap; renderSidebar(); }
 
   function startTool(type) {
@@ -3307,10 +3297,6 @@ const GraphCalc = (() => {
     const canvas = document.getElementById('calc-canvas');
     const DPR = window.devicePixelRatio || 1;
     const w = canvas.width/DPR, h = canvas.height/DPR;
-    const isHovered = state.mouseWorld && state.mode === 'select' &&
-      _isNearObject(obj, state.mouseWorld.x, state.mouseWorld.y, 10/state.scale);
-
-    if (isHovered) { ctx.save(); ctx.shadowColor = obj.color; ctx.shadowBlur = 18; }
 
     if      (obj.type === 'asse')          _drawAsse(ctx, t, obj, w, h);
     else if (obj.type === 'circonferenza') _drawCirconferenza(ctx, t, obj);
@@ -3319,19 +3305,6 @@ const GraphCalc = (() => {
     else if (obj.type === 'parabola')      _drawParabola(ctx, t, obj, w, h);
     else if (obj.type === 'luogo')         _drawLuogo(ctx, t, obj, w, h);
     else if (obj.type === 'distanza')      _drawDistanza(ctx, t, obj);
-
-    if (isHovered) {
-      ctx.restore();
-      if (state.mouseWorld) {
-        const { x, y } = t.toCanvas(state.mouseWorld.x, state.mouseWorld.y);
-        ctx.save();
-        ctx.font = '11px IBM Plex Mono, monospace';
-        ctx.fillStyle = 'rgba(10,10,10,0.8)';
-        ctx.textAlign = 'left';
-        ctx.fillText(obj.name, x+12, y-6);
-        ctx.restore();
-      }
-    }
   }
 
   // ── ASSE TAXICAB (port from old calculator) ──
@@ -3380,6 +3353,26 @@ const GraphCalc = (() => {
     else if(cx===0)l4=`→  y = ${f(cst/cy)}`;
     else{const b=cst/cy,slope=-cx/cy;if(slope>0)l4=b===0?'→  y = x':b>0?`→  y = x + ${f(b)}`:`→  y = x − ${f(-b)}`;else l4=b===0?'→  y = −x':b>0?`→  y = −x + ${f(b)}`:`→  y = −x − ${f(-b)}`;}
     return[l1,l2,l3,l4];
+  }
+
+  // Disegna il riquadro-equazioni (osso, bordo inchiostro, 4 righe) centrato sul punto suggerito.
+  function _drawEquationBox(ctx, lines, w, h, ctrXHint, ctrYHint) {
+    ctx.save(); ctx.font='12.5px IBM Plex Mono,monospace';
+    const lineH=20, pad=14, maxW=Math.max(...lines.map(l=>ctx.measureText(l).width));
+    const boxW=maxW+pad*2, boxH=lines.length*lineH+pad*1.5;
+    const ctrX=Math.max(boxW/2+8, Math.min(w-boxW/2-8, ctrXHint));
+    const ctrY=Math.max(boxH/2+8, Math.min(h-boxH/2-8, ctrYHint));
+    const bx=ctrX-boxW/2, by=ctrY-boxH/2;
+    ctx.fillStyle='rgba(233,229,220,0.97)'; ctx.strokeStyle='#0A0A0A'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.roundRect(bx,by,boxW,boxH,7); ctx.fill(); ctx.stroke();
+    const lc=['rgba(10,10,10,0.5)','rgba(10,10,10,0.9)','#FF4A1C','#0A0A0A'];
+    ctx.textAlign='left'; ctx.textBaseline='top';
+    lines.forEach((line,i)=>{
+      ctx.fillStyle=lc[i % lc.length];
+      ctx.font=i===0?'11px IBM Plex Mono,monospace':i===3?'bold 13px IBM Plex Mono,monospace':'12.5px IBM Plex Mono,monospace';
+      ctx.fillText(line,bx+pad,by+pad*0.75+i*lineH);
+    });
+    ctx.restore();
   }
 
   function _drawAsse(ctx, t, obj, w, h) {
@@ -3457,21 +3450,9 @@ const GraphCalc = (() => {
       }
     }
     const lines=_buildEquationLines(sxa,sxb,sya,syb,x1,y1,x2,y2,cx,cy,cst);
-    ctx.save();ctx.font='12.5px IBM Plex Mono,monospace';
-    const lineH=20,pad=14,maxW=Math.max(...lines.map(l=>ctx.measureText(l).width));
-    const boxW=maxW+pad*2,boxH=lines.length*lineH+pad*1.5;
-    const ctrX=Math.max(boxW/2+8,Math.min(w-boxW/2-8,(Math.max(ca.x,0)+Math.min(cb.x,w))/2));
-    const ctrY=Math.max(boxH/2+8,Math.min(h-boxH/2-8,(Math.max(ca.y,0)+Math.min(cb.y,h))/2));
-    const bx=ctrX-boxW/2,by=ctrY-boxH/2;
-    ctx.fillStyle='rgba(233,229,220,0.97)';ctx.strokeStyle='#0A0A0A';ctx.lineWidth=2;
-    ctx.beginPath();ctx.roundRect(bx,by,boxW,boxH,7);ctx.fill();ctx.stroke();
-    const lineColors=['rgba(10,10,10,0.5)','rgba(10,10,10,0.9)','#FF4A1C','#0A0A0A'];
-    ctx.textAlign='left';ctx.textBaseline='top';
-    lines.forEach((line,i)=>{
-      ctx.fillStyle=lineColors[i];
-      ctx.font=i===0?'11px IBM Plex Mono,monospace':i===3?'bold 13px IBM Plex Mono,monospace':'12.5px IBM Plex Mono,monospace';
-      ctx.fillText(line,bx+pad,by+pad*0.75+i*lineH);
-    });ctx.restore();
+    _drawEquationBox(ctx, lines, w, h,
+      (Math.max(ca.x,0)+Math.min(cb.x,w))/2,
+      (Math.max(ca.y,0)+Math.min(cb.y,h))/2);
   }
 
   // ── CIRCONFERENZA ──
@@ -3533,21 +3514,7 @@ const GraphCalc = (() => {
     const l4=slope>0?(intY===0?'→  y = x':`→  y = x + ${f(intY)}`):
               (intY===0?'→  y = −x':`→  y = −x + ${f(intY)}`);
     const lines=[l1,l2,l3,l4];
-    ctx.save();ctx.font='12.5px IBM Plex Mono,monospace';
-    const lineH=20,pad=14,maxW=Math.max(...lines.map(l=>ctx.measureText(l).width));
-    const boxW=maxW+pad*2,boxH=lines.length*lineH+pad*1.5;
-    const ctrX=Math.max(boxW/2+8,Math.min(w-boxW/2-8,w/2));
-    const ctrY=Math.max(boxH/2+8,Math.min(h-boxH/2-8,h/2));
-    const bx=ctrX-boxW/2,by=ctrY-boxH/2;
-    ctx.fillStyle='rgba(233,229,220,0.97)';ctx.strokeStyle='#0A0A0A';ctx.lineWidth=2;
-    ctx.beginPath();ctx.roundRect(bx,by,boxW,boxH,7);ctx.fill();ctx.stroke();
-    const lc=['rgba(10,10,10,0.5)','rgba(10,10,10,0.9)','#FF4A1C','#0A0A0A'];
-    ctx.textAlign='left';ctx.textBaseline='top';
-    lines.forEach((line,i)=>{
-      ctx.fillStyle=lc[i];
-      ctx.font=i===0?'11px IBM Plex Mono,monospace':i===3?'bold 13px IBM Plex Mono,monospace':'12.5px IBM Plex Mono,monospace';
-      ctx.fillText(line,bx+pad,by+pad*0.75+i*lineH);
-    });ctx.restore();
+    _drawEquationBox(ctx, lines, w, h, w/2, h/2);
   }
 
   // ── DISTANZA ──
@@ -3669,7 +3636,7 @@ const GraphCalc = (() => {
   // ── PUBLIC API ──
   return {
     open, close, renderSidebar, toggleDrawer,
-    setMode, toggleSnap, startTool, toggleExpanded, toggleColorPicker,
+    toggleSnap, startTool, toggleExpanded, toggleColorPicker,
     selectObject, deleteObject, toggleVisible, clearAll,
     isolateObject, toggleRegions, renameObject, pickColor,
     confirmValue, cancelValue, updatePendingVal,
@@ -3686,14 +3653,6 @@ const heroObserver = new IntersectionObserver((entries) => {
   entries.forEach(e => e.isIntersecting ? Hero.start() : Hero.stop());
 }, { threshold: 0.01 });
 heroObserver.observe(document.getElementById('hero'));
-
-// Transition body background when first academic section enters viewport
-const fondamentiObserver = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    document.body.classList.toggle('light-mode', e.isIntersecting);
-  });
-}, { threshold: 0.15 });
-fondamentiObserver.observe(document.getElementById('fondamenti'));
 
 const meCircle = MiniEngine.create('me-circle', 'circle',
   { xc: 0, yc: 0, R: 3 },
