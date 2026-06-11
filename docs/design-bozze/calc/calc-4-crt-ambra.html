@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Calcolatore Grafico — Terminale CRT Ambra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#100B06;
+    --bg-deep:#0A0704;
+    --panel:#1A120A;
+    --panel-2:#221709;
+    --amber:#FFB000;
+    --amber-soft:#C98A2E;
+    --amber-dim:#7A5A24;
+    --amber-ghost:#4A3819;
+    --line:#2E2110;
+    --grid:#3A2A12;
+    --glow:0 0 2px rgba(255,176,0,.55), 0 0 12px rgba(255,176,0,.22);
+    --glow-strong:0 0 3px rgba(255,176,0,.9), 0 0 18px rgba(255,176,0,.45), 0 0 42px rgba(255,176,0,.18);
+    --mono:'IBM Plex Mono', ui-monospace, monospace;
+    --display:'Syne', sans-serif;
+    --ease:cubic-bezier(.16,.84,.36,1);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  html,body{height:100%;}
+
+  body{
+    background:var(--bg);
+    color:var(--amber-soft);
+    font-family:var(--mono);
+    font-size:15px;
+    line-height:1.5;
+    letter-spacing:.01em;
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+    position:relative;
+  }
+
+  /* ---- CRT global atmosphere: scanlines + vignette ---- */
+  body::before{
+    content:"";
+    position:fixed; inset:0; z-index:9000;
+    pointer-events:none;
+    background:repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,.26) 3px,
+      rgba(0,0,0,.26) 3px
+    );
+    mix-blend-mode:multiply;
+    opacity:.6;
+    animation:scan 8s linear infinite;
+  }
+  body::after{
+    content:"";
+    position:fixed; inset:0; z-index:8990;
+    pointer-events:none;
+    background:
+      radial-gradient(120% 90% at 50% 0%, rgba(255,176,0,.05), transparent 55%),
+      radial-gradient(140% 120% at 50% 55%, transparent 52%, rgba(0,0,0,.6) 100%);
+  }
+  @keyframes scan{ from{background-position:0 0;} to{background-position:0 6px;} }
+
+  /* grain layer */
+  .grain{
+    position:fixed; inset:-50%; z-index:8995;
+    pointer-events:none; opacity:.04;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  ::selection{ background:rgba(255,176,0,.85); color:#100B06; }
+  a{ color:inherit; text-decoration:none; }
+
+  ::-webkit-scrollbar{ width:9px; }
+  ::-webkit-scrollbar-track{ background:var(--bg-deep); }
+  ::-webkit-scrollbar-thumb{ background:var(--amber-ghost); }
+  ::-webkit-scrollbar-thumb:hover{ background:var(--amber-dim); }
+
+  /* blinking cursor block */
+  .cur{
+    display:inline-block;
+    width:.55em; height:1.05em;
+    background:var(--amber);
+    box-shadow:var(--glow);
+    transform:translateY(.16em);
+    margin-left:.14em;
+    animation:blink 1.05s steps(1) infinite;
+  }
+  @keyframes blink{ 0%,49%{opacity:1;} 50%,100%{opacity:0;} }
+
+  /* ================= LAYOUT ================= */
+  .app{
+    display:grid;
+    grid-template-columns:308px 1fr;
+    height:100vh;
+    width:100vw;
+  }
+
+  /* =============== SIDEBAR =============== */
+  .sidebar{
+    position:relative;
+    background:
+      linear-gradient(180deg, rgba(255,176,0,.022), transparent 30%),
+      var(--panel);
+    border-right:1px solid var(--line);
+    box-shadow:inset -1px 0 0 rgba(255,176,0,.04);
+    display:flex; flex-direction:column;
+    overflow-y:auto; overflow-x:hidden;
+  }
+  /* faint scan tint on the panel edge */
+  .sidebar::after{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(120% 60% at 0% 0%, rgba(255,176,0,.04), transparent 60%);
+  }
+
+  .side-pad{ padding:16px 16px 24px; position:relative; z-index:1; }
+
+  /* --- header --- */
+  .calc-head{
+    display:flex; align-items:flex-start; justify-content:space-between;
+    gap:12px; padding-bottom:14px; margin-bottom:14px;
+    border-bottom:1px solid var(--line);
+  }
+  .calc-head .ttl{
+    font-family:var(--display); font-weight:700;
+    font-size:1.18rem; line-height:1.05; color:#F6E3C0;
+    text-shadow:0 0 18px rgba(255,176,0,.2), 0 0 2px rgba(255,176,0,.35);
+    letter-spacing:-.01em;
+  }
+  .calc-head .sub{
+    margin-top:5px; font-size:9.5px; letter-spacing:.22em;
+    text-transform:uppercase; color:var(--amber-dim);
+  }
+  .esc-btn{
+    flex:none; display:inline-flex; align-items:center; gap:7px;
+    border:1px solid var(--line); color:var(--amber-soft);
+    padding:6px 8px; font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+    cursor:pointer; background:transparent;
+    transition:color .2s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease);
+  }
+  .esc-btn::before{ content:"["; color:var(--amber-dim); }
+  .esc-btn::after{ content:"]"; color:var(--amber-dim); }
+  .esc-btn svg{ width:12px; height:12px; }
+  .esc-btn svg line{ stroke:currentColor; stroke-width:1.7; stroke-linecap:round; }
+  .esc-btn:hover{ color:var(--amber); border-color:var(--amber); box-shadow:var(--glow); }
+  .esc-btn:hover::before, .esc-btn:hover::after{ color:var(--amber); }
+
+  /* --- toolbar row --- */
+  .toolbar{
+    display:flex; align-items:center; gap:10px;
+    padding:12px; margin-bottom:18px;
+    border:1px solid var(--line);
+    background:linear-gradient(90deg, rgba(255,176,0,.035), transparent);
+  }
+  .snap{
+    display:inline-flex; align-items:center; gap:9px;
+    font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--amber); text-shadow:var(--glow);
+  }
+  .toggle{
+    width:34px; height:16px; border:1px solid var(--amber);
+    border-radius:9px; position:relative; box-shadow:var(--glow);
+    background:rgba(255,176,0,.12);
+  }
+  .toggle i{
+    position:absolute; top:1px; left:19px;
+    width:12px; height:12px; border-radius:50%;
+    background:var(--amber); box-shadow:var(--glow-strong);
+  }
+  .toolbar .div{ width:1px; height:18px; background:var(--line); }
+  .svuota{
+    margin-left:auto;
+    display:inline-flex; align-items:center; gap:7px;
+    font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--amber-soft); cursor:pointer;
+    transition:color .2s var(--ease), text-shadow .2s var(--ease);
+  }
+  .svuota svg{ width:13px; height:13px; }
+  .svuota svg *{ stroke:currentColor; fill:none; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+  .svuota:hover{ color:var(--amber); text-shadow:var(--glow); }
+
+  /* --- section heading --- */
+  .sec-h{
+    font-size:10px; letter-spacing:.26em; text-transform:uppercase;
+    color:var(--amber-dim); margin:6px 0 12px;
+    display:flex; align-items:center; gap:9px;
+  }
+  .sec-h .ln{ flex:1; height:1px; background:linear-gradient(90deg,var(--line),transparent); }
+  .sec-h b{ color:var(--amber-soft); font-weight:500; }
+
+  /* --- tool list --- */
+  .tools{ display:flex; flex-direction:column; gap:2px; margin-bottom:22px; }
+  .tool{
+    display:flex; align-items:center; gap:12px;
+    padding:9px 10px; cursor:pointer;
+    border:1px solid transparent; border-left:2px solid transparent;
+    color:var(--amber-soft);
+    font-size:12px; letter-spacing:.1em; text-transform:uppercase;
+    transition:background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease);
+  }
+  .tool .ico{ width:22px; height:22px; flex:none; }
+  .tool .ico *{ stroke:var(--amber-soft); fill:none; stroke-width:1.5; stroke-linejoin:round; stroke-linecap:round; transition:stroke .2s; }
+  .tool .ico .fillnode{ fill:var(--amber-soft); stroke:none; }
+  .tool:hover{
+    background:linear-gradient(90deg, rgba(255,176,0,.07), transparent);
+    color:var(--amber); border-left-color:var(--amber);
+  }
+  .tool:hover .ico *{ stroke:var(--amber); filter:drop-shadow(0 0 3px rgba(255,176,0,.6)); }
+  .tool:hover .ico .fillnode{ fill:var(--amber); stroke:none; }
+
+  /* --- object card --- */
+  .obj-card{
+    border:1px solid var(--amber-ghost);
+    background:linear-gradient(180deg, rgba(255,176,0,.04), transparent 50%), var(--panel-2);
+    box-shadow:var(--glow), inset 0 0 30px rgba(0,0,0,.4);
+  }
+  .obj-top{
+    display:flex; align-items:center; gap:10px;
+    padding:11px 12px; border-bottom:1px solid var(--line);
+    cursor:pointer;
+  }
+  .obj-top .swatch{ width:11px; height:11px; flex:none; background:var(--amber); box-shadow:var(--glow); transform:rotate(45deg); }
+  .obj-top .name{ font-size:12px; letter-spacing:.12em; color:var(--amber); text-shadow:var(--glow); text-transform:uppercase; }
+  .obj-top .chev{ margin-left:auto; width:12px; height:12px; }
+  .obj-top .chev *{ stroke:var(--amber-soft); fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+
+  .obj-body{ padding:13px 13px 14px; display:flex; flex-direction:column; gap:13px; }
+
+  .kv{ font-size:11.5px; line-height:1.7; color:var(--amber-soft); }
+  .kv .k{ color:var(--amber-dim); }
+  .kv .v{ color:#E6C98C; }
+  .kv .v sub{ font-size:.7em; }
+
+  .readout{
+    border:1px solid var(--line);
+    border-left:2px solid var(--amber);
+    background:linear-gradient(90deg, rgba(255,176,0,.05), transparent);
+    padding:8px 10px; font-size:11.5px; color:var(--amber);
+    text-shadow:var(--glow); letter-spacing:.04em;
+  }
+  .readout .dim{ color:var(--amber-dim); text-shadow:none; }
+
+  /* slider */
+  .slider-wrap{ display:flex; flex-direction:column; gap:7px; }
+  .slider-lab{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--amber-soft);
+  }
+  .slider-lab b{ color:var(--amber); text-shadow:var(--glow); font-weight:600; }
+  .rng{
+    -webkit-appearance:none; appearance:none;
+    width:100%; height:2px; background:var(--amber-ghost);
+    outline:none; cursor:pointer;
+  }
+  .rng::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:14px; height:14px; border-radius:50%;
+    background:var(--amber); box-shadow:var(--glow-strong);
+    border:1px solid #100B06;
+  }
+  .rng::-moz-range-thumb{
+    width:14px; height:14px; border-radius:50%; border:1px solid #100B06;
+    background:var(--amber); box-shadow:var(--glow-strong);
+  }
+  .rng::-moz-range-track{ height:2px; background:var(--amber-ghost); }
+
+  /* bracketed link / buttons */
+  .analisi{
+    display:block; text-align:center;
+    border:1px dashed var(--amber-dim);
+    padding:9px 10px; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--amber-soft); cursor:pointer;
+    transition:color .2s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease), background .2s var(--ease);
+  }
+  .analisi:hover{ color:var(--amber); border-color:var(--amber); box-shadow:var(--glow); background:rgba(255,176,0,.05); }
+
+  .obj-actions{ display:flex; gap:9px; }
+  .tbtn{
+    flex:1; text-align:center; cursor:pointer;
+    border:1px solid var(--line);
+    padding:8px 6px; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--amber-soft);
+    transition:color .2s var(--ease), border-color .2s var(--ease), box-shadow .2s var(--ease), background .2s var(--ease);
+  }
+  .tbtn::before{ content:"[ "; color:var(--amber-dim); }
+  .tbtn::after{ content:" ]"; color:var(--amber-dim); }
+  .tbtn:hover{ color:var(--amber); border-color:var(--amber); box-shadow:var(--glow); }
+  .tbtn.danger:hover{ color:#100B06; background:var(--amber); border-color:var(--amber); box-shadow:var(--glow-strong); }
+  .tbtn.danger:hover::before, .tbtn.danger:hover::after{ color:rgba(16,11,6,.6); }
+
+  .prompt-line{
+    margin-top:4px; font-size:11px; color:var(--amber-dim); letter-spacing:.06em;
+    display:flex; align-items:center;
+  }
+  .prompt-line .pfx{ color:var(--amber-soft); margin-right:6px; }
+
+  /* =============== CANVAS / OSCILLOSCOPE =============== */
+  .stage{
+    position:relative;
+    padding:18px;
+    display:flex; flex-direction:column;
+    min-width:0; min-height:0;
+    background:var(--bg-deep);
+  }
+
+  .bezel{
+    position:relative; flex:1; min-height:0;
+    border:1px solid var(--amber-ghost);
+    border-radius:6px;
+    background:
+      radial-gradient(130% 110% at 50% 42%, rgba(255,176,0,.05), transparent 60%),
+      #0C0805;
+    box-shadow:
+      inset 0 0 70px rgba(0,0,0,.7),
+      inset 0 0 0 1px rgba(255,176,0,.05),
+      0 0 0 1px rgba(0,0,0,.5),
+      0 0 40px rgba(255,176,0,.06);
+    overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  /* bezel corner ticks */
+  .bz-corner{ position:absolute; width:12px; height:12px; border:1px solid var(--amber); box-shadow:var(--glow); opacity:.6; z-index:5; }
+  .bz-corner.tl{ top:6px; left:6px; border-right:0; border-bottom:0; }
+  .bz-corner.tr{ top:6px; right:6px; border-left:0; border-bottom:0; }
+  .bz-corner.bl{ bottom:6px; left:6px; border-right:0; border-top:0; }
+  .bz-corner.br{ bottom:6px; right:6px; border-left:0; border-top:0; }
+
+  /* curvature darkening at extreme edges */
+  .bezel::after{
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:4;
+    background:radial-gradient(120% 120% at 50% 50%, transparent 62%, rgba(0,0,0,.5) 100%);
+  }
+  /* local scanlines inside the screen, finer */
+  .bezel::before{
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:6;
+    background:repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.18) 2px 3px);
+    mix-blend-mode:multiply; opacity:.55;
+  }
+
+  .screen-svg{ position:absolute; inset:0; width:100%; height:100%; display:block; z-index:2; }
+
+  /* equation overlay box */
+  .eq-overlay{
+    position:absolute; left:18px; bottom:46px; z-index:7;
+    max-width:min(58%, 420px);
+    border:1px solid var(--amber-ghost);
+    background:linear-gradient(180deg, rgba(26,18,10,.92), rgba(10,7,4,.92));
+    box-shadow:var(--glow), inset 0 0 24px rgba(0,0,0,.5);
+    padding:11px 14px;
+    backdrop-filter:blur(1px);
+  }
+  .eq-overlay .eq-h{
+    font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--amber-dim);
+    margin-bottom:8px; display:flex; align-items:center; gap:8px;
+  }
+  .eq-overlay .eq-h::before{ content:""; width:5px; height:5px; background:var(--amber); box-shadow:var(--glow); }
+  .eq-line{ font-size:13px; line-height:1.85; color:var(--amber); text-shadow:var(--glow); letter-spacing:.02em; }
+  .eq-line.step{ color:#E6C98C; text-shadow:0 0 8px rgba(255,176,0,.2); }
+  .eq-line .arr{ color:var(--amber-dim); margin:0 8px; text-shadow:none; }
+  .eq-line sub{ font-size:.66em; }
+
+  /* status bar inside stage */
+  .statusbar{
+    position:absolute; left:0; right:0; bottom:0; z-index:8;
+    border-top:1px solid var(--amber-ghost);
+    background:linear-gradient(180deg, rgba(16,11,6,.55), var(--bg-deep));
+    padding:8px 14px;
+    display:flex; align-items:center; gap:14px;
+    font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--amber-dim);
+    white-space:nowrap; overflow:hidden;
+  }
+  .statusbar .live{ color:var(--amber); text-shadow:var(--glow); display:inline-flex; align-items:center; gap:7px; }
+  .statusbar .live .pulse{
+    width:7px; height:7px; border-radius:50%; background:var(--amber); box-shadow:var(--glow);
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.25;} }
+  .statusbar .sep{ color:var(--amber-ghost); }
+  .statusbar .v{ color:var(--amber-soft); }
+  .statusbar .gap{ flex:1; }
+  @media(max-width:1180px){ .statusbar .hideS{ display:none; } }
+
+  /* =============== BOOT / POWER-ON =============== */
+  .reveal{ opacity:0; }
+  body.go .reveal{ animation:rise .6s var(--ease) forwards; }
+  @keyframes rise{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;} }
+
+  body.go .sidebar{ animation:poweron 1s var(--ease) both; }
+  body.go .bezel{ animation:poweron 1.05s var(--ease) .12s both; }
+  @keyframes poweron{
+    0%{ filter:brightness(2.6) blur(2px); opacity:0; transform:scaleY(.004); }
+    16%{ opacity:1; transform:scaleY(.02); }
+    34%{ transform:scaleY(1); filter:brightness(1.5) blur(.5px); }
+    100%{ transform:scaleY(1); filter:none; }
+  }
+
+  /* staggered side reveals after power-on */
+  body.go .s1{ animation-delay:.55s; }
+  body.go .s2{ animation-delay:.66s; }
+  body.go .s3{ animation-delay:.77s; }
+  body.go .s4{ animation-delay:.88s; }
+  body.go .s5{ animation-delay:1.0s; }
+  body.go .s6{ animation-delay:1.12s; }
+
+  /* vector trace draw-in (the CRT beam draws the figure) */
+  .trace-anim{ stroke-dasharray:var(--len,1400); stroke-dashoffset:var(--len,1400); }
+  body.go .trace-anim{ animation:draw 1.5s var(--ease) 1.0s forwards; }
+  @keyframes draw{ to{ stroke-dashoffset:0; } }
+
+  .node-pop{ opacity:0; transform-box:fill-box; transform-origin:center; }
+  body.go .node-pop{ animation:pop .42s var(--ease) forwards; }
+  body.go .node-pop:nth-of-type(1){ animation-delay:2.0s; }
+  body.go .node-pop:nth-of-type(2){ animation-delay:2.12s; }
+  body.go .node-pop:nth-of-type(3){ animation-delay:2.24s; }
+  body.go .node-pop:nth-of-type(4){ animation-delay:2.36s; }
+  @keyframes pop{ from{opacity:0; transform:scale(0);} 70%{opacity:1; transform:scale(1.45);} to{opacity:1; transform:scale(1);} }
+
+  .fade-late{ opacity:0; }
+  body.go .fade-late{ animation:fadeIn .8s var(--ease) 2.1s forwards; }
+  @keyframes fadeIn{ to{ opacity:1; } }
+
+  /* ================= REDUCED MOTION ================= */
+  @media (prefers-reduced-motion: reduce){
+    body::before{ animation:none; }
+    .cur{ animation:none !important; opacity:1 !important; }
+    .statusbar .live .pulse{ animation:none; }
+    .reveal,.s1,.s2,.s3,.s4,.s5,.s6{ opacity:1 !important; }
+    body.go .reveal, body.go .sidebar, body.go .bezel,
+    body.go .trace-anim, body.go .node-pop, body.go .fade-late{ animation:none !important; }
+    .trace-anim{ stroke-dashoffset:0 !important; }
+    .node-pop{ opacity:1 !important; transform:none !important; }
+    .fade-late{ opacity:1 !important; }
+  }
+
+  @media(max-width:720px){
+    .app{ grid-template-columns:1fr; grid-template-rows:auto 1fr; }
+    .sidebar{ max-height:46vh; border-right:0; border-bottom:1px solid var(--line); }
+    .stage{ padding:12px; }
+    .eq-overlay{ max-width:78%; left:12px; bottom:44px; }
+  }
+</style>
+</head>
+<body class="go">
+
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="app">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside class="sidebar">
+      <div class="side-pad">
+
+        <!-- HEADER -->
+        <div class="calc-head reveal s1">
+          <div>
+            <div class="ttl">Calcolatore<br>Grafico</div>
+            <div class="sub">Geometria del Taxi · L<sub>1</sub></div>
+          </div>
+          <button class="esc-btn" type="button" aria-label="Chiudi (ESC)">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <line x1="3" y1="3" x2="13" y2="13"/>
+              <line x1="13" y1="3" x2="3" y2="13"/>
+            </svg>
+            ESC
+          </button>
+        </div>
+
+        <!-- TOOLBAR -->
+        <div class="toolbar reveal s1">
+          <span class="snap">
+            <span class="toggle" role="switch" aria-checked="true"><i></i></span>
+            Snap
+          </span>
+          <span class="div"></span>
+          <span class="svuota" role="button">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M3 4 h10"/>
+              <path d="M6 4 v-1.5 h4 v1.5"/>
+              <path d="M4.5 4 l.8 9 h5.4 l.8 -9"/>
+            </svg>
+            Svuota
+          </span>
+        </div>
+
+        <!-- CREA OGGETTO -->
+        <div class="sec-h reveal s2">CREA <b>OGGETTO</b><span class="ln"></span></div>
+        <div class="tools reveal s2">
+
+          <!-- Asse: bisettrice (perpendicular tick on a segment) -->
+          <div class="tool">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="3" y1="17" x2="21" y2="7"/>
+              <circle class="fillnode" cx="5" cy="16" r="1.7"/>
+              <circle class="fillnode" cx="19" cy="8" r="1.7"/>
+              <line x1="12" y1="3" x2="12" y2="21"/>
+            </svg>
+            Asse
+          </div>
+
+          <!-- Circonferenza: taxicab rhombus -->
+          <div class="tool">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3 L21 12 L12 21 L3 12 Z"/>
+              <circle class="fillnode" cx="12" cy="12" r="1.4"/>
+            </svg>
+            Circonferenza
+          </div>
+
+          <!-- Ellisse: octagon -->
+          <div class="tool">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 3 H16 L21 8 V16 L16 21 H8 L3 16 V8 Z"/>
+            </svg>
+            Ellisse
+          </div>
+
+          <!-- Iperbole: two arcs -->
+          <div class="tool">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 3 C5 8, 5 16, 9 21"/>
+              <path d="M15 3 C19 8, 19 16, 15 21"/>
+            </svg>
+            Iperbole
+          </div>
+
+          <!-- Parabola: open curve -->
+          <div class="tool">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 4 C10 8, 14 16, 21 20"/>
+              <path d="M3 4 C7 9, 9 15, 12 22" opacity="0"/>
+              <line x1="4" y1="20" x2="20" y2="20" opacity=".4"/>
+            </svg>
+            Parabola
+          </div>
+
+          <!-- Luogo: dotted locus -->
+          <div class="tool">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+              <circle class="fillnode" cx="5" cy="14" r="1.3"/>
+              <circle class="fillnode" cx="9" cy="9" r="1.3"/>
+              <circle class="fillnode" cx="13" cy="7" r="1.3"/>
+              <circle class="fillnode" cx="17" cy="9" r="1.3"/>
+              <circle class="fillnode" cx="20" cy="15" r="1.3"/>
+              <circle class="fillnode" cx="8" cy="18" r="1.3"/>
+              <circle class="fillnode" cx="15" cy="17" r="1.3"/>
+            </svg>
+            Luogo
+          </div>
+
+          <!-- Distanza: segment with end ticks -->
+          <div class="tool">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+              <line x1="5" y1="8" x2="5" y2="16"/>
+              <line x1="19" y1="8" x2="19" y2="16"/>
+            </svg>
+            Distanza
+          </div>
+        </div>
+
+        <!-- OGGETTI -->
+        <div class="sec-h reveal s3">OGGETTI <b>(1)</b><span class="ln"></span></div>
+
+        <div class="obj-card reveal s3">
+          <div class="obj-top">
+            <span class="swatch"></span>
+            <span class="name">Ellisse #1</span>
+            <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><polyline points="3,6 8,11 13,6"/></svg>
+          </div>
+
+          <div class="obj-body">
+
+            <div class="kv">
+              <span class="k">F<sub>1</sub></span> <span class="v">(−2, −1)</span>
+              &nbsp;·&nbsp;
+              <span class="k">F<sub>2</sub></span> <span class="v">(2, 1)</span>
+            </div>
+
+            <div class="slider-wrap">
+              <div class="slider-lab">
+                <span>Somma <span style="color:var(--amber-dim)">2a</span></span>
+                <b>S = 8</b>
+              </div>
+              <input class="rng" type="range" min="6" max="14" value="8" step="1" aria-label="Somma 2a" />
+            </div>
+
+            <div class="readout">
+              d<sub>0</sub> = 6.00 <span class="dim">·</span> k = 1.00
+            </div>
+
+            <div class="analisi">[ ANALISI REGIONI E EQUAZIONI ]</div>
+
+            <div class="obj-actions">
+              <span class="tbtn">ISOLA</span>
+              <span class="tbtn danger">ELIMINA</span>
+            </div>
+
+            <div class="prompt-line">
+              <span class="pfx">L1&gt;</span> in attesa input<span class="cur" style="height:.92em"></span>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- ===================== STAGE / OSCILLOSCOPE ===================== -->
+    <main class="stage">
+      <div class="bezel">
+        <span class="bz-corner tl"></span><span class="bz-corner tr"></span>
+        <span class="bz-corner bl"></span><span class="bz-corner br"></span>
+
+        <!-- WORLD->PIXEL: viewBox 900x620, center (450,310), scale 58 px/unit -->
+        <svg class="screen-svg" viewBox="0 0 900 620" preserveAspectRatio="xMidYMid slice" aria-label="Display vettoriale: ellisse taxicab (ottagono) con fuochi F1 e F2, rette critiche e percorsi a scaletta dal punto P.">
+          <defs>
+            <filter id="bloom" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="2.6" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="bloomSoft" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="1.4" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <!-- MANHATTAN GRID (faint graticule), world x:-7..7  y:-5..5 -->
+          <g stroke="#3A2A12" stroke-width="1" opacity=".5">
+            <!-- verticals: x = -7..7 -->
+            <line x1="44"  y1="20" x2="44"  y2="600"/>
+            <line x1="102" y1="20" x2="102" y2="600"/>
+            <line x1="160" y1="20" x2="160" y2="600"/>
+            <line x1="218" y1="20" x2="218" y2="600"/>
+            <line x1="276" y1="20" x2="276" y2="600"/>
+            <line x1="334" y1="20" x2="334" y2="600"/>
+            <line x1="392" y1="20" x2="392" y2="600"/>
+            <line x1="508" y1="20" x2="508" y2="600"/>
+            <line x1="566" y1="20" x2="566" y2="600"/>
+            <line x1="624" y1="20" x2="624" y2="600"/>
+            <line x1="682" y1="20" x2="682" y2="600"/>
+            <line x1="740" y1="20" x2="740" y2="600"/>
+            <line x1="798" y1="20" x2="798" y2="600"/>
+            <line x1="856" y1="20" x2="856" y2="600"/>
+            <!-- horizontals: y = -5..5 -->
+            <line x1="40" y1="600" x2="860" y2="600"/>
+            <line x1="40" y1="542" x2="860" y2="542"/>
+            <line x1="40" y1="484" x2="860" y2="484"/>
+            <line x1="40" y1="426" x2="860" y2="426"/>
+            <line x1="40" y1="368" x2="860" y2="368"/>
+            <line x1="40" y1="252" x2="860" y2="252"/>
+            <line x1="40" y1="194" x2="860" y2="194"/>
+            <line x1="40" y1="136" x2="860" y2="136"/>
+            <line x1="40" y1="78"  x2="860" y2="78"/>
+            <line x1="40" y1="20"  x2="860" y2="20"/>
+          </g>
+
+          <!-- AXES through center (450,310) -->
+          <g stroke="#7A5A24" stroke-width="1.3">
+            <line x1="40" y1="310" x2="864" y2="310"/>
+            <line x1="450" y1="16" x2="450" y2="604"/>
+          </g>
+          <!-- axis arrowheads -->
+          <polygon points="864,310 854,305 854,315" fill="#7A5A24"/>
+          <polygon points="450,16 445,26 455,26" fill="#7A5A24"/>
+
+          <!-- axis numbers (faint mono) -->
+          <g fill="#7A5A24" font-family="'IBM Plex Mono',monospace" font-size="11" letter-spacing=".5">
+            <!-- x -->
+            <text x="330" y="326">−2</text>
+            <text x="504" y="326">2</text>
+            <text x="620" y="326">3</text>
+            <text x="272" y="326">−3</text>
+            <text x="846" y="302">x</text>
+            <!-- y -->
+            <text x="458" y="256">1</text>
+            <text x="456" y="372">−1</text>
+            <text x="456" y="198">2</text>
+            <text x="436" y="34">y</text>
+          </g>
+
+          <!-- 4 DASHED CRITICAL LINES: x=-2 (334), x=2 (566), y=1 (252), y=-1 (368) -->
+          <g stroke="#8A6526" stroke-width="1.1" stroke-dasharray="5 6" opacity=".75">
+            <line x1="334" y1="40" x2="334" y2="580"/>
+            <line x1="566" y1="40" x2="566" y2="580"/>
+            <line x1="60"  y1="252" x2="840" y2="252"/>
+            <line x1="60"  y1="368" x2="840" y2="368"/>
+          </g>
+          <g fill="#8A6526" font-family="'IBM Plex Mono',monospace" font-size="9.5" opacity=".85">
+            <text x="338" y="54">x=−2</text>
+            <text x="570" y="54">x=2</text>
+            <text x="62"  y="247">y=1</text>
+            <text x="62"  y="364">y=−1</text>
+          </g>
+
+          <!-- TAXICAB ELLIPSE: octagon, vertices in world:
+               (3,1)(2,2)(-2,2)(-3,1)(-3,-1)(-2,-2)(2,-2)(3,-1) -->
+          <polygon class="trace-anim" style="--len:1560px"
+            points="624,252 566,194 334,194 276,252 276,368 334,426 566,426 624,368"
+            fill="rgba(255,176,0,.045)" stroke="#FFB000" stroke-width="2.4"
+            stroke-linejoin="round" filter="url(#bloom)"/>
+
+          <!-- octagon vertices (small dim ticks) -->
+          <g fill="#C98A2E" filter="url(#bloomSoft)" class="fade-late">
+            <circle cx="624" cy="252" r="2.6"/>
+            <circle cx="566" cy="194" r="2.6"/>
+            <circle cx="334" cy="194" r="2.6"/>
+            <circle cx="276" cy="252" r="2.6"/>
+            <circle cx="276" cy="368" r="2.6"/>
+            <circle cx="334" cy="426" r="2.6"/>
+            <circle cx="566" cy="426" r="2.6"/>
+            <circle cx="624" cy="368" r="2.6"/>
+          </g>
+
+          <!-- L1 STAIRCASE PATHS from P(2.5,1.5):
+               P->F2 (len 1):  595,223 595,252 566,252
+               P->F1 (len 7):  595,223 595,281 508,281 508,339 421,339 421,368 334,368 -->
+          <g class="fade-late" fill="none" stroke-linejoin="round" stroke-linecap="round">
+            <polyline points="595,223 595,252 566,252"
+              stroke="#FFB000" stroke-width="2" filter="url(#bloomSoft)"/>
+            <polyline points="595,223 595,281 508,281 508,339 421,339 421,368 334,368"
+              stroke="#FFB000" stroke-width="2" stroke-dasharray="0" filter="url(#bloomSoft)"/>
+            <!-- tiny step joints -->
+            <g fill="#FFB000" stroke="none" opacity=".9">
+              <circle cx="595" cy="252" r="1.6"/>
+              <circle cx="595" cy="281" r="1.6"/>
+              <circle cx="508" cy="281" r="1.6"/>
+              <circle cx="508" cy="339" r="1.6"/>
+              <circle cx="421" cy="339" r="1.6"/>
+              <circle cx="421" cy="368" r="1.6"/>
+            </g>
+          </g>
+
+          <!-- POINT P(2.5,1.5) -> 595,223 -->
+          <g class="fade-late">
+            <circle cx="595" cy="223" r="5" fill="#FFB000" filter="url(#bloom)"/>
+            <circle cx="595" cy="223" r="9" fill="none" stroke="#FFB000" stroke-width="1" opacity=".5"/>
+            <text x="603" y="216" fill="#FFB000" font-family="'IBM Plex Mono',monospace" font-size="13" font-weight="600">P</text>
+          </g>
+
+          <!-- FOCI: F1(-2,-1)=334,368  F2(2,1)=566,252 -->
+          <!-- F1 -->
+          <circle class="node-pop" cx="334" cy="368" r="5.5" fill="#FFB000" filter="url(#bloom)"/>
+          <circle class="node-pop" cx="566" cy="252" r="5.5" fill="#FFB000" filter="url(#bloom)"/>
+          <!-- two more node-pops to satisfy the 4-stagger cascade: octagon outer extents emphasised -->
+          <circle class="node-pop" cx="624" cy="310" r="4" fill="#FFB000" filter="url(#bloom)"/>
+          <circle class="node-pop" cx="276" cy="310" r="4" fill="#FFB000" filter="url(#bloom)"/>
+
+          <g class="fade-late" font-family="'IBM Plex Mono',monospace" font-weight="600">
+            <text x="312" y="392" fill="#FFB000" font-size="13">F<tspan font-size="9" dy="2">1</tspan></text>
+            <text x="574" y="246" fill="#FFB000" font-size="13">F<tspan font-size="9" dy="2">2</tspan></text>
+          </g>
+
+          <!-- center marker -->
+          <circle cx="450" cy="310" r="2.8" fill="#0C0805" stroke="#FFB000" stroke-width="1.4"/>
+        </svg>
+
+        <!-- EQUATION OVERLAY -->
+        <div class="eq-overlay fade-late">
+          <div class="eq-h">Equazione · regione P</div>
+          <div class="eq-line">|x − x<sub>1</sub>| + |y − y<sub>1</sub>| + |x − x<sub>2</sub>| + |y − y<sub>2</sub>| = 2a</div>
+          <div class="eq-line step">2x + 2y = 8 <span class="arr">→</span> y = −x + 4</div>
+        </div>
+
+        <!-- STATUS BAR -->
+        <div class="statusbar">
+          <span class="live"><span class="pulse"></span>● REC</span>
+          <span class="sep">·</span>
+          <span class="v">P(2.5, 1.5)</span>
+          <span class="sep">·</span>
+          <span>d<sub>1</sub>=<span class="v">7.00</span></span>
+          <span class="sep">·</span>
+          <span>d<sub>2</sub>=<span class="v">1.00</span></span>
+          <span class="sep">·</span>
+          <span>SOMMA=<span class="v">8.00</span></span>
+          <span class="gap"></span>
+          <span class="hideS">VECTOR · 60 Hz</span>
+          <span class="hideS sep">·</span>
+          <span class="live" style="text-transform:uppercase">SNAP:ON</span>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+<script>
+(function(){
+  // Single load-in: power-on the panels + draw the vector trace.
+  // The CSS handles the staggered cascade off the `go` class (already on <body>).
+  // For non-reduced-motion we briefly restart the cascade so it always plays on load.
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce) return;
+  var b = document.body;
+  // re-trigger the animation cleanly on first paint
+  b.classList.remove('go');
+  // force reflow
+  void b.offsetWidth;
+  requestAnimationFrame(function(){ b.classList.add('go'); });
+})();
+</script>
+</body>
+</html>
