@@ -34,6 +34,7 @@
       transition: background-color 0.6s ease;
     }
     body.light-mode { background: var(--bone); }
+    :focus-visible { outline: 2px solid var(--tomato); outline-offset: 2px; }
 
     /* fixed Manhattan lattice behind everything */
     .lattice {
@@ -51,6 +52,36 @@
       background: var(--bone);
       /* no overflow:hidden — would break position:sticky on the section figures */
     }
+
+    /* reading progress bar */
+    #read-progress {
+      position: fixed; top: 0; left: 0; height: 3px; width: 100%;
+      transform: scaleX(0); transform-origin: left;
+      background: var(--tomato); z-index: 100; pointer-events: none;
+    }
+    /* mini-TOC: rombo dot-rail sul bordo destro (solo desktop largo) */
+    #toc {
+      position: fixed; right: 10px; top: 50%; transform: translateY(-50%);
+      z-index: 50; display: none; flex-direction: column; gap: 11px;
+    }
+    #toc a {
+      position: relative; width: 14px; height: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #toc a::before {
+      content: ''; width: 10px; height: 10px; border: 1.5px solid var(--ink-dim);
+      transform: rotate(45deg); transition: background 0.15s, border-color 0.15s;
+    }
+    #toc a:hover::before, #toc a.active::before { background: var(--tomato); border-color: var(--ink); }
+    #toc a .toc-label {
+      position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+      white-space: nowrap; background: var(--ink); color: var(--bone);
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem;
+      letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 7px;
+      opacity: 0; pointer-events: none; transition: opacity 0.15s;
+    }
+    #toc a:hover .toc-label, #toc a:focus-visible .toc-label { opacity: 1; }
+    @media (min-width: 1024px) { #toc { display: flex; } }
 
     /* shared brutalist helpers */
     .mono-label { font-family: 'IBM Plex Mono', monospace; text-transform: uppercase; letter-spacing: 0.2em; font-size: 0.7rem; font-weight: 500; }
@@ -192,6 +223,16 @@
       margin: 1.2rem 0;
       font-size: 1.02em;
     }
+    .ponte { font-style: italic; color: var(--ink); border-top: 1px solid var(--hair); margin-top: 1.8rem; padding-top: 1.1rem; font-size: 1.02em; }
+    .ctx-cta {
+      display: inline-block; margin-top: 1.4rem;
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; letter-spacing: 0.13em;
+      text-transform: uppercase; font-weight: 600;
+      background: var(--bone); border: 2px solid var(--ink); color: var(--ink);
+      padding: 0.6rem 1.2rem; border-radius: 0; cursor: pointer;
+      transition: background 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+    .ctx-cta:hover { background: var(--tomato); color: var(--ink); transform: translate(-2px,-2px); box-shadow: 4px 4px 0 var(--ink); }
 
     /* doppio binario: derivazioni formali in <details> */
     details.math-detail { border: 2px solid var(--ink); margin: 1.6rem 0; background: var(--bone); }
@@ -250,6 +291,11 @@
       .section-split { flex-direction: column; }
       .section-figure { position: static; width: 100%; }
       .section-text { flex: none; width: 100%; }
+    }
+    @media (max-width: 600px) {
+      table.paper-table { font-size: 0.7rem; }
+      table.paper-table th, table.paper-table td { padding: 0.4rem 0.45rem; }
+      .formula-display { font-size: 0.78rem; padding: 0.9rem; }
     }
 
     /* ─── HERO ─── */
@@ -517,8 +563,8 @@
       position: fixed !important;
       bottom: 0 !important; left: 0 !important; right: 0 !important;
       width: 100% !important;
-      height: 68vh;
-      max-height: 68vh;
+      height: 68dvh;
+      max-height: 68dvh;
       border-right: none !important;
       border-top: 2px solid var(--ink) !important;
       border-radius: 0;
@@ -638,6 +684,9 @@
   .csb-info-icon { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--ink); opacity: 0.45; cursor: help; position: relative; }
   .csb-info-icon:hover::after { content: attr(data-tip); position: absolute; left: 20px; top: -4px; background: var(--ink); border: 1px solid var(--ink); color: var(--bone); font-size: 0.6rem; padding: 6px 10px; border-radius: 0; z-index: 100; line-height: 1.6; width: 180px; white-space: normal; }
   .csb-status { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--ink); font-weight: 600; padding: 8px 14px; min-height: 28px; border-bottom: 1px solid var(--ink); border-left: 4px solid var(--tomato); }
+  .csb-onboard { padding: 2px 0 4px; }
+  .csb-onboard-step { display: flex; align-items: flex-start; gap: 9px; font-family: 'IBM Plex Mono', monospace; font-size: 0.66rem; line-height: 1.5; color: var(--ink); padding: 6px 0; }
+  .csb-onboard-num { flex-shrink: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--ink); background: var(--tomato); color: var(--ink); font-weight: 600; font-size: 0.62rem; }
   .csb-regions-toggle { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: var(--ink); cursor: pointer; padding: 4px 0; }
   .csb-regions-toggle input[type=checkbox] { accent-color: var(--tomato); }
 
@@ -667,6 +716,16 @@
 </style>
 </head>
 <body>
+  <div id="read-progress" aria-hidden="true"></div>
+  <nav id="toc" aria-label="Indice delle sezioni">
+    <a href="#fondamenti"><span class="toc-label">§1 · Fondamenti</span></a>
+    <a href="#circonferenza"><span class="toc-label">§2 · Circonferenza</span></a>
+    <a href="#ellisse"><span class="toc-label">§3 · Ellisse</span></a>
+    <a href="#iperbole"><span class="toc-label">§4 · Iperbole</span></a>
+    <a href="#parabola"><span class="toc-label">§5 · Parabola</span></a>
+    <a href="#sintesi"><span class="toc-label">§6 · In sintesi</span></a>
+    <a href="#calcolatore"><span class="toc-label">§7 · Calcolatore</span></a>
+  </nav>
   <div class="lattice" aria-hidden="true"></div>
   <div class="frame">
   <section id="hero">
@@ -696,6 +755,7 @@
     <a id="hero-scroll-cue" href="#fondamenti" aria-label="Inizia a leggere">↓&nbsp;&nbsp;Inizia</a>
   </section>
 
+  <main>
   <section id="fondamenti" class="section-academic">
   <div class="section-inner">
     <div class="section-number">§1</div>
@@ -768,6 +828,8 @@
             </tr>
           </tbody>
         </table>
+
+        <p class="ponte">E se cercassimo tutti i punti a uguale distanza da un centro? In linea d'aria è un cerchio. A isolati… preparati a una sorpresa.</p>
       </div>
 
       <div class="section-figure">
@@ -849,6 +911,9 @@ Ogni lato del rombo, "a isolati", misura |Δx| + |Δy| = R + R = 2R → 4 lati =
             <p>Il valore <span class="formula">π₁ = 4</span> (rispetto a π ≈ 3.14159…) è uno dei risultati più sorprendenti della geometria del taxi.</p>
           </div>
         </details>
+
+        <button class="ctx-cta" onclick="GraphCalc.open();GraphCalc.startTool('circonferenza')">Costruisci una circonferenza taxi →</button>
+        <p class="ponte">Un centro solo ci ha dato un rombo. E con <em>due</em> fuochi, chiedendo che la somma delle distanze resti costante?</p>
       </div>
 
       <div class="section-figure">
@@ -930,6 +995,9 @@ Ogni lato del rombo, "a isolati", misura |Δx| + |Δy| = R + R = 2R → 4 lati =
             <p style="font-size:0.9em;">Gli 8 vertici sono (−2,0), (0,−2), (4,−2), (6,0), (6,2), (4,4), (0,4), (−2,2): un ottagono, non un esagono. L'esagono comparirebbe solo se i due fuochi fossero allineati.</p>
           </div>
         </details>
+
+        <button class="ctx-cta" onclick="GraphCalc.open();GraphCalc.startTool('ellisse')">Costruisci un'ellisse taxi →</button>
+        <p class="ponte">Somma costante → ottagono. E se invece imponiamo che resti costante la loro <em>differenza</em>?</p>
       </div>
 
       <div class="section-figure">
@@ -990,6 +1058,9 @@ Ogni lato del rombo, "a isolati", misura |Δx| + |Δy| = R + R = 2R → 4 lati =
             </div>
           </div>
         </details>
+
+        <button class="ctx-cta" onclick="GraphCalc.open();GraphCalc.startTool('iperbole')">Costruisci un'iperbole taxi →</button>
+        <p class="ponte">Due fuochi, due rami. Ultimo atto: un fuoco e una <em>retta</em>, da cui essere equidistanti.</p>
       </div>
 
       <div class="section-figure">
@@ -1061,6 +1132,9 @@ dove p = y_F − k</div>
             <p>Per una direttrice obliqua di equazione ax + by + c = 0, la distanza L₁ diventa <span class="formula">d₁(P,r) = |ax+by+c| / (|a|+|b|)</span>, generando una formula ibrida la cui analisi richiede la medesima tecnica di scioglimento per regioni.</p>
           </div>
         </details>
+
+        <button class="ctx-cta" onclick="GraphCalc.open();GraphCalc.startTool('parabola')">Costruisci una parabola taxi →</button>
+        <p class="ponte">Abbiamo trasformato cerchio, ellisse, iperbole e parabola. È ora di tirare le fila.</p>
       </div>
 
       <div class="section-figure">
@@ -1126,6 +1200,7 @@ dove p = y_F − k</div>
     <button id="btn-open-calc" onclick="GraphCalc.open()" style="font-family:'IBM Plex Mono',monospace;font-size:0.85rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:600;background:var(--tomato);border:2px solid var(--ink);color:var(--ink);padding:0.9rem 2.4rem;border-radius:0;cursor:pointer;transition:background 0.2s,color 0.2s,transform 0.2s,box-shadow 0.2s;">▶ &nbsp;Apri Calcolatore Grafico</button>
   </div>
 </section>
+  </main>
 
   <footer>
     <div class="foot-inner">
@@ -2099,6 +2174,7 @@ const GraphCalc = (() => {
 
   // ── OPEN / CLOSE ──
   let _savedScrollY = 0;
+  let _trapHandler = null;
 
   function open() {
     _savedScrollY = window.scrollY;
@@ -2111,10 +2187,23 @@ const GraphCalc = (() => {
     overlay.classList.add('is-open');
     document.body.classList.add('calc-open');
     document.body.classList.remove('calc-closed');
-    // nothing extra needed — close button is always visible
     if (!state._initialized) { _initCanvas(); state._initialized = true; }
     _draw();
     renderSidebar();
+    // a11y: porta il focus nel dialog e intrappolalo finché è aperto
+    const closeBtn = document.getElementById('calc-close-btn');
+    if (closeBtn) closeBtn.focus();
+    _trapHandler = (e) => {
+      if (e.key !== 'Tab' || !state.isOpen) return;
+      const list = [].slice.call(
+        overlay.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+      ).filter(el => !el.disabled && el.getClientRects().length);
+      if (!list.length) return;
+      const first = list[0], last = list[list.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', _trapHandler, true);
   }
 
   function close() {
@@ -2126,6 +2215,7 @@ const GraphCalc = (() => {
     document.body.classList.remove('calc-open');
     document.body.classList.add('calc-closed');
     toggleDrawer(false);
+    if (_trapHandler) { document.removeEventListener('keydown', _trapHandler, true); _trapHandler = null; }
     setTimeout(() => {
       overlay.style.display = 'none';
       document.body.classList.remove('calc-closed');
@@ -2742,12 +2832,19 @@ const GraphCalc = (() => {
     renderSidebar();
   }
 
+  // a11y: attiva un elemento role="button" da tastiera (Enter/Spazio)
+  function _kbdClick(e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); }
+  }
+
   function _colorPanelHTML(obj) {
     return `<div class="csb-color-panel" id="csb-cpanel-${obj.id}">
       <div class="csb-label" style="margin-bottom:6px;">Colore</div>
       <div class="csb-palette">
         ${PALETTE.map(c=>`<div class="csb-swatch ${obj.color===c?'active':''}"
+          role="button" tabindex="0" aria-label="Colore ${c}"
           data-c="${c}" style="background:${c};"
+          onkeydown="GraphCalc._kbdClick(event)"
           onclick="GraphCalc.setObjColor(${obj.id},'${c}')"></div>`).join('')}
       </div>
       <div class="csb-color-panel-row" style="margin-top:8px;">
@@ -3061,7 +3158,10 @@ const GraphCalc = (() => {
       <div class="csb-section" style="flex:1;overflow-y:auto;min-height:0;">
         <div class="csb-label">Oggetti ${state.objects.length>0?'('+state.objects.length+')':''}</div>
         ${state.objects.length===0
-          ?`<div style="font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:var(--ink);opacity:0.35;padding:4px 0;">Nessun oggetto creato.</div>`
+          ?(state.pendingTool ? '' : `<div class="csb-onboard">
+              <div class="csb-onboard-step"><span class="csb-onboard-num">1</span> Scegli uno strumento qui sopra</div>
+              <div class="csb-onboard-step"><span class="csb-onboard-num">2</span> Clicca sul piano per posizionare i punti</div>
+            </div>`)
           :state.objects.map(obj => {
             const expanded = state.expandedIds.has(obj.id);
             const isolated = state.isolatedId===obj.id;
@@ -3075,7 +3175,9 @@ const GraphCalc = (() => {
                   title="${obj.visible?'Nascondi':'Mostra'}">${_eyeSVG(obj.visible)}</button>
                 <!-- Color button (always visible, opens inline color picker) -->
                 <div id="csb-cbtn-${obj.id}" class="csb-color-btn ${colorOpen?'open':''}"
+                  role="button" tabindex="0" aria-label="Colore e opacità"
                   style="background:${obj.color};opacity:${obj.opacity||1};"
+                  onkeydown="GraphCalc._kbdClick(event)"
                   onclick="event.stopPropagation();GraphCalc.toggleColorPicker(${obj.id})"
                   title="Colore e opacità"></div>
                 <!-- Name -->
@@ -3572,7 +3674,7 @@ const GraphCalc = (() => {
     isolateObject, toggleRegions, renameObject, pickColor,
     confirmValue, cancelValue, updatePendingVal,
     setObjColor, setObjOpacity,
-    _getObj, _redraw, _setParam, _setParamQuiet, _parseDirectrix,
+    _getObj, _redraw, _setParam, _setParamQuiet, _parseDirectrix, _kbdClick,
   };
 })();
 
@@ -3619,9 +3721,40 @@ const _fondamentiRevealObs = new IntersectionObserver((entries) => {
   }
 }, { threshold: 0.2 });
 _fondamentiRevealObs.observe(document.getElementById('fondamenti'));
+
+// ── Reading progress bar + mini-TOC active section ──
+(function tocProgress(){
+  const bar = document.getElementById('read-progress');
+  const links = [].slice.call(document.querySelectorAll('#toc a'));
+  const map = {};
+  links.forEach(a => { map[a.getAttribute('href').slice(1)] = a; });
+  let ticking = false;
+  function update(){
+    ticking = false;
+    const st = window.scrollY || document.documentElement.scrollTop;
+    const denom = document.documentElement.scrollHeight - window.innerHeight;
+    const p = denom > 0 ? Math.max(0, Math.min(1, st / denom)) : 0;
+    if (bar) bar.style.transform = 'scaleX(' + p + ')';
+  }
+  function onScroll(){ if (!ticking){ ticking = true; requestAnimationFrame(update); } }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  update();
+  if ('IntersectionObserver' in window){
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting){
+          links.forEach(a => a.classList.remove('active'));
+          const a = map[e.target.id]; if (a) a.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-40% 0px -55% 0px', threshold: 0 });
+    document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
+  }
+})();
   </script>
 <!-- ─── CALC OVERLAY ─── -->
-<div id="calc-overlay" style="position:fixed;inset:0;z-index:9999;background:#E9E5DC;display:none;flex-direction:column;opacity:0;pointer-events:none;transform:translateY(40px);transition:opacity 0.3s cubic-bezier(0.16,1,0.3,1),transform 0.3s cubic-bezier(0.16,1,0.3,1);">
+<div id="calc-overlay" role="dialog" aria-modal="true" aria-label="Calcolatore grafico" style="position:fixed;inset:0;z-index:9999;background:#E9E5DC;display:none;flex-direction:column;opacity:0;pointer-events:none;transform:translateY(40px);transition:opacity 0.3s cubic-bezier(0.16,1,0.3,1),transform 0.3s cubic-bezier(0.16,1,0.3,1);">
   <!-- Close button (always visible) -->
   <button id="calc-close-btn" onclick="GraphCalc.close()" title="Chiudi (ESC)" aria-label="Chiudi calcolatore">×</button>
   <span id="calc-close-esc">ESC</span>
