@@ -14,9 +14,13 @@
     :root {
       --bone: #E9E5DC;
       --ink: #0A0A0A;
+      --ink-dim: #5b554c;   /* grigio caldo, contrasto ~5.9:1 su osso (AA) per testo piccolo */
       --tomato: #FF4A1C;
       --hair: rgba(10,10,10,0.18);
       --ease: cubic-bezier(.16,.84,.36,1);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
@@ -178,6 +182,69 @@
     table.paper-table td:last-child { border-right: none; }
     table.paper-table tr:last-child td { border-bottom: none; }
 
+    /* cappello divulgativo + evidenziazione a11y-safe (ink su pomodoro = 5.6:1) */
+    .cappello { font-size: 1.05em; line-height: 1.7; margin-bottom: 1.2rem; }
+    .cappello + .cappello { margin-top: -0.4rem; }
+    .hl { background: var(--tomato); color: var(--ink); padding: 0 4px; font-weight: 600; }
+    .taxi-note {
+      border-left: 6px solid var(--tomato);
+      padding: 0.2rem 0 0.2rem 1rem;
+      margin: 1.2rem 0;
+      font-size: 1.02em;
+    }
+
+    /* doppio binario: derivazioni formali in <details> */
+    details.math-detail { border: 2px solid var(--ink); margin: 1.6rem 0; background: var(--bone); }
+    details.math-detail > summary {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 600;
+      padding: 0.7rem 1rem; cursor: pointer; list-style: none;
+      display: flex; align-items: center; gap: 0.6rem; color: var(--ink); user-select: none;
+    }
+    details.math-detail > summary::-webkit-details-marker { display: none; }
+    details.math-detail > summary::before {
+      content: ''; width: 9px; height: 9px; border: 1.5px solid var(--ink);
+      background: var(--tomato); transform: rotate(45deg); flex-shrink: 0;
+      transition: transform 0.18s var(--ease);
+    }
+    details.math-detail[open] > summary { border-bottom: 2px solid var(--ink); }
+    details.math-detail[open] > summary::before { transform: rotate(135deg); }
+    details.math-detail > summary:hover { background: var(--ink); color: var(--bone); }
+    details.math-detail > summary:hover::before { background: var(--bone); border-color: var(--bone); }
+    .math-detail-body { padding: 1.1rem 1.2rem 1.2rem; }
+    .math-detail-body > :first-child { margin-top: 0; }
+
+    /* ─── SINTESI (sezione finale) ─── */
+    .callout-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 2px solid var(--ink); margin: 1.8rem 0; }
+    .callout { padding: 1.4rem 1.2rem; border-right: 1px solid var(--ink); }
+    .callout:last-child { border-right: 0; }
+    .callout-big { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 2.1rem; line-height: 1; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 0.7rem; }
+    .callout p { font-size: 0.92rem; line-height: 1.55; }
+    .sub-head { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 1.3rem; letter-spacing: -0.01em; margin: 2rem 0 0.8rem; }
+    .app-list { list-style: none; margin: 0.6rem 0; }
+    .app-list li { border-top: 1px solid var(--hair); padding: 0.7rem 0; line-height: 1.6; }
+    .app-list li:last-child { border-bottom: 1px solid var(--hair); }
+    .sintesi-cta {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; letter-spacing: 0.16em;
+      text-transform: uppercase; font-weight: 600;
+      background: var(--tomato); border: 2px solid var(--ink); color: var(--ink);
+      padding: 0.85rem 2rem; border-radius: 0; cursor: pointer; margin-top: 0.6rem;
+      transition: background 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+    .sintesi-cta:hover { background: var(--ink); color: var(--bone); transform: translate(-2px,-2px); box-shadow: 5px 5px 0 var(--ink); }
+
+    /* ─── FOOTER ─── */
+    footer { background: var(--ink); color: var(--bone); padding: 2.2rem 2rem; }
+    footer .foot-inner { max-width: 980px; margin: 0 auto; display: flex; justify-content: space-between; gap: 1rem 2rem; flex-wrap: wrap; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    footer .diamond { border-color: var(--tomato); }
+    footer code { background: transparent; color: var(--tomato); font-size: 0.95em; }
+
+    @media (max-width: 680px) {
+      .callout-grid { grid-template-columns: 1fr; }
+      .callout { border-right: 0; border-bottom: 1px solid var(--ink); }
+      .callout:last-child { border-bottom: 0; }
+    }
+
     /* ─── RESPONSIVE ─── */
     @media (max-width: 768px) {
       .section-split { flex-direction: column; }
@@ -235,14 +302,39 @@
       text-wrap: balance;
     }
     .hero-title .em { color: var(--tomato); font-style: italic; font-weight: 700; }
+    .hero-deck {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: clamp(1.05rem, 2vw, 1.35rem);
+      line-height: 1.5;
+      max-width: 48ch;
+      color: var(--ink);
+      margin-bottom: 1.4rem;
+    }
     .hero-subtitle {
       font-family: 'IBM Plex Mono', monospace;
-      font-size: clamp(0.72rem, 1.4vw, 0.95rem);
-      letter-spacing: 0.22em;
+      font-size: clamp(0.66rem, 1.2vw, 0.82rem);
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--ink-dim);
+    }
+    #hero-scroll-cue {
+      position: absolute;
+      left: clamp(1.4rem, 5vw, 4.5rem);
+      bottom: 1.8rem;
+      z-index: 3;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--ink);
-      opacity: 0.7;
+      text-decoration: none;
+      border-bottom: 2px solid var(--tomato);
+      padding-bottom: 3px;
+      animation: cuePulse 1.8s ease-in-out infinite;
     }
+    #hero-scroll-cue:hover { background: var(--tomato); color: var(--ink); }
+    @keyframes cuePulse { 0%,100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+    @media (prefers-reduced-motion: reduce) { #hero-scroll-cue { animation: none; } }
 
 /* ─── MINI ENGINE ─── */
 .mini-engine-wrap {
@@ -272,8 +364,7 @@
 .mini-ctrl-label {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
-  color: var(--ink);
-  opacity: 0.6;
+  color: var(--ink-dim);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   width: 60px;
@@ -296,10 +387,20 @@
   margin-top: 8px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
-  color: var(--ink);
-  opacity: 0.6;
+  color: var(--ink-dim);
   line-height: 1.6;
 }
+.mini-engine-hint {
+  margin-top: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9.5px;
+  color: var(--ink-dim);
+  letter-spacing: 0.04em;
+  line-height: 1.55;
+  border-top: 1px solid var(--hair);
+  padding-top: 7px;
+}
+.mini-engine-hint b { color: var(--ink); font-weight: 600; }
 
   /* ─── CALC OVERLAY ─── */
   body.calc-open > *:not(#calc-overlay) {
@@ -455,14 +556,14 @@
 
   /* ─── CALC SIDEBAR (brutalist) ─── */
   .csb-section { border-bottom: 1px solid var(--ink); padding: 12px 14px; }
-  .csb-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--ink); opacity: 0.55; margin-bottom: 8px; }
+  .csb-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--ink-dim); margin-bottom: 8px; }
   .csb-mode-row { display: flex; gap: 4px; }
   .csb-mode-btn { flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; letter-spacing: 0.06em; background: var(--bone); border: 1.5px solid var(--ink); color: var(--ink); padding: 6px 4px; border-radius: 0; cursor: pointer; text-align: center; transition: background 0.15s, color 0.15s; }
   .csb-mode-btn:hover { background: var(--ink); color: var(--bone); }
   .csb-mode-btn.active { background: var(--ink); color: var(--bone); }
   .csb-tool-btn { display: flex; align-items: center; gap: 8px; width: 100%; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; letter-spacing: 0.04em; background: transparent; border: none; border-bottom: 1px solid var(--hair); color: var(--ink); padding: 8px 6px; border-radius: 0; cursor: pointer; text-align: left; transition: background 0.12s, color 0.12s, padding-left 0.12s; }
   .csb-tool-btn:hover { background: var(--ink); color: var(--bone); padding-left: 11px; }
-  .csb-tool-btn.active { background: var(--tomato); color: var(--bone); }
+  .csb-tool-btn.active { background: var(--tomato); color: var(--ink); }
   .csb-tool-btn.disabled { opacity: 0.3; cursor: not-allowed; }
   .csb-tool-icon { width: 18px; text-align: center; font-size: 0.85rem; flex-shrink: 0; }
   /* Object items */
@@ -495,7 +596,7 @@
   .csb-obj-item:hover .csb-obj-actions,.csb-obj-item.selected .csb-obj-actions { opacity:1; }
   .csb-obj-act-btn { font-family:'IBM Plex Mono',monospace;font-size:0.55rem;letter-spacing:0.08em;background:var(--bone);border:1px solid var(--ink);color:var(--ink);padding:2px 5px;border-radius:0;cursor:pointer;transition:background 0.1s,color 0.1s; }
   .csb-obj-act-btn:hover { background:var(--ink);color:var(--bone); }
-  .csb-obj-act-btn.isolate-btn.active { color:var(--bone);background:var(--tomato);border-color:var(--tomato); }
+  .csb-obj-act-btn.isolate-btn.active { color:var(--ink);background:var(--tomato);border-color:var(--ink); }
   /* Accordion panel */
   .csb-obj-params { padding:10px 9px 9px;background:var(--bone);border-top:1px solid var(--ink); }
   /* Color picker */
@@ -508,13 +609,13 @@
   .csb-pending-value { background:var(--bone);border:2px solid var(--ink);border-left:6px solid var(--tomato);border-radius:0;padding:12px 14px;margin:8px 14px 0; }
   .csb-pv-title { font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink);margin-bottom:10px;line-height:1.5; }
   .csb-pv-btns { display:flex;gap:6px;margin-top:10px; }
-  .csb-btn-confirm { flex:1;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;letter-spacing:0.06em;text-transform:uppercase;background:var(--tomato);border:none;color:var(--bone);padding:8px;border-radius:0;cursor:pointer;transition:background 0.15s; }
-  .csb-btn-confirm:hover { background:var(--ink); }
+  .csb-btn-confirm { flex:1;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;letter-spacing:0.06em;text-transform:uppercase;background:var(--tomato);border:none;color:var(--ink);padding:8px;border-radius:0;cursor:pointer;transition:background 0.15s,color 0.15s; }
+  .csb-btn-confirm:hover { background:var(--ink);color:var(--bone); }
   .csb-btn-cancel { font-family:'IBM Plex Mono',monospace;font-size:0.72rem;background:var(--bone);border:1.5px solid var(--ink);color:var(--ink);padding:7px 10px;border-radius:0;cursor:pointer;transition:background 0.15s,color 0.15s; }
   .csb-btn-cancel:hover { background:var(--ink);color:var(--bone); }
   /* Clear all */
   .csb-clear-btn { font-family:'IBM Plex Mono',monospace;font-size:0.62rem;letter-spacing:0.06em;background:var(--bone);border:1.5px solid var(--ink);color:var(--ink);padding:4px 8px;border-radius:0;cursor:pointer;transition:background 0.15s,color 0.15s; }
-  .csb-clear-btn:hover { background:var(--tomato);color:var(--bone);border-color:var(--tomato); }
+  .csb-clear-btn:hover { background:var(--tomato);color:var(--ink);border-color:var(--ink); }
 
   /* Inline color picker button in header */
   .csb-color-btn { width:26px;height:16px;border-radius:0;border:1.5px solid var(--ink);cursor:pointer;flex-shrink:0;transition:transform 0.12s,box-shadow 0.12s;position:relative; }
@@ -526,17 +627,17 @@
   .csb-color-panel .csb-palette { gap:6px;margin:0; }
   .csb-color-panel .csb-swatch { width:22px;height:22px; }
   .csb-param-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-  .csb-param-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: var(--ink); opacity: 0.55; text-transform: uppercase; width: 30px; flex-shrink: 0; }
+  .csb-param-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: var(--ink-dim); text-transform: uppercase; width: 30px; flex-shrink: 0; }
   .csb-param-row input[type=range] { flex: 1; height: 3px; cursor: pointer; accent-color: var(--tomato); }
   .csb-param-hitbox { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; background: var(--bone); border: 1.5px solid var(--ink); color: var(--ink); width: 52px; padding: 3px 5px; border-radius: 0; text-align: right; }
   .csb-param-hitbox:focus { outline: none; box-shadow: 2px 2px 0 var(--ink); }
-  .csb-output { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: var(--ink); opacity: 0.6; line-height: 1.8; margin-top: 6px; }
+  .csb-output { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: var(--ink-dim); line-height: 1.8; margin-top: 6px; }
   .csb-snap-row { display: flex; align-items: center; gap: 8px; }
   .csb-snap-toggle { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; background: var(--bone); border: 1.5px solid var(--ink); color: var(--ink); padding: 4px 10px; border-radius: 0; cursor: pointer; transition: background 0.15s, color 0.15s; }
-  .csb-snap-toggle.active { background: var(--tomato); color: var(--bone); border-color: var(--tomato); }
+  .csb-snap-toggle.active { background: var(--tomato); color: var(--ink); border-color: var(--ink); }
   .csb-info-icon { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--ink); opacity: 0.45; cursor: help; position: relative; }
   .csb-info-icon:hover::after { content: attr(data-tip); position: absolute; left: 20px; top: -4px; background: var(--ink); border: 1px solid var(--ink); color: var(--bone); font-size: 0.6rem; padding: 6px 10px; border-radius: 0; z-index: 100; line-height: 1.6; width: 180px; white-space: normal; }
-  .csb-status { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--tomato); font-weight: 500; padding: 8px 14px; min-height: 28px; border-bottom: 1px solid var(--ink); }
+  .csb-status { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--ink); font-weight: 600; padding: 8px 14px; min-height: 28px; border-bottom: 1px solid var(--ink); border-left: 4px solid var(--tomato); }
   .csb-regions-toggle { display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: var(--ink); cursor: pointer; padding: 4px 0; }
   .csb-regions-toggle input[type=checkbox] { accent-color: var(--tomato); }
 
@@ -547,14 +648,14 @@
   .csb-xy-field .csb-param-label { width:14px;flex-shrink:0; }
   .csb-xy-field input[type=number] { flex:1;width:100%;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;background:var(--bone);border:1.5px solid var(--ink);color:var(--ink);padding:3px 5px;border-radius:0;min-width:0; }
   .csb-xy-field input[type=number]:focus { outline:none;box-shadow:2px 2px 0 var(--ink); }
-  .csb-sub-label { font-family:'IBM Plex Mono',monospace;font-size:0.58rem;color:var(--ink);opacity:0.5;letter-spacing:0.08em;text-transform:uppercase;margin:6px 0 3px; }
+  .csb-sub-label { font-family:'IBM Plex Mono',monospace;font-size:0.58rem;color:var(--ink-dim);letter-spacing:0.08em;text-transform:uppercase;margin:6px 0 3px; }
 
   #btn-open-calc:hover {
-    background: var(--tomato);
-    border-color: var(--tomato);
+    background: var(--ink);
+    border-color: var(--ink);
     color: var(--bone);
     transform: translate(-2px,-2px);
-    box-shadow: 5px 5px 0 var(--ink);
+    box-shadow: 5px 5px 0 var(--tomato);
   }
   #btn-hero-calc:hover {
     background: var(--ink);
@@ -583,14 +684,16 @@
         <span class="tag">Metrica&nbsp;L₁</span>
         <span class="mono-label">Distanza di Manhattan</span>
       </span>
-      <h1 class="hero-title">Quando la retta più breve<br>non è la <span class="em">diagonale</span></h1>
-      <p class="hero-subtitle">Geometria del Taxi &nbsp;—&nbsp; Metrica L₁</p>
+      <h1 class="hero-title">E se <span class="em">π</span> valesse esattamente <span class="em">4</span>?</h1>
+      <p class="hero-deck">Cambia il modo di misurare le distanze — non "in linea d'aria" ma "per isolati" — e la geometria si trasforma: i cerchi diventano quadrati, le ellissi ottagoni.</p>
+      <p class="hero-subtitle">Geometria del Taxi</p>
       <button id="btn-hero-calc"
         onclick="GraphCalc.open()"
         style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:600;background:var(--bone);border:2px solid var(--ink);color:var(--ink);padding:0.7rem 1.6rem;border-radius:0;cursor:pointer;margin-top:2.2rem;transition:opacity 0.6s ease,background 0.2s,color 0.2s,transform 0.2s,box-shadow 0.2s;opacity:0;pointer-events:none;">
         Calcolatore Grafico →
       </button>
     </div>
+    <a id="hero-scroll-cue" href="#fondamenti" aria-label="Inizia a leggere">↓&nbsp;&nbsp;Inizia</a>
   </section>
 
   <section id="fondamenti" class="section-academic">
@@ -600,7 +703,9 @@
 
     <div class="section-split">
       <div class="section-text">
-        <p>Immaginiamo di trovarci in una città a griglia perfetta — Manhattan. Per andare dall'angolo A all'angolo B non possiamo volare in diagonale: dobbiamo percorrere blocchi orizzontali e verticali. La distanza che percorriamo in questo modo è la <em>distanza di Manhattan</em>, o distanza L₁.</p>
+        <p class="cappello">Immaginiamo una città a griglia perfetta — Manhattan. Per andare dall'angolo A all'angolo B non possiamo volare in diagonale: percorriamo solo blocchi orizzontali e verticali. Quella che misuriamo è la <em>distanza di Manhattan</em>, o distanza <span class="hl">L₁</span> — si conta a isolati, non in linea d'aria.</p>
+
+        <p class="cappello">Un dettaglio sorprendente: tra A e B non esiste <em>una</em> sola strada più corta, ma <strong>infinite</strong> — ogni "scaletta" di passi orizzontali e verticali ha esattamente la stessa lunghezza. È da qui che nasce tutta la geometria che segue.</p>
 
         <div class="definition-box">
           <strong>Definizione 1.1 — Metrica L₁ (distanza di Manhattan)</strong><br>
@@ -608,17 +713,24 @@
           <span class="formula">d₁(P, A) = |x − xₐ| + |y − yₐ|</span>
         </div>
 
-        <p>La presenza dei valori assoluti rende il calcolo analitico meno diretto rispetto alla metrica euclidea. Per trattare algebricamente questi termini è necessario scioglierli distinguendo i casi in base al segno dell'argomento.</p>
+        <div class="taxi-note">L₁ è una <strong>vera distanza</strong> (una metrica): mai negativa, simmetrica — d₁(A,B) = d₁(B,A) — e rispetta la disuguaglianza triangolare. Ma attenzione: <strong>non è invariante per rotazioni</strong>. Ruotando il piano, due stesse città possono ritrovarsi a distanza-taxi diversa — qualcosa che nella geometria euclidea non succede mai.</div>
 
-        <div class="definition-box">
-          <strong>Definizione 1.2 — Scioglimento di |x − c|</strong><br>
-          Per ogni costante c ∈ ℝ, si ha:<br><br>
-          <span class="formula">|x − c| = x − c</span> &nbsp;se x ≥ c<br>
-          <span class="formula">|x − c| = c − x</span> &nbsp;se x &lt; c<br><br>
-          Il valore x = c è detto <em>valore critico</em> e corrisponde alla retta verticale che separa i due casi.
-        </div>
+        <details class="math-detail">
+          <summary>Dettaglio matematico · sciogliere i moduli</summary>
+          <div class="math-detail-body">
+            <p>I valori assoluti rendono il calcolo meno diretto che nella metrica euclidea. Per trattarli algebricamente bisogna "scioglierli", distinguendo i casi in base al segno dell'argomento.</p>
 
-        <p>Le rette critiche partizionano il piano in regioni in ciascuna delle quali tutti i moduli hanno segno costante, riducendo l'equazione del luogo a un sistema lineare. Questa tecnica — la costruzione della griglia di regioni — è il metodo unificante di tutta la geometria del taxi.</p>
+            <div class="definition-box">
+              <strong>Definizione 1.2 — Scioglimento di |x − c|</strong><br>
+              Per ogni costante c ∈ ℝ, si ha:<br><br>
+              <span class="formula">|x − c| = x − c</span> &nbsp;se x ≥ c<br>
+              <span class="formula">|x − c| = c − x</span> &nbsp;se x &lt; c<br><br>
+              Il valore x = c è detto <em>valore critico</em> e corrisponde alla retta verticale che separa i due casi.
+            </div>
+
+            <p>Le rette critiche partizionano il piano in regioni in ciascuna delle quali tutti i moduli hanno segno costante, riducendo l'equazione del luogo a un sistema lineare. Questa tecnica — la griglia di regioni — è il <strong>metodo unificante</strong> di tutta la geometria del taxi.</p>
+          </div>
+        </details>
 
         <table class="paper-table">
           <thead>
@@ -680,7 +792,7 @@
           <rect x="-4" y="61"  width="8" height="8" transform="rotate(45 0 65)" fill="#E9E5DC" stroke="#0A0A0A" stroke-width="1.5"/>
           <rect x="-69" y="-4" width="8" height="8" transform="rotate(45 -65 0)" fill="#E9E5DC" stroke="#0A0A0A" stroke-width="1.5"/>
         </svg>
-        <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#0A0A0A;opacity:0.65;text-align:center;margin-top:8px;letter-spacing:0.04em;">
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-dim);text-align:center;margin-top:8px;letter-spacing:0.04em;">
           Cerchio L₂ (tratteggiato) e circonferenza taxicab L₁ (rombo) con stesso centro e raggio unitario.
         </p>
       </div>
@@ -695,40 +807,48 @@
 
     <div class="section-split">
       <div class="section-text">
+        <p class="cappello">Cos'è un "cerchio"? L'insieme dei punti a distanza fissa R dal centro. In linea d'aria viene la curva tonda che conosciamo. <span class="hl">A isolati</span>, invece, i punti a distanza R formano un <strong>quadrato ruotato di 45°</strong> — un rombo, con le quattro punte sui semiassi.</p>
+
+        <p class="cappello">È qui che spunta il risultato più sorprendente: misurando <em>tutto</em> con il taxi, il rapporto perimetro/diametro non vale 3,14… ma esattamente <span class="hl">π = 4</span>.</p>
+
         <div class="definition-box">
           <strong>Definizione 2.1 — Circonferenza Taxicab</strong><br>
           La circonferenza taxicab di centro C(x꜀, y꜀) e raggio R è l'insieme dei punti P(x, y) tali che:<br><br>
           <span class="formula">d₁(P, C) = R &nbsp;⟺&nbsp; |x − x꜀| + |y − y꜀| = R</span>
         </div>
 
-        <p>Le rette critiche <span class="formula">x = x꜀</span> e <span class="formula">y = y꜀</span> dividono il piano in 4 quadranti. In ciascuno, i moduli si sciolgono con segni costanti, riducendo l'equazione a una retta lineare.</p>
+        <details class="math-detail">
+          <summary>Dettaglio matematico · le 4 regioni e i vertici</summary>
+          <div class="math-detail-body">
+            <p>Le rette critiche <span class="formula">x = x꜀</span> e <span class="formula">y = y꜀</span> dividono il piano in 4 quadranti. In ciascuno i moduli si sciolgono con segni costanti, riducendo l'equazione a una retta.</p>
 
-        <table class="paper-table">
-          <thead>
-            <tr><th>Regione</th><th>Condizione</th><th>Equazione sciolta</th><th>Pendenza</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>R<sub>I</sub> (NE)</td><td>x ≥ x꜀, y ≥ y꜀</td><td><span class="formula">y = −x + (x꜀ + y꜀ + R)</span></td><td>−1</td></tr>
-            <tr><td>R<sub>II</sub> (NW)</td><td>x &lt; x꜀, y ≥ y꜀</td><td><span class="formula">y = x − (x꜀ − y꜀ − R)</span></td><td>+1</td></tr>
-            <tr><td>R<sub>III</sub> (SW)</td><td>x &lt; x꜀, y &lt; y꜀</td><td><span class="formula">y = −x + (x꜀ + y꜀ − R)</span></td><td>−1</td></tr>
-            <tr><td>R<sub>IV</sub> (SE)</td><td>x ≥ x꜀, y &lt; y꜀</td><td><span class="formula">y = x − (x꜀ − y꜀ + R)</span></td><td>+1</td></tr>
-          </tbody>
-        </table>
+            <table class="paper-table">
+              <thead>
+                <tr><th>Regione</th><th>Condizione</th><th>Equazione sciolta</th><th>Pendenza</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>R<sub>I</sub> (NE)</td><td>x ≥ x꜀, y ≥ y꜀</td><td><span class="formula">y = −x + (x꜀ + y꜀ + R)</span></td><td>−1</td></tr>
+                <tr><td>R<sub>II</sub> (NW)</td><td>x &lt; x꜀, y ≥ y꜀</td><td><span class="formula">y = x − (x꜀ − y꜀ − R)</span></td><td>+1</td></tr>
+                <tr><td>R<sub>III</sub> (SW)</td><td>x &lt; x꜀, y &lt; y꜀</td><td><span class="formula">y = −x + (x꜀ + y꜀ − R)</span></td><td>−1</td></tr>
+                <tr><td>R<sub>IV</sub> (SE)</td><td>x ≥ x꜀, y &lt; y꜀</td><td><span class="formula">y = x − (x꜀ − y꜀ + R)</span></td><td>+1</td></tr>
+              </tbody>
+            </table>
 
         <div class="theorem">
           <div class="theorem-label">Teorema 2.1</div>
           La circonferenza taxicab è un quadrato ruotato di 45° con vertici:<br>
           V<sub>N</sub> = (x꜀, y꜀+R), &nbsp;V<sub>E</sub> = (x꜀+R, y꜀), &nbsp;V<sub>S</sub> = (x꜀, y꜀−R), &nbsp;V<sub>W</sub> = (x꜀−R, y꜀).<br><br>
-          Perimetro euclideo: <span class="formula">4R√2</span>. &nbsp;Area: <span class="formula">2R²</span>.
+          <strong>Perimetro taxicab: <span class="formula">8R</span></strong>. &nbsp;Perimetro euclideo: <span class="formula">4R√2</span>. &nbsp;Area: <span class="formula">2R²</span>.
         </div>
 
-        <p>Una conseguenza notevole: in questa geometria il rapporto tra perimetro e diametro vale:</p>
-        <div class="formula-display">π₁ = Perimetro / (2R) = 4R√2 / (2R) = 2√2 ≈ 2.828...
+        <p>Una conseguenza notevole. Definiamo il "π" di questa geometria come il rapporto tra perimetro e diametro, misurando <em>tutto</em> nella metrica del taxi. Ogni lato del rombo, percorso a isolati, vale <span class="formula">|Δx| + |Δy| = R + R = 2R</span>: quattro lati danno un perimetro taxicab di <span class="formula">8R</span>. Quindi:</p>
+        <div class="formula-display">π₁  =  perimetro taxicab / diametro  =  8R / 2R  =  4
 
-oppure, usando il "diametro" taxicab (2R): π₁ = 4R√2 / 2R = 2√2
-
-Con la convenzione d = 2R (diametro taxicab):  π₁ = 4</div>
-        <p>Il valore <span class="formula">π₁ = 4</span> (rispetto a π ≈ 3.14159…) è uno dei risultati più sorprendenti della geometria del taxi.</p>
+Ogni lato del rombo, "a isolati", misura |Δx| + |Δy| = R + R = 2R → 4 lati = 8R.
+(Il perimetro euclideo sarebbe 4R√2 ≈ 5.66·R, ma non è la misura naturale di questa geometria.)</div>
+            <p>Il valore <span class="formula">π₁ = 4</span> (rispetto a π ≈ 3.14159…) è uno dei risultati più sorprendenti della geometria del taxi.</p>
+          </div>
+        </details>
       </div>
 
       <div class="section-figure">
@@ -749,6 +869,7 @@ Con la convenzione d = 2R (diametro taxicab):  π₁ = 4</div>
             </div>
           </div>
           <div class="mini-engine-output" id="me-circle-out">Perimetro = — | Area = — | π₁ = 4</div>
+          <div class="mini-engine-hint"><b>Trascina il centro</b> · muovi <b>P</b> · usa lo slider. La scaletta è il percorso-taxi dal centro a P, sempre lungo R.</div>
         </div>
       </div>
     </div>
@@ -762,15 +883,22 @@ Con la convenzione d = 2R (diametro taxicab):  π₁ = 4</div>
 
     <div class="section-split">
       <div class="section-text">
+        <p class="cappello">L'ellisse, "a isolati": prendi due fuochi e cerca tutti i punti da cui <span class="hl">due taxi</span>, partendo dai due fuochi, percorrono <strong>in totale</strong> sempre la stessa distanza. In linea d'aria otterresti l'ovale di sempre. Con il taxi ottieni — quasi sempre — un <strong>ottagono</strong>.</p>
+
+        <p class="cappello">Per scioglierla servono ora quattro rette critiche (una per coordinata di ciascun fuoco), che tagliano il piano in una griglia 3×3: il <em>metodo delle 9 regioni</em>.</p>
+
         <div class="definition-box">
           <strong>Definizione 3.1 — Ellisse Taxicab</strong><br>
           Dati F₁(x₁, y₁), F₂(x₂, y₂) e una costante 2a &gt; d₁(F₁, F₂), l'ellisse taxicab è:<br><br>
           <span class="formula">𝓔 = { P(x,y) : d₁(P,F₁) + d₁(P,F₂) = 2a }</span>
         </div>
 
-        <p>Poniamo <span class="formula">d₀ = d₁(F₁,F₂)</span> e <span class="formula">k = a − d₀/2</span>. Le rette critiche <span class="formula">x = x₁</span>, <span class="formula">x = x₂</span>, <span class="formula">y = y₁</span>, <span class="formula">y = y₂</span> creano una griglia 3×3 di 9 regioni R<sub>ij</sub>. Questa partizione è la chiave del metodo.</p>
+        <details class="math-detail">
+          <summary>Dettaglio matematico · le 9 regioni e la forma</summary>
+          <div class="math-detail-body">
+            <p>Poniamo <span class="formula">d₀ = d₁(F₁,F₂)</span> e <span class="formula">k = a − d₀/2</span>. Le rette critiche <span class="formula">x = x₁</span>, <span class="formula">x = x₂</span>, <span class="formula">y = y₁</span>, <span class="formula">y = y₂</span> creano una griglia 3×3 di 9 regioni R<sub>ij</sub>. Questa partizione è la chiave del metodo.</p>
 
-        <p>Analizzando il segno dei moduli in ciascuna regione, si ottengono i contributi al luogo geometrico:</p>
+            <p>Analizzando il segno dei moduli in ciascuna regione, si ottengono i contributi al luogo geometrico:</p>
         <ul style="margin:1rem 0 1rem 1.5rem;line-height:2;">
           <li>R<sub>22</sub> (tra i fuochi): la somma vale costantemente d₀ → contribuisce solo se 2a = d₀</li>
           <li>R<sub>21</sub> e R<sub>23</sub> (sopra/sotto tra i fuochi): <strong>rette orizzontali</strong></li>
@@ -779,8 +907,8 @@ Con la convenzione d = 2R (diametro taxicab):  π₁ = 4</div>
         </ul>
 
         <div class="theorem">
-          <div class="theorem-label">Proposizione 3.1</div>
-          Per fuochi obliqui (x₁≠x₂, y₁≠y₂) e 2a &gt; d₀, l'ellisse taxicab è un <strong>ottagono</strong> (o esagono se k supera metà della distanza tra i fuochi su uno degli assi). Per fuochi collineari sull'asse x o y: rettangolo.
+          <div class="theorem-label">Proposizione 3.1 — Forma</div>
+          Per fuochi <strong>obliqui</strong> (x₁≠x₂ <em>e</em> y₁≠y₂) e 2a &gt; d₀, l'ellisse taxicab è <strong>sempre un ottagono</strong> (8 lati), qualunque sia 2a. Per fuochi <strong>allineati</strong> (orizzontali, y₁=y₂, o verticali, x₁=x₂) è un <strong>esagono</strong> (6 lati). Nel caso degenere 2a = d₀ collassa nel rettangolo [x₁,x₂]×[y₁,y₂] (Prop. 3.2).
         </div>
 
         <div class="theorem">
@@ -788,17 +916,20 @@ Con la convenzione d = 2R (diametro taxicab):  π₁ = 4</div>
           Se 2a = d₀, il luogo non è una linea ma una <strong>regione bidimensionale</strong>: il rettangolo [x₁,x₂] × [y₁,y₂]. Ogni punto interno ha somma delle distanze esattamente pari a d₀.
         </div>
 
-        <p><strong>Esempio numerico.</strong> F₁(0,0), F₂(4,2), 2a = 10.</p>
+        <p><strong>Esempio numerico.</strong> F₁(0,0), F₂(4,2) (fuochi obliqui), 2a = 10.</p>
         <table class="paper-table">
           <thead><tr><th>Dato</th><th>Calcolo</th><th>Valore</th></tr></thead>
           <tbody>
             <tr><td>d₀</td><td>|4−0| + |2−0|</td><td>6</td></tr>
-            <tr><td>k</td><td>5 − 6/2</td><td>2</td></tr>
-            <tr><td>x<sub>sin</sub></td><td>(0+4)/2 − k = 2 − 2</td><td>0</td></tr>
-            <tr><td>x<sub>des</sub></td><td>(0+4)/2 + k = 2 + 2</td><td>4 → 6 (con offset fuochi)</td></tr>
-            <tr><td>Forma</td><td>k=2 &lt; hw=2 → esagono</td><td>6 vertici</td></tr>
+            <tr><td>k</td><td>a − d₀/2 = 5 − 3</td><td>2</td></tr>
+            <tr><td>Estensione x</td><td>dal vertice sinistro a quello destro</td><td>da −2 a 6</td></tr>
+            <tr><td>Estensione y</td><td>dal vertice basso a quello alto</td><td>da −2 a 4</td></tr>
+            <tr><td>Forma</td><td>fuochi obliqui → sempre ottagono</td><td>ottagono (8 vertici)</td></tr>
           </tbody>
         </table>
+            <p style="font-size:0.9em;">Gli 8 vertici sono (−2,0), (0,−2), (4,−2), (6,0), (6,2), (4,4), (0,4), (−2,2): un ottagono, non un esagono. L'esagono comparirebbe solo se i due fuochi fossero allineati.</p>
+          </div>
+        </details>
       </div>
 
       <div class="section-figure">
@@ -813,6 +944,7 @@ Con la convenzione d = 2R (diametro taxicab):  π₁ = 4</div>
             </div>
           </div>
           <div class="mini-engine-output" id="me-ellipse-out">d₀ = — | k = —</div>
+          <div class="mini-engine-hint"><b>Trascina i fuochi</b> · muovi <b>P</b> · usa lo slider 2a. Le due scalette sono i percorsi-taxi verso i fuochi: la loro <b>somma</b> resta costante.</div>
         </div>
       </div>
     </div>
@@ -826,29 +958,38 @@ Con la convenzione d = 2R (diametro taxicab):  π₁ = 4</div>
 
     <div class="section-split">
       <div class="section-text">
-        <div class="definition-box">
-          <strong>Definizione 4.1 — Iperbole Taxicab</strong><br>
-          Dati F₁(x₁,y₁), F₂(x₂,y₂) e 0 &lt; 2a &lt; d₁(F₁,F₂):<br><br>
-          <span class="formula">ℋ = { P(x,y) : |d₁(P,F₁) − d₁(P,F₂)| = 2a }</span><br><br>
-          Equivale a due rami: <span class="formula">d₁(P,F₁) − d₁(P,F₂) = +2a</span> e <span class="formula">d₁(P,F₁) − d₁(P,F₂) = −2a</span>.
-        </div>
+        <p class="cappello">Se l'ellisse chiede una <em>somma</em> costante, l'iperbole chiede una <span class="hl">differenza</span> costante: i punti da cui un taxi arriva a un fuoco percorrendo sempre 2a isolati <em>in più</em> (o in meno) rispetto all'altro. Il risultato sono <strong>due rami</strong> separati.</p>
 
-        <p>Applicando il metodo delle 9 regioni al Ramo 1 (differenza = +2a), si ottengono i seguenti risultati nelle regioni non banali:</p>
+        <p class="cappello">Ecco il <em>perché</em> della loro forma: quando i due fuochi sono allineati in orizzontale, "spostarsi in alto o in basso" cambia le due distanze-taxi <em>nello stesso modo</em>, lasciando invariata la differenza. Per questo ogni ramo diventa un <strong>segmento verticale</strong> dritto.</p>
 
-        <table class="paper-table">
-          <thead><tr><th>Regione</th><th>Risultato</th></tr></thead>
-          <tbody>
-            <tr><td>R<sub>11</sub> (NW esterno)</td><td>Nessuna soluzione</td></tr>
-            <tr><td>R<sub>33</sub> (SE esterno)</td><td>Esiste solo se 2a = d₀</td></tr>
-            <tr><td>R<sub>21</sub></td><td>Segmento verticale <span class="formula">x = (x₁+x₂)/2 + a</span></td></tr>
-            <tr><td>R<sub>23</sub></td><td>Segmento <span class="formula">x = (x₁+x₂)/2 + a − (y₂−y₁)/2</span></td></tr>
-          </tbody>
-        </table>
+        <details class="math-detail">
+          <summary>Dettaglio matematico · i due rami e le regioni</summary>
+          <div class="math-detail-body">
+            <div class="definition-box">
+              <strong>Definizione 4.1 — Iperbole Taxicab</strong><br>
+              Dati F₁(x₁,y₁), F₂(x₂,y₂) e 0 &lt; 2a &lt; d₁(F₁,F₂):<br><br>
+              <span class="formula">ℋ = { P(x,y) : |d₁(P,F₁) − d₁(P,F₂)| = 2a }</span><br><br>
+              Equivale a due rami: <span class="formula">d₁(P,F₁) − d₁(P,F₂) = +2a</span> e <span class="formula">d₁(P,F₁) − d₁(P,F₂) = −2a</span>.
+            </div>
 
-        <div class="theorem">
-          <div class="theorem-label">Proposizione 4.1</div>
-          Per 0 &lt; 2a &lt; d₀, l'iperbole taxicab è formata da <strong>due rami poligonali</strong>. Per fuochi su asse orizzontale (y₁ = y₂): i due rami sono due <strong>segmenti verticali paralleli</strong>. Per fuochi obliqui: ogni ramo è un poligono a 3–4 lati.
-        </div>
+            <p>Applicando il metodo delle 9 regioni al Ramo 1 (differenza = +2a), si ottengono i seguenti risultati nelle regioni non banali:</p>
+
+            <table class="paper-table">
+              <thead><tr><th>Regione</th><th>Risultato</th></tr></thead>
+              <tbody>
+                <tr><td>R<sub>11</sub> (NW esterno)</td><td>Nessuna soluzione</td></tr>
+                <tr><td>R<sub>33</sub> (SE esterno)</td><td>Esiste solo se 2a = d₀</td></tr>
+                <tr><td>R<sub>21</sub></td><td>Segmento verticale <span class="formula">x = (x₁+x₂)/2 + a</span></td></tr>
+                <tr><td>R<sub>23</sub></td><td>Segmento <span class="formula">x = (x₁+x₂)/2 + a − (y₂−y₁)/2</span></td></tr>
+              </tbody>
+            </table>
+
+            <div class="theorem">
+              <div class="theorem-label">Proposizione 4.1</div>
+              Per 0 &lt; 2a &lt; d₀, l'iperbole taxicab è formata da <strong>due rami poligonali</strong>. Per fuochi su asse orizzontale (y₁ = y₂): i due rami sono due <strong>segmenti verticali paralleli</strong>. Per fuochi obliqui: ogni ramo è un poligono a 3–4 lati.
+            </div>
+          </div>
+        </details>
       </div>
 
       <div class="section-figure">
@@ -863,6 +1004,7 @@ Con la convenzione d = 2R (diametro taxicab):  π₁ = 4</div>
             </div>
           </div>
           <div class="mini-engine-output" id="me-hyperbola-out">d₀ = — | 2a = —</div>
+          <div class="mini-engine-hint"><b>Trascina i fuochi</b> · muovi <b>P</b> · usa lo slider 2a. Qui resta costante la <b>differenza</b> delle due distanze-taxi.</div>
         </div>
       </div>
     </div>
@@ -876,6 +1018,10 @@ Con la convenzione d = 2R (diametro taxicab):  π₁ = 4</div>
 
     <div class="section-split">
       <div class="section-text">
+        <p class="cappello">Ultimo caso: la parabola. Stavolta il confronto non è tra due fuochi, ma tra <span class="hl">un fuoco e una strada</span> (la direttrice). Cerchiamo i punti che distano — a isolati — la stessa quantità dal fuoco e dalla retta.</p>
+
+        <p class="cappello">Il risultato taxi ha un dettaglio elegante: in cima è fatto di <strong>due semirette verticali dritte</strong>, e solo verso il vertice piega in due rami obliqui. Il <strong>vertice</strong> sta esattamente a metà strada tra fuoco e direttrice.</p>
+
         <div class="definition-box">
           <strong>Definizione 5.1 — Parabola Taxicab</strong><br>
           Dato un fuoco F e una direttrice r, la parabola taxicab è:<br><br>
@@ -883,30 +1029,38 @@ Con la convenzione d = 2R (diametro taxicab):  π₁ = 4</div>
           dove d₁(P,r) è la distanza L₁ di P dalla retta r.
         </div>
 
-        <p>Per una direttrice orizzontale <span class="formula">r: y = k</span> e fuoco <span class="formula">F(x<sub>F</sub>, y<sub>F</sub>)</span> con y<sub>F</sub> &gt; k, la distanza L₁ da P alla direttrice è semplicemente <span class="formula">|y − k|</span>. Ponendo <span class="formula">p = y<sub>F</sub> − k</span>, l'equazione diventa <span class="formula">|x−x<sub>F</sub>| + |y−y<sub>F</sub>| = |y−k|</span>.</p>
+        <details class="math-detail">
+          <summary>Dettaglio matematico · regioni e formula master</summary>
+          <div class="math-detail-body">
+            <p>Per una direttrice orizzontale <span class="formula">r: y = k</span> e fuoco <span class="formula">F(x<sub>F</sub>, y<sub>F</sub>)</span> con y<sub>F</sub> &gt; k, la distanza L₁ da P alla direttrice è semplicemente <span class="formula">|y − k|</span>. Ponendo <span class="formula">p = y<sub>F</sub> − k</span>, l'equazione diventa <span class="formula">|x−x<sub>F</sub>| + |y−y<sub>F</sub>| = |y−k|</span>.</p>
 
-        <p>Le quattro regioni, determinate da <span class="formula">y = k</span> e <span class="formula">y = y<sub>F</sub></span> come rette critiche orizzontali e <span class="formula">x = x<sub>F</sub></span> come verticale, producono:</p>
+            <p>Le quattro regioni, determinate da <span class="formula">y = k</span> e <span class="formula">y = y<sub>F</sub></span> come rette critiche orizzontali e <span class="formula">x = x<sub>F</sub></span> come verticale, producono:</p>
 
         <table class="paper-table">
           <thead><tr><th>Regione</th><th>Condizione</th><th>Equazione</th><th>Tipo</th></tr></thead>
           <tbody>
             <tr><td>A</td><td>y ≥ y<sub>F</sub></td><td><span class="formula">|x−x<sub>F</sub>| = y<sub>F</sub> − k = p</span></td><td>Due semirette verticali</td></tr>
-            <tr><td>B</td><td>k ≤ y &lt; y<sub>F</sub>, x ≥ x<sub>F</sub></td><td><span class="formula">x = 2y − y<sub>F</sub> − k + x<sub>F</sub></span></td><td>Pendenza +2</td></tr>
-            <tr><td>C</td><td>k ≤ y &lt; y<sub>F</sub>, x &lt; x<sub>F</sub></td><td><span class="formula">x = −2y + y<sub>F</sub> + k + x<sub>F</sub></span></td><td>Pendenza −2</td></tr>
-            <tr><td>D</td><td>y &lt; k</td><td>—</td><td>Impossibile</td></tr>
+            <tr><td>B</td><td>y<sub>V</sub> ≤ y &lt; y<sub>F</sub>, x ≥ x<sub>F</sub></td><td><span class="formula">x = 2y − y<sub>F</sub> − k + x<sub>F</sub></span></td><td>2 passi in x per 1 in y</td></tr>
+            <tr><td>C</td><td>y<sub>V</sub> ≤ y &lt; y<sub>F</sub>, x &lt; x<sub>F</sub></td><td><span class="formula">x = −2y + y<sub>F</sub> + k + x<sub>F</sub></span></td><td>2 passi in x per 1 in y</td></tr>
+            <tr><td>D</td><td>y &lt; y<sub>V</sub></td><td>—</td><td>Impossibile</td></tr>
           </tbody>
         </table>
+        <p style="font-size:0.9em;">dove <span class="formula">y<sub>V</sub> = (y<sub>F</sub> + k)/2</span> è il <strong>vertice</strong> della parabola, a metà strada tra fuoco e direttrice. Sotto il vertice non c'è alcun punto del luogo.</p>
 
         <div class="formula-display">Formula Master — Parabola Taxicab (direttrice orizzontale y = k)
 
-Semiretta sinistra:  x = x_F − p,    y ≥ y_F
-Ramo sinistro:       x = −2y + y_F + k + x_F,   k ≤ y ≤ y_F
-Ramo destro:         x =  2y − y_F − k + x_F,   k ≤ y ≤ y_F
-Semiretta destra:    x = x_F + p,    y ≥ y_F
+Vertice:             y_V = (y_F + k) / 2     (metà strada fuoco–direttrice)
+
+Semiretta sinistra:  x = x_F − p,                 y ≥ y_F
+Ramo sinistro:       x = −2y + y_F + k + x_F,      y_V ≤ y ≤ y_F
+Ramo destro:         x =  2y − y_F − k + x_F,      y_V ≤ y ≤ y_F
+Semiretta destra:    x = x_F + p,                 y ≥ y_F
 
 dove p = y_F − k</div>
 
-        <p>Per una direttrice obliqua di equazione ax + by + c = 0, la distanza L₁ diventa <span class="formula">d₁(P,r) = |ax+by+c| / (|a|+|b|)</span>, generando una formula ibrida la cui analisi richiede la medesima tecnica di scioglimento per regioni.</p>
+            <p>Per una direttrice obliqua di equazione ax + by + c = 0, la distanza L₁ diventa <span class="formula">d₁(P,r) = |ax+by+c| / (|a|+|b|)</span>, generando una formula ibrida la cui analisi richiede la medesima tecnica di scioglimento per regioni.</p>
+          </div>
+        </details>
       </div>
 
       <div class="section-figure">
@@ -921,20 +1075,64 @@ dove p = y_F − k</div>
             </div>
           </div>
           <div class="mini-engine-output" id="me-parabola-out">p = — | F(0, —) | y = 0</div>
+          <div class="mini-engine-hint"><b>Trascina il fuoco</b> · muovi <b>P</b> · usa lo slider p. P è <b>equidistante</b> (a isolati) dal fuoco e dalla direttrice.</div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
+  <section id="sintesi" class="section-academic">
+  <div class="section-inner">
+    <div class="section-number">§6</div>
+    <h2 class="section-title">In sintesi</h2>
+
+    <p class="cappello">Una sola idea attraversa tutto: <span class="hl">cambia il modo di misurare le distanze e cambia la geometria.</span> Passando dalla linea d'aria agli isolati, le forme familiari si trasformano — e spuntano risultati che sembrano impossibili.</p>
+
+    <div class="callout-grid">
+      <div class="callout">
+        <div class="callout-big">π = 4</div>
+        <p>Nel taxi il rapporto perimetro/diametro del "cerchio" è esattamente 4.</p>
+      </div>
+      <div class="callout">
+        <div class="callout-big">○ → ◇</div>
+        <p>Il cerchio diventa un quadrato ruotato di 45°: un rombo.</p>
+      </div>
+      <div class="callout">
+        <div class="callout-big">8 lati</div>
+        <p>L'ellisse, con fuochi obliqui, è quasi sempre un ottagono.</p>
+      </div>
+    </div>
+
+    <h3 class="sub-head">Dove si usa davvero</h3>
+    <ul class="app-list">
+      <li><strong>Navigatori e routing urbano</strong> — in una città a griglia il percorso reale si misura a isolati, non in linea d'aria.</li>
+      <li><strong>Logistica e consegne</strong> — stimare tempi e costi di spostamento su una rete di strade ortogonali.</li>
+      <li><strong>Machine learning</strong> — la distanza di Manhattan (norma L₁) compare in k-NN, clustering e regolarizzazione, spesso più robusta agli outlier dell'euclidea.</li>
+      <li><strong>Progettazione di circuiti (VLSI)</strong> — le piste corrono in orizzontale e verticale: la loro lunghezza è una distanza L₁.</li>
+      <li><strong>Scacchi</strong> — il movimento della <em>torre</em> conta proprio passi orizzontali e verticali.</li>
+    </ul>
+
+    <p class="cappello" style="margin-top:1.8rem;">Il modo migliore per capirle è costruirle.</p>
+    <button class="sintesi-cta" onclick="GraphCalc.open()">Ora costruiscile tu →</button>
+  </div>
+  </section>
+
   <section id="calcolatore" style="background:var(--bone);padding:5rem 2rem;text-align:center;border-bottom:2px solid var(--ink);">
   <div style="max-width:760px;margin:0 auto;">
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:0.66rem;background:var(--ink);color:var(--bone);letter-spacing:0.2em;text-transform:uppercase;display:inline-block;padding:4px 9px;margin-bottom:1.2rem;">§ 06</div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:0.66rem;background:var(--ink);color:var(--bone);letter-spacing:0.2em;text-transform:uppercase;display:inline-block;padding:4px 9px;margin-bottom:1.2rem;">§ 07</div>
     <h2 style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(2.2rem,5vw,3.6rem);letter-spacing:-0.02em;color:var(--ink);margin-bottom:1rem;">Calcolatore Grafico</h2>
-    <p style="font-family:'IBM Plex Mono',monospace;font-size:0.82rem;color:var(--ink);opacity:0.65;letter-spacing:0.08em;margin-bottom:2.5rem;">Costruisci e analizza luoghi geometrici nella metrica L₁</p>
-    <button id="btn-open-calc" onclick="GraphCalc.open()" style="font-family:'IBM Plex Mono',monospace;font-size:0.85rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:600;background:var(--tomato);border:2px solid var(--ink);color:var(--bone);padding:0.9rem 2.4rem;border-radius:0;cursor:pointer;transition:background 0.2s,color 0.2s,transform 0.2s,box-shadow 0.2s;">▶ &nbsp;Apri Calcolatore Grafico</button>
+    <p style="font-family:'IBM Plex Mono',monospace;font-size:0.82rem;color:var(--ink-dim);letter-spacing:0.08em;margin-bottom:2.5rem;">Costruisci e analizza luoghi geometrici nella metrica L₁</p>
+    <button id="btn-open-calc" onclick="GraphCalc.open()" style="font-family:'IBM Plex Mono',monospace;font-size:0.85rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:600;background:var(--tomato);border:2px solid var(--ink);color:var(--ink);padding:0.9rem 2.4rem;border-radius:0;cursor:pointer;transition:background 0.2s,color 0.2s,transform 0.2s,box-shadow 0.2s;">▶ &nbsp;Apri Calcolatore Grafico</button>
   </div>
 </section>
+
+  <footer>
+    <div class="foot-inner">
+      <span><span class="diamond fill" style="margin-right:8px;"></span>Geometria del Taxi — un'esplorazione della metrica L₁</span>
+      <span>Visualizzazioni e calcolatore interattivo · derivazioni in <code>docs/</code></span>
+    </div>
+  </footer>
   </div><!-- /frame -->
 
   <script>
@@ -1806,6 +2004,10 @@ const MiniEngine = (() => {
     mouseY = e.clientY;
   }
 
+  function prefersReducedMotion() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
   function init() {
     bgCanvas     = document.getElementById('hero-grid-bg');
     cursorCanvas = document.getElementById('hero-grid-cursor');
@@ -1814,12 +2016,20 @@ const MiniEngine = (() => {
 
     resizeCanvases();
     window.addEventListener('resize', resizeCanvases);
-    document.addEventListener('mousemove', onMouseMove);
 
+    // Reduced motion: disegna un singolo frame statico e non avviare il loop.
+    if (prefersReducedMotion()) {
+      const w = bgCanvas.width, h = bgCanvas.height;
+      drawGrid(bgCtx, w, h, 0, 0);
+      drawGrid(cursorCtx, w, h, 0, 0);
+      return;
+    }
+
+    document.addEventListener('mousemove', onMouseMove);
     animate();
   }
 
-  function start() { if (!rafId) animate(); }
+  function start() { if (!rafId && !prefersReducedMotion()) animate(); }
   function stop()  { if (rafId) { cancelAnimationFrame(rafId); rafId = null; } }
 
   return { init, start, stop };
