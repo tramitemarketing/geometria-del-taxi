@@ -444,6 +444,17 @@
   padding-top: 7px;
 }
 .mini-engine-hint b { color: var(--ink); font-weight: 600; }
+.mini-cases { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.mini-cases button {
+  font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; letter-spacing: 0.03em;
+  background: var(--bone); border: 1.5px solid var(--ink); color: var(--ink);
+  padding: 4px 8px; border-radius: 0; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.mini-cases button:hover { background: var(--ink); color: var(--bone); }
+.mini-cases button.regioni:hover { background: var(--tomato); color: var(--ink); }
+.mini-cases button.ripristina { border-color: var(--tomato); }
+.mini-cases button.ripristina:hover { background: var(--tomato); color: var(--ink); }
 
   /* ─── CALC OVERLAY ─── */
   body.calc-open > *:not(#calc-overlay) {
@@ -626,7 +637,7 @@
   /* Info button */
   .csb-info-btn { width:14px;height:14px;flex-shrink:0;background:transparent;border:1px solid var(--ink);color:var(--ink);cursor:help;font-family:'IBM Plex Mono',monospace;font-size:0.5rem;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;opacity:0.5; }
   .csb-info-btn:hover { opacity:1; }
-  .csb-info-btn:hover::after { content:attr(data-def);position:absolute;left:20px;top:-2px;width:190px;background:var(--ink);border:1px solid var(--ink);color:var(--bone);font-size:0.62rem;padding:7px 10px;border-radius:0;z-index:100;line-height:1.6;white-space:normal;pointer-events:none; }
+  .csb-info-btn:hover::after { content:attr(data-def);position:absolute;left:auto;right:0;top:22px;width:210px;max-width:240px;background:var(--ink);border:1px solid var(--ink);color:var(--bone);font-size:0.62rem;padding:7px 10px;border-radius:0;z-index:100;line-height:1.6;white-space:normal;pointer-events:none;box-shadow:3px 3px 0 rgba(10,10,10,0.25); }
   /* Expand button — ALWAYS VISIBLE */
   .csb-expand-btn { width:20px;height:20px;flex-shrink:0;background:var(--bone);border:1px solid var(--ink);color:var(--ink);cursor:pointer;border-radius:0;font-size:0.55rem;display:flex;align-items:center;justify-content:center;padding:0;transition:background 0.12s,color 0.12s; }
   .csb-expand-btn:hover { background:var(--ink);color:var(--bone); }
@@ -675,7 +686,7 @@
   .csb-snap-toggle { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; background: var(--bone); border: 1.5px solid var(--ink); color: var(--ink); padding: 4px 10px; border-radius: 0; cursor: pointer; transition: background 0.15s, color 0.15s; }
   .csb-snap-toggle.active { background: var(--tomato); color: var(--ink); border-color: var(--ink); }
   .csb-info-icon { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--ink); opacity: 0.45; cursor: help; position: relative; }
-  .csb-info-icon:hover::after { content: attr(data-tip); position: absolute; left: 20px; top: -4px; background: var(--ink); border: 1px solid var(--ink); color: var(--bone); font-size: 0.6rem; padding: 6px 10px; border-radius: 0; z-index: 100; line-height: 1.6; width: 180px; white-space: normal; }
+  .csb-info-icon:hover::after { content: attr(data-tip); position: absolute; left: 0; top: 22px; background: var(--ink); border: 1px solid var(--ink); color: var(--bone); font-size: 0.6rem; padding: 6px 10px; border-radius: 0; z-index: 100; line-height: 1.6; width: 200px; white-space: normal; box-shadow:3px 3px 0 rgba(10,10,10,0.25); }
   .csb-status { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--ink); font-weight: 600; padding: 8px 14px; min-height: 28px; border-bottom: 1px solid var(--ink); border-left: 4px solid var(--tomato); }
   .csb-onboard { padding: 2px 0 4px; }
   .csb-onboard-step { display: flex; align-items: flex-start; gap: 9px; font-family: 'IBM Plex Mono', monospace; font-size: 0.66rem; line-height: 1.5; color: var(--ink); padding: 6px 0; }
@@ -822,30 +833,15 @@
       </div>
 
       <div class="section-figure">
-        <!-- Static SVG: L2 circle vs L1 diamond, same center and radius -->
-        <svg viewBox="-90 -90 180 180" width="100%" style="max-width:280px;display:block;margin:0 auto;border:2px solid #0A0A0A;background:#E9E5DC;">
-          <!-- L2 circle (euclidean ghost) -->
-          <circle cx="0" cy="0" r="65" fill="none" stroke="#0A0A0A" stroke-width="1.4" stroke-dasharray="5,4" opacity="0.55"/>
-          <!-- L1 diamond -->
-          <polygon points="0,-65 65,0 0,65 -65,0"
-            fill="rgba(255,74,28,0.10)" stroke="#FF4A1C" stroke-width="3" stroke-linejoin="miter"/>
-          <!-- Center point -->
-          <circle cx="0" cy="0" r="3" fill="#0A0A0A"/>
-          <!-- Axes -->
-          <line x1="-85" y1="0" x2="85" y2="0" stroke="#0A0A0A" stroke-width="1" opacity="0.45"/>
-          <line x1="0" y1="-85" x2="0" y2="85" stroke="#0A0A0A" stroke-width="1" opacity="0.45"/>
-          <!-- Labels -->
-          <text x="70" y="-8" font-family="IBM Plex Mono,monospace" font-size="11" fill="#0A0A0A" opacity="0.6">L₂</text>
-          <text x="6"  y="-69" font-family="IBM Plex Mono,monospace" font-size="11" font-weight="600" fill="#FF4A1C">L₁</text>
-          <!-- Vertex dots -->
-          <rect x="-4" y="-69" width="8" height="8" transform="rotate(45 0 -65)" fill="#E9E5DC" stroke="#0A0A0A" stroke-width="1.5"/>
-          <rect x="61" y="-4"  width="8" height="8" transform="rotate(45 65 0)" fill="#E9E5DC" stroke="#0A0A0A" stroke-width="1.5"/>
-          <rect x="-4" y="61"  width="8" height="8" transform="rotate(45 0 65)" fill="#E9E5DC" stroke="#0A0A0A" stroke-width="1.5"/>
-          <rect x="-69" y="-4" width="8" height="8" transform="rotate(45 -65 0)" fill="#E9E5DC" stroke="#0A0A0A" stroke-width="1.5"/>
-        </svg>
-        <p style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-dim);text-align:center;margin-top:8px;letter-spacing:0.04em;">
-          Cerchio L₂ (tratteggiato) e circonferenza taxicab L₁ (rombo) con stesso centro e raggio unitario.
-        </p>
+        <div class="mini-engine-wrap">
+          <canvas id="me-fondamenti"></canvas>
+          <div class="mini-engine-output" id="me-fondamenti-out">—</div>
+          <div class="mini-engine-hint" id="me-fondamenti-hint"><b>Trascina A e B</b>: tante scalette diverse, <b>stessa lunghezza</b> (la diagonale tratteggiata è la scorciatoia vietata, più corta).</div>
+          <div class="mini-cases">
+            <button id="fond-toggle" onclick="fondWidget.toggle()">▸ Disuguaglianza triangolare</button>
+            <button class="ripristina" onclick="fondWidget.reset()">Ripristina</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -893,9 +889,9 @@
         </div>
 
         <p>Una conseguenza notevole. Definiamo il "π" di questa geometria come il rapporto tra perimetro e diametro, misurando <em>tutto</em> nella metrica del taxi. Ogni lato del rombo, percorso a isolati, vale <span class="formula">|Δx| + |Δy| = R + R = 2R</span>: quattro lati danno un perimetro taxicab di <span class="formula">8R</span>. Quindi:</p>
-        <div class="formula-display">π₁  =  perimetro taxicab / diametro  =  8R / 2R  =  4
+        <div class="formula-display" style="white-space:pre-wrap;word-break:break-word;">π₁  =  perimetro taxicab / diametro  =  8R / 2R  =  4
 
-Ogni lato del rombo, "a isolati", misura |Δx| + |Δy| = R + R = 2R → 4 lati = 8R.
+Ogni lato del rombo, "a isolati", misura |Δx|+|Δy| = R+R = 2R → 4 lati = 8R.
 (Il perimetro euclideo sarebbe 4R√2 ≈ 5.66·R, ma non è la misura naturale di questa geometria.)</div>
             <p>Il valore <span class="formula">π₁ = 4</span> (rispetto a π ≈ 3.14159…) è uno dei risultati più sorprendenti della geometria del taxi.</p>
           </div>
@@ -924,6 +920,10 @@ Ogni lato del rombo, "a isolati", misura |Δx| + |Δy| = R + R = 2R → 4 lati =
           </div>
           <div class="mini-engine-output" id="me-circle-out">Perimetro = — | Area = — | π₁ = 4</div>
           <div class="mini-engine-hint"><b>Trascina il centro</b> · muovi <b>P</b> · usa lo slider. La scaletta è il percorso-taxi dal centro a P, sempre lungo R.</div>
+          <div class="mini-cases">
+            <button class="regioni" onclick="meCircle.toggleRegioni()">Mostra le 4 regioni</button>
+            <button class="ripristina" onclick="meCircle.reset()">Ripristina</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1002,6 +1002,13 @@ Ogni lato del rombo, "a isolati", misura |Δx| + |Δy| = R + R = 2R → 4 lati =
           </div>
           <div class="mini-engine-output" id="me-ellipse-out">d₀ = — | k = —</div>
           <div class="mini-engine-hint"><b>Trascina i fuochi</b> · muovi <b>P</b> · usa lo slider 2a. Le due scalette sono i percorsi-taxi verso i fuochi: la loro <b>somma</b> resta costante.</div>
+          <div class="mini-cases">
+            <button onclick="meEllipse.setCase({x1:-2,y1:-1,x2:2,y2:1,twoA:8})">Ottagono</button>
+            <button onclick="meEllipse.setCase({x1:-2,y1:0,x2:2,y2:0,twoA:8})">Esagono (allineati)</button>
+            <button onclick="meEllipse.setCase({x1:-2,y1:-1,x2:2,y2:1,twoA:6})">Degenere 2a=d₀</button>
+            <button class="regioni" onclick="meEllipse.toggleRegioni()">Le 9 regioni</button>
+            <button class="ripristina" onclick="meEllipse.reset()">Ripristina</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1065,6 +1072,12 @@ Ogni lato del rombo, "a isolati", misura |Δx| + |Δy| = R + R = 2R → 4 lati =
           </div>
           <div class="mini-engine-output" id="me-hyperbola-out">d₀ = — | 2a = —</div>
           <div class="mini-engine-hint"><b>Trascina i fuochi</b> · muovi <b>P</b> · usa lo slider 2a. Qui resta costante la <b>differenza</b> delle due distanze-taxi.</div>
+          <div class="mini-cases">
+            <button onclick="meHyperbola.setCase({x1:-3,y1:0,x2:3,y2:0,twoA:2})">Fuochi orizzontali</button>
+            <button onclick="meHyperbola.setCase({x1:-3,y1:-1,x2:3,y2:1,twoA:2})">Fuochi obliqui</button>
+            <button class="regioni" onclick="meHyperbola.toggleRegioni()">Regioni</button>
+            <button class="ripristina" onclick="meHyperbola.reset()">Ripristina</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1139,6 +1152,10 @@ dove p = y_F − k</div>
           </div>
           <div class="mini-engine-output" id="me-parabola-out">p = — | F(0, —) | y = 0</div>
           <div class="mini-engine-hint"><b>Trascina il fuoco</b> · muovi <b>P</b> · usa lo slider p. P è <b>equidistante</b> (a isolati) dal fuoco e dalla direttrice.</div>
+          <div class="mini-cases">
+            <button class="regioni" onclick="meParabola.toggleMaster()">Formula Master sul piano</button>
+            <button class="ripristina" onclick="meParabola.reset()">Ripristina</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1732,6 +1749,91 @@ const MiniEngine = (() => {
 
   // Modello per-conica: handle trascinabili, polilinea su cui scorre P, fuochi misurati, invariante.
   // Ritorna null se la conica è attualmente invalida.
+  // Clip di una polilinea al riquadro [lo,hi]² (Liang–Barsky per segmento).
+  // Serve a tenere il punto P dimostrativo dentro la vista (uscita ≤1s).
+  function _clipPolylineToBox(pts, lo, hi) {
+    if (!pts || pts.length < 2) return pts;
+    function clip(a, b) {
+      let t0 = 0, t1 = 1; const dx = b.x - a.x, dy = b.y - a.y;
+      const p = [-dx, dx, -dy, dy], q = [a.x - lo, hi - a.x, a.y - lo, hi - a.y];
+      for (let i = 0; i < 4; i++) {
+        if (p[i] === 0) { if (q[i] < 0) return null; }
+        else { const r = q[i] / p[i];
+          if (p[i] < 0) { if (r > t1) return null; if (r > t0) t0 = r; }
+          else { if (r < t0) return null; if (r < t1) t1 = r; } }
+      }
+      return { a: { x: a.x + t0*dx, y: a.y + t0*dy }, b: { x: a.x + t1*dx, y: a.y + t1*dy } };
+    }
+    const out = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const seg = clip(pts[i], pts[i+1]); if (!seg) continue;
+      const last = out[out.length-1];
+      if (!last || Math.hypot(seg.a.x-last.x, seg.a.y-last.y) > 1e-6) out.push(seg.a);
+      out.push(seg.b);
+    }
+    return out.length >= 2 ? out : pts;
+  }
+
+  // Overlay «mostra regioni»: rette critiche + scacchiera tenue + etichette R.
+  function _drawRegioni(ctx, t, conicType, params) {
+    let xs = [], ys = [];
+    if (conicType === 'circle') { const {xc=0,yc=0}=params; xs=[xc]; ys=[yc]; }
+    else if (conicType === 'ellipse' || conicType === 'hyperbola') {
+      const {x1=0,y1=0,x2=2,y2=0}=params;
+      const ux=[...new Set([Math.min(x1,x2),Math.max(x1,x2)])];
+      const uy=[...new Set([Math.min(y1,y2),Math.max(y1,y2)])];
+      xs=ux; ys=uy;
+    } else return;
+    const B = 6;
+    const xsB=[-B, ...xs.slice().sort((a,b)=>a-b), B];
+    const ysB=[-B, ...ys.slice().sort((a,b)=>a-b), B];
+    ctx.save();
+    for (let i=0;i<xsB.length-1;i++) for (let j=0;j<ysB.length-1;j++) {
+      if ((i+j)%2===0) continue;
+      const a=t.toCanvas(xsB[i],ysB[j+1]), b=t.toCanvas(xsB[i+1],ysB[j]);
+      ctx.fillStyle='rgba(255,74,28,0.07)';
+      ctx.fillRect(Math.min(a.x,b.x),Math.min(a.y,b.y),Math.abs(b.x-a.x),Math.abs(b.y-a.y));
+    }
+    xs.forEach(xv=>drawSegment(ctx,t,{x:xv,y:-B},{x:xv,y:B},'rgba(10,10,10,0.5)',1.2,[5,4]));
+    ys.forEach(yv=>drawSegment(ctx,t,{x:-B,y:yv},{x:B,y:yv},'rgba(10,10,10,0.5)',1.2,[5,4]));
+    ctx.fillStyle='rgba(10,10,10,0.6)'; ctx.font='10px IBM Plex Mono, monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    const nx=xsB.length-1, ny=ysB.length-1;
+    for (let i=0;i<nx;i++) for (let j=0;j<ny;j++) {
+      const mx=(xsB[i]+xsB[i+1])/2, my=(ysB[j]+ysB[j+1])/2, c=t.toCanvas(mx,my);
+      let lab;
+      if (conicType==='circle') lab = (j===1)?(i===1?'I':'II'):(i===0?'III':'IV');
+      else lab = (3-j)+''+(i+1);
+      ctx.fillText(lab, c.x, c.y);
+    }
+    ctx.restore();
+  }
+
+  // Overlay «Formula Master» della parabola: etichetta i 4 pezzi + il vertice.
+  function _drawMasterParabola(ctx, t, params) {
+    const { xF=0, yF=2, k=0 } = params;
+    const p = yF - k, yV = (yF + k) / 2;
+    ctx.save();
+    ctx.font = '9.5px IBM Plex Mono, monospace'; ctx.fillStyle = '#0A0A0A';
+    drawPoint(ctx, t, xF, yV, '#FF4A1C', 4);
+    const cv = t.toCanvas(xF, yV);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(' V = (xF, (yF+k)/2)', cv.x + 6, cv.y);
+    // semirette verticali x = xF ± p
+    const lT = t.toCanvas(xF - p, Math.min(yF + 2.4, 5.6));
+    const rT = t.toCanvas(xF + p, Math.min(yF + 2.4, 5.6));
+    ctx.textBaseline = 'bottom';
+    ctx.textAlign = 'right'; ctx.fillText('x=xF−p', lT.x - 2, lT.y);
+    ctx.textAlign = 'left';  ctx.fillText('x=xF+p', rT.x + 2, rT.y);
+    // rami obliqui
+    const ymid = (yV + yF) / 2;
+    const lO = t.toCanvas(xF - p/2, ymid), rO = t.toCanvas(xF + p/2, ymid);
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'right'; ctx.fillText('x=−2y+…', lO.x - 4, lO.y);
+    ctx.textAlign = 'left';  ctx.fillText('x=2y−…', rO.x + 4, rO.y);
+    ctx.restore();
+  }
+
   function _miniModel(conicType, params) {
     if (conicType === 'circle') {
       const { xc=0, yc=0, R=3 } = params;
@@ -1763,7 +1865,7 @@ const MiniEngine = (() => {
       if (!lines.length) return null;
       return {
         handles: [{ x: x1, y: y1, keys: ['x1','y1'] }, { x: x2, y: y2, keys: ['x2','y2'] }],
-        path: { pts: lines[0], closed: false },
+        path: { pts: _clipPolylineToBox(lines[0], -5.8, 5.8), closed: false },
         foci: [{ x: x1, y: y1, color: '#0A0A0A' }, { x: x2, y: y2, color: '#FF4A1C' }],
         invariant: P => `|d₁(P,F₁)−d₁(P,F₂)| = ${Math.abs(ConicMath.taxiDist(P,{x:x1,y:y1}) - ConicMath.taxiDist(P,{x:x2,y:y2})).toFixed(2)} = 2a`
       };
@@ -1775,7 +1877,7 @@ const MiniEngine = (() => {
       if (!lines.length) return null;
       return {
         handles: [{ x: xF, y: yF, keys: ['xF','yF'] }],
-        path: { pts: lines[0], closed: false },
+        path: { pts: _clipPolylineToBox(lines[0], -5.8, 5.8), closed: false },
         foci: [{ x: xF, y: yF, color: '#0A0A0A' }],
         directrix: k,
         invariant: P => `d₁(P,F) = ${ConicMath.taxiDist(P,{x:xF,y:yF}).toFixed(2)} = |y−k|`
@@ -1810,6 +1912,7 @@ const MiniEngine = (() => {
     let params = { ...defaultParams };
     let rafId = null;
     let pT = 0.12, pDir = 1, lastTs = 0, visible = false, pointerInside = false, dragging = null;
+    let regioniOn = false, masterOn = false;
     const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     const DPR = window.devicePixelRatio || 1;
     function currentTransform() {
@@ -1844,6 +1947,7 @@ const MiniEngine = (() => {
       const color = COLORS[conicType] || '#FF4A1C';
 
       drawGrid(ctx, t);
+      if (regioniOn) _drawRegioni(ctx, t, conicType, params);
 
       if (conicType === 'circle') {
         const { xc=0, yc=0, R=3 } = params;
@@ -1900,6 +2004,7 @@ const MiniEngine = (() => {
       }
 
       _drawProofPoint(ctx, t, conicType, params, pT, outputEl);
+      if (masterOn && conicType === 'parabola') _drawMasterParabola(ctx, t, params);
     }
 
     function updateParam(key, val) {
@@ -1907,6 +2012,11 @@ const MiniEngine = (() => {
       draw();
       ensureLoop();
     }
+    // Bottoni «casi / regioni / ripristina»
+    function setCase(newParams) { Object.assign(params, newParams); pT = 0.12; draw(); ensureLoop(); }
+    function toggleRegioni(on) { regioniOn = (on === undefined) ? !regioniOn : !!on; draw(); }
+    function toggleMaster(on) { masterOn = (on === undefined) ? !masterOn : !!on; draw(); }
+    function reset() { params = { ...defaultParams }; regioniOn = false; masterOn = false; pT = 0.12; draw(); ensureLoop(); }
 
     let started = false;
     function start() {
@@ -2009,7 +2119,7 @@ const MiniEngine = (() => {
     canvas.addEventListener('pointerenter', () => { pointerInside = true; stop(); draw(); });
     canvas.addEventListener('pointerleave', () => { pointerInside = false; ensureLoop(); });
 
-    return { draw, updateParam, start, stop };
+    return { draw, updateParam, start, stop, setCase, toggleRegioni, toggleMaster, reset };
   }
 
   return { create, drawGrid, drawPoint, drawPolyline, drawSegment, makeTransform };
@@ -3231,15 +3341,20 @@ const GraphCalc = (() => {
     });
 
     // Draw pending tool points (visible immediately after first click)
-    if (state.pendingTool && state.pendingTool.pointsPlaced.length > 0) {
+    // Punti in attesa: dallo strumento (durante il piazzamento) OPPURE dal dialog
+    // del valore (es. dopo aver messo il 2° fuoco) — così i fuochi non spariscono.
+    const _pend = state.pendingTool
+      ? { type: state.pendingTool.type, points: state.pendingTool.pointsPlaced }
+      : (state.pendingValue ? { type: state.pendingValue.type, points: state.pendingValue.points } : null);
+    if (_pend && _pend.points && _pend.points.length > 0) {
       const ptLabels = {
         asse:['P₁','P₂'], circonferenza:['C'],
         ellisse:['F₁','F₂'], iperbole:['F₁','F₂'],
         parabola:['F','dir'], distanza:['P₁','P₂']
       };
-      const pColor = DEFAULT_COLORS[state.pendingTool.type] || '#fff';
-      state.pendingTool.pointsPlaced.forEach((pt, i) => {
-        const lbl = (ptLabels[state.pendingTool.type]||[])[i] || ('P'+(i+1));
+      const pColor = DEFAULT_COLORS[_pend.type] || '#0A0A0A';
+      _pend.points.forEach((pt, i) => {
+        const lbl = (ptLabels[_pend.type]||[])[i] || ('P'+(i+1));
         MiniEngine.drawPoint(ctx, t, pt.x, pt.y, pColor, 6);
         const cp = t.toCanvas(pt.x, pt.y);
         ctx.save();
@@ -3670,6 +3785,93 @@ const meParabola = MiniEngine.create('me-parabola', 'parabola',
   { xF: 0, yF: 2, k: 0 },
   document.getElementById('me-parabola-out')
 );
+
+// §1 — widget dimostrativo: cammini minimi infiniti ↔ disuguaglianza triangolare
+const fondWidget = (() => {
+  const canvas = document.getElementById('me-fondamenti');
+  const out = document.getElementById('me-fondamenti-out');
+  const toggleBtn = document.getElementById('fond-toggle');
+  if (!canvas) return { toggle(){}, reset(){} };
+  const ctx = canvas.getContext('2d');
+  const DPR = window.devicePixelRatio || 1;
+  let mode = 'cammini', dragging = null;
+  const DEF = {
+    cammini:   { A:{x:-3,y:-2}, B:{x:2,y:3} },
+    triangolo: { A:{x:-3,y:-2}, B:{x:1,y:2}, C:{x:3,y:-1} }
+  };
+  function cloneDef(m){ const d=DEF[m]; const o={A:{...d.A},B:{...d.B}}; if(d.C)o.C={...d.C}; return o; }
+  let pts = cloneDef('cammini');
+  function transform(){ const size=canvas.width/DPR; return MiniEngine.makeTransform({width:size,height:size}, size/12, 0, 0); }
+  function resize(){
+    const rect=canvas.parentElement.getBoundingClientRect(); const size=Math.min(rect.width,280);
+    canvas.width=size*DPR; canvas.height=size*DPR; canvas.style.width=size+'px'; canvas.style.height=size+'px';
+    ctx.setTransform(1,0,0,1,0,0); ctx.scale(DPR,DPR);
+  }
+  function clampPt(p){ return { x: Math.max(-5,Math.min(5,Math.round(p.x))), y: Math.max(-5,Math.min(5,Math.round(p.y))) }; }
+  function binom(n,k){ if(k<0||k>n)return 0; k=Math.min(k,n-k); let r=1; for(let i=0;i<k;i++) r=r*(n-i)/(i+1); return Math.round(r); }
+  function staircase(A,B,pattern){
+    const dirX=Math.sign(B.x-A.x)||1, dirY=Math.sign(B.y-A.y)||1; let cur={...A}; const o=[{...cur}];
+    for(const mv of pattern){ if(mv==='x')cur={x:cur.x+dirX,y:cur.y}; else cur={x:cur.x,y:cur.y+dirY}; o.push({...cur}); } return o;
+  }
+  const Lpath=(A,B)=>staircase(A,B,'x'.repeat(Math.abs(B.x-A.x))+'y'.repeat(Math.abs(B.y-A.y)));
+  function patterns(A,B){
+    const nx=Math.abs(B.x-A.x), ny=Math.abs(B.y-A.y);
+    const Lx='x'.repeat(nx)+'y'.repeat(ny), Ly='y'.repeat(ny)+'x'.repeat(nx);
+    let s1='',ix=nx,iy=ny; while(ix||iy){ if(ix){s1+='x';ix--;} if(iy){s1+='y';iy--;} }
+    let s2='',jx=nx,jy=ny; while(jx||jy){ if(jy){s2+='y';jy--;} if(jx){s2+='x';jx--;} }
+    return [...new Set([Lx,Ly,s1,s2])].map(p=>staircase(A,B,p));
+  }
+  function drawPL(t,pl,color,w,dash){
+    if(pl.length<2)return; ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=w; ctx.lineJoin='round'; ctx.lineCap='round'; if(dash)ctx.setLineDash(dash);
+    ctx.beginPath(); pl.forEach((p,i)=>{ const c=t.toCanvas(p.x,p.y); i?ctx.lineTo(c.x,c.y):ctx.moveTo(c.x,c.y); }); ctx.stroke(); ctx.restore();
+  }
+  function lab(t,p,txt){ const c=t.toCanvas(p.x,p.y); ctx.save(); ctx.font='bold 12px IBM Plex Mono, monospace'; ctx.fillStyle='#0A0A0A'; ctx.fillText(txt,c.x+8,c.y-8); ctx.restore(); }
+  function draw(){
+    const size=canvas.width/DPR; ctx.clearRect(0,0,size,size); ctx.fillStyle='#E9E5DC'; ctx.fillRect(0,0,size,size);
+    const t=transform(); MiniEngine.drawGrid(ctx,t);
+    if(mode==='cammini'){
+      const {A,B}=pts;
+      MiniEngine.drawSegment(ctx,t,A,{x:B.x,y:A.y},'rgba(10,10,10,0.16)',1);
+      MiniEngine.drawSegment(ctx,t,{x:B.x,y:A.y},B,'rgba(10,10,10,0.16)',1);
+      MiniEngine.drawSegment(ctx,t,A,{x:A.x,y:B.y},'rgba(10,10,10,0.16)',1);
+      MiniEngine.drawSegment(ctx,t,{x:A.x,y:B.y},B,'rgba(10,10,10,0.16)',1);
+      const cols=['#FF4A1C','rgba(255,74,28,0.5)','rgba(10,10,10,0.5)','rgba(255,74,28,0.78)'];
+      patterns(A,B).forEach((pl,i)=>drawPL(t,pl,cols[i%cols.length], i===0?3:2));
+      drawPL(t,[A,B],'rgba(10,10,10,0.5)',1.5,[5,4]);
+      MiniEngine.drawPoint(ctx,t,A.x,A.y,'#0A0A0A',5); lab(t,A,'A');
+      MiniEngine.drawPoint(ctx,t,B.x,B.y,'#0A0A0A',5); lab(t,B,'B');
+      const d1=Math.abs(B.x-A.x)+Math.abs(B.y-A.y), d2=Math.hypot(B.x-A.x,B.y-A.y);
+      const n=binom(Math.abs(B.x-A.x)+Math.abs(B.y-A.y), Math.abs(B.x-A.x));
+      if(out) out.textContent=`d₁(A,B) = ${d1} · ${n} cammini minimi · diagonale d₂ ≈ ${d2.toFixed(2)}`;
+    } else {
+      const {A,B,C}=pts;
+      drawPL(t,Lpath(A,B),'#FF4A1C',2.5);
+      drawPL(t,Lpath(B,C),'rgba(255,74,28,0.55)',2.5);
+      drawPL(t,Lpath(A,C),'rgba(10,10,10,0.65)',2,[6,4]);
+      MiniEngine.drawPoint(ctx,t,A.x,A.y,'#0A0A0A',5); lab(t,A,'A');
+      MiniEngine.drawPoint(ctx,t,B.x,B.y,'#FF4A1C',5); lab(t,B,'B');
+      MiniEngine.drawPoint(ctx,t,C.x,C.y,'#0A0A0A',5); lab(t,C,'C');
+      const ab=Math.abs(B.x-A.x)+Math.abs(B.y-A.y), bc=Math.abs(C.x-B.x)+Math.abs(C.y-B.y), ac=Math.abs(C.x-A.x)+Math.abs(C.y-A.y);
+      if(out) out.textContent=`d(A,B)+d(B,C) = ${ab}+${bc} = ${ab+bc} ${ab+bc===ac?'=':'≥'} d(A,C) = ${ac}  ✓`;
+    }
+  }
+  function ptr(e){ const r=canvas.getBoundingClientRect(); return {px:e.clientX-r.left, py:e.clientY-r.top}; }
+  function hit(t,px,py){ for(const k of Object.keys(pts)){ const c=t.toCanvas(pts[k].x,pts[k].y); if(Math.hypot(c.x-px,c.y-py)<14) return k; } return null; }
+  canvas.style.touchAction='none';
+  canvas.addEventListener('pointerdown',e=>{ const t=transform(),{px,py}=ptr(e); const k=hit(t,px,py); if(!k)return; dragging=k; try{canvas.setPointerCapture(e.pointerId);}catch(_){} canvas.style.cursor='grabbing'; e.preventDefault(); });
+  canvas.addEventListener('pointermove',e=>{ const t=transform(),{px,py}=ptr(e); if(dragging){ pts[dragging]=clampPt(t.toWorld(px,py)); draw(); return; } canvas.style.cursor=hit(t,px,py)?'grab':'default'; });
+  function end(e){ if(!dragging)return; dragging=null; try{canvas.releasePointerCapture(e.pointerId);}catch(_){} canvas.style.cursor='grab'; }
+  canvas.addEventListener('pointerup',end); canvas.addEventListener('pointercancel',end);
+  const obs=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ resize(); draw(); } }),{threshold:0.1});
+  obs.observe(canvas);
+  window.addEventListener('resize',()=>{ resize(); draw(); });
+  resize(); draw();
+  return {
+    toggle(){ mode=(mode==='cammini')?'triangolo':'cammini'; pts=cloneDef(mode); if(toggleBtn)toggleBtn.textContent=(mode==='cammini')?'▸ Disuguaglianza triangolare':'◂ Cammini minimi'; resize(); draw(); },
+    reset(){ mode='cammini'; pts=cloneDef('cammini'); if(toggleBtn)toggleBtn.textContent='▸ Disuguaglianza triangolare'; resize(); draw(); }
+  };
+})();
+
 // Reveal hero calc button after user has seen §1 Fondamenti
 const _heroCalcBtn = document.getElementById('btn-hero-calc');
 const _fondamentiRevealObs = new IntersectionObserver((entries) => {
