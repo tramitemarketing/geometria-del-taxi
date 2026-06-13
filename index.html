@@ -841,7 +841,6 @@
           <div class="mini-engine-hint" id="me-fondamenti-hint"><b>Trascina A e B</b>: tante scalette diverse, <b>stessa lunghezza</b> (la diagonale tratteggiata è la scorciatoia vietata, più corta).</div>
           <div class="mini-cases">
             <button id="fond-toggle" onclick="fondWidget.toggle()">▸ Disuguaglianza triangolare</button>
-            <button class="ripristina" onclick="fondWidget.reset()">Ripristina</button>
           </div>
         </div>
       </div>
@@ -3886,10 +3885,11 @@ const fondWidget = (() => {
   const canvas = document.getElementById('me-fondamenti');
   const out = document.getElementById('me-fondamenti-out');
   const toggleBtn = document.getElementById('fond-toggle');
-  if (!canvas) return { toggle(){}, reset(){} };
+  if (!canvas) return { toggle(){} };
   const ctx = canvas.getContext('2d');
   const DPR = window.devicePixelRatio || 1;
-  let mode = 'cammini', dragging = null;
+  let mode = 'cammini', dragging = null, visible = false, animT = 0, rafId = null, lastTs = 0;
+  const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const DEF = {
     cammini:   { A:{x:-3,y:-2}, B:{x:2,y:3} },
     triangolo: { A:{x:-3,y:-2}, B:{x:1,y:2}, C:{x:3,y:-1} }
@@ -3921,6 +3921,12 @@ const fondWidget = (() => {
     ctx.beginPath(); pl.forEach((p,i)=>{ const c=t.toCanvas(p.x,p.y); i?ctx.lineTo(c.x,c.y):ctx.moveTo(c.x,c.y); }); ctx.stroke(); ctx.restore();
   }
   function lab(t,p,txt){ const c=t.toCanvas(p.x,p.y); ctx.save(); ctx.font='bold 12px IBM Plex Mono, monospace'; ctx.fillStyle='#0A0A0A'; ctx.fillText(txt,c.x+8,c.y-8); ctx.restore(); }
+  // posizione lungo la polilinea alla frazione tt (per i punti animati che corrono A→B)
+  function pointAt(pl, tt){
+    if(!pl || pl.length<2) return pl && pl[0];
+    const seg=(pl.length-1)*Math.max(0,Math.min(1,tt)); const i=Math.min(pl.length-2,Math.floor(seg)); const f=seg-i;
+    return { x: pl[i].x+(pl[i+1].x-pl[i].x)*f, y: pl[i].y+(pl[i+1].y-pl[i].y)*f };
+  }
   function draw(){
     const size=canvas.width/DPR; ctx.clearRect(0,0,size,size); ctx.fillStyle='#E9E5DC'; ctx.fillRect(0,0,size,size);
     const t=transform(); MiniEngine.drawGrid(ctx,t);
@@ -3930,9 +3936,14 @@ const fondWidget = (() => {
       MiniEngine.drawSegment(ctx,t,{x:B.x,y:A.y},B,'rgba(10,10,10,0.16)',1);
       MiniEngine.drawSegment(ctx,t,A,{x:A.x,y:B.y},'rgba(10,10,10,0.16)',1);
       MiniEngine.drawSegment(ctx,t,{x:A.x,y:B.y},B,'rgba(10,10,10,0.16)',1);
+      const pls=patterns(A,B);
       const cols=['#FF4A1C','rgba(255,74,28,0.5)','rgba(10,10,10,0.5)','rgba(255,74,28,0.78)'];
-      patterns(A,B).forEach((pl,i)=>drawPL(t,pl,cols[i%cols.length], i===0?3:2));
+      pls.forEach((pl,i)=>drawPL(t,pl,cols[i%cols.length], i===0?3:2));
       drawPL(t,[A,B],'rgba(10,10,10,0.5)',1.5,[5,4]);
+      // 3 punti animati che corrono lungo 3 strade diverse: arrivano in B insieme
+      const chosen=[pls[0], pls[Math.min(1,pls.length-1)], pls[pls.length-1]];
+      const dotCols=['#FF4A1C','#0A0A0A','#FF4A1C'];
+      chosen.forEach((pl,i)=>{ const P=pointAt(pl, animT); if(P) MiniEngine.drawPoint(ctx,t,P.x,P.y, dotCols[i], 5); });
       MiniEngine.drawPoint(ctx,t,A.x,A.y,'#0A0A0A',5); lab(t,A,'A');
       MiniEngine.drawPoint(ctx,t,B.x,B.y,'#0A0A0A',5); lab(t,B,'B');
       const d1=Math.abs(B.x-A.x)+Math.abs(B.y-A.y), d2=Math.hypot(B.x-A.x,B.y-A.y);
@@ -3950,20 +3961,23 @@ const fondWidget = (() => {
       if(out) out.textContent=`d(A,B)+d(B,C) = ${ab}+${bc} = ${ab+bc} ${ab+bc===ac?'=':'≥'} d(A,C) = ${ac}  ✓`;
     }
   }
+  function animating(){ return mode==='cammini' && visible && !reduced && !dragging; }
+  function loop(ts){ if(!animating()){ rafId=null; return; } const dt=lastTs?Math.min(0.05,(ts-lastTs)/1000):0; lastTs=ts; animT+=0.26*dt; if(animT>=1.25) animT=0; draw(); rafId=requestAnimationFrame(loop); }
+  function ensureLoop(){ if(animating() && rafId==null){ lastTs=0; rafId=requestAnimationFrame(loop); } }
+  function stopLoop(){ if(rafId){ cancelAnimationFrame(rafId); rafId=null; } }
   function ptr(e){ const r=canvas.getBoundingClientRect(); return {px:e.clientX-r.left, py:e.clientY-r.top}; }
   function hit(t,px,py){ for(const k of Object.keys(pts)){ const c=t.toCanvas(pts[k].x,pts[k].y); if(Math.hypot(c.x-px,c.y-py)<14) return k; } return null; }
   canvas.style.touchAction='none';
-  canvas.addEventListener('pointerdown',e=>{ const t=transform(),{px,py}=ptr(e); const k=hit(t,px,py); if(!k)return; dragging=k; try{canvas.setPointerCapture(e.pointerId);}catch(_){} canvas.style.cursor='grabbing'; e.preventDefault(); });
+  canvas.addEventListener('pointerdown',e=>{ const t=transform(),{px,py}=ptr(e); const k=hit(t,px,py); if(!k)return; dragging=k; stopLoop(); try{canvas.setPointerCapture(e.pointerId);}catch(_){} canvas.style.cursor='grabbing'; e.preventDefault(); });
   canvas.addEventListener('pointermove',e=>{ const t=transform(),{px,py}=ptr(e); if(dragging){ pts[dragging]=clampPt(t.toWorld(px,py)); draw(); return; } canvas.style.cursor=hit(t,px,py)?'grab':'default'; });
-  function end(e){ if(!dragging)return; dragging=null; try{canvas.releasePointerCapture(e.pointerId);}catch(_){} canvas.style.cursor='grab'; }
+  function end(e){ if(!dragging)return; dragging=null; try{canvas.releasePointerCapture(e.pointerId);}catch(_){} canvas.style.cursor='grab'; ensureLoop(); }
   canvas.addEventListener('pointerup',end); canvas.addEventListener('pointercancel',end);
-  const obs=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ resize(); draw(); } }),{threshold:0.1});
+  const obs=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ visible=true; resize(); draw(); ensureLoop(); } else { visible=false; stopLoop(); } }),{threshold:0.1});
   obs.observe(canvas);
   window.addEventListener('resize',()=>{ resize(); draw(); });
   resize(); draw();
   return {
-    toggle(){ mode=(mode==='cammini')?'triangolo':'cammini'; pts=cloneDef(mode); if(toggleBtn)toggleBtn.textContent=(mode==='cammini')?'▸ Disuguaglianza triangolare':'◂ Cammini minimi'; resize(); draw(); },
-    reset(){ mode='cammini'; pts=cloneDef('cammini'); if(toggleBtn)toggleBtn.textContent='▸ Disuguaglianza triangolare'; resize(); draw(); }
+    toggle(){ mode=(mode==='cammini')?'triangolo':'cammini'; pts=cloneDef(mode); animT=0; if(toggleBtn)toggleBtn.textContent=(mode==='cammini')?'▸ Disuguaglianza triangolare':'◂ Vedi distanza tra i punti'; resize(); draw(); if(mode==='cammini') ensureLoop(); else stopLoop(); }
   };
 })();
 
